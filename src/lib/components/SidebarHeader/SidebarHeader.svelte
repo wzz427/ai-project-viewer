@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { activeProject } from "$lib/stores/projectStore.svelte";
+  import FilesMenu from "$lib/components/FileTree/FilesMenu.svelte";
+
   let {
     mode,
     onModeChange,
@@ -6,6 +9,17 @@
     mode: "files" | "git" | "settings";
     onModeChange: (mode: "files" | "git" | "settings") => void;
   } = $props();
+
+  const project = $derived(activeProject());
+
+  // V1.5 §30: the Files row carries the "⋯" menu (sort / visibility /
+  // refresh). Only meaningful in Files mode with a project open.
+  let filesMenu = $state<{ x: number; y: number } | null>(null);
+
+  function openFilesMenu(e: MouseEvent) {
+    if (!project) return;
+    filesMenu = { x: e.clientX, y: e.clientY };
+  }
 </script>
 
 <!-- V1.5 §8: Files / Git as sidebar header tabs; Settings is an entry, not a tab. -->
@@ -25,8 +39,19 @@
     Git
   </button>
   <div class="spacer"></div>
+  {#if mode === "files"}
+    <button
+      class="header-icon"
+      onclick={openFilesMenu}
+      disabled={!project}
+      title="Files options"
+      aria-label="Files options"
+    >
+      ⋯
+    </button>
+  {/if}
   <button
-    class="settings"
+    class="header-icon settings"
     class:active={mode === "settings"}
     onclick={() => onModeChange("settings")}
     title="Settings"
@@ -35,6 +60,15 @@
     ⚙
   </button>
 </div>
+
+{#if filesMenu && project}
+  <FilesMenu
+    rootPath={project.rootPath}
+    x={filesMenu.x}
+    y={filesMenu.y}
+    onclose={() => (filesMenu = null)}
+  />
+{/if}
 
 <style>
   .sidebar-header {
@@ -65,15 +99,20 @@
     flex: 1;
   }
 
-  .settings {
+  .header-icon {
     padding: 4px 8px;
     border-radius: var(--radius);
     color: var(--text-muted);
     font-size: 14px;
   }
 
-  .settings:hover {
+  .header-icon:hover:not(:disabled) {
     background: var(--bg-hover);
+  }
+
+  .header-icon:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .settings.active {

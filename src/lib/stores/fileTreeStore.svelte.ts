@@ -49,6 +49,12 @@ export const treeState = $state({
   byRoot: {} as Record<string, ProjectTreeState>,
 });
 
+/** In-flight pinned-row drag (same-parent reorder only, V1.5 §38/§39). */
+export const dragState = $state({
+  parentRel: null as string | null,
+  name: null as string | null,
+});
+
 export function treeFor(rootPath: string): ProjectTreeState {
   let st = treeState.byRoot[rootPath];
   if (!st) {
