@@ -1,0 +1,280 @@
+/**
+ * Per-project file tabs (V1.5 §21 FileTabState + §46 tab layer).
+ * In-memory until Phase 4; identities are project-relative paths (§18).
+ *
+ * Content cache is runtime-only (not part of the session shape): viewers
+ * re-read through it on tab switch; Ctrl+R invalidates it (§82 manual slice
+ * until the Phase 9 watcher).
+ */
+
+import { ask } from "@tauri-apps/plugin-dialog";
+import {
+  inspectFile,
+  readMediaFile,
+  readTextFile,
+  type FileEncoding,
+} from "$lib/services/tauri";
+import {
+  fileNameOf,
+  isImageName,
+  viewerTypeFor,
+  type ViewerType,
+} from "$lib/services/viewerType";
+import { toast } from "$lib/stores/toastStore.svelte";
+
+export type MarkdownMode = "rendered" | "source";
+
+/** §21 FileTabState (+ runtime-only fields marked below). */
+export interface RuntimeTab {
+  relativePath: string;
+  viewerType: ViewerType;
+  markdownMode?: MarkdownMode;
+  /** runtime-only: JSON viewer formatted/source toggle. */
+  jsonMode?: "formatted" | "source";
+  /** runtime-only: last scroll offset for restore (§160.5 unmount). */
+  scrollPosition?: number;
+  cursorLine?: number;
+  encoding?: FileEncoding;
+  /** runtime-only: file vanished from disk (§83). */
+  deleted?: boolean;
+  /** runtime-only: why "unsupported" (binary guard verdict etc.). */
+  unsupportedReason?: "binary" | "huge";
+  sizeBytes?: number;
+}
+
+interface ProjectTabs {
+  openFiles: RuntimeTab[];
+  activeFileRelativePath: string | null;
+}
+
+export const tabsState = $state({
+  byRoot: {} as Record<string, ProjectTabs>,
+});
+
+type Cached =
+  | { kind: "text"; text: string; encoding: FileEncoding }
+  | { kind: "media"; dataUrl: string };
+
+const contentCache = new Map<string, Cached>();
+
+function projectTabs(rootPath: string): ProjectTabs {
+  let st = tabsState.byRoot[rootPath];
+  if (!st) {
+    st = { openFiles: [], activeFileRelativePath: null };
+    tabsState.byRoot[rootPath] = st;
+  }
+  return st;
+}
+
+function cacheKey(rootPath: string, rel: string) {
+  return `${rootPath}\n${rel}`;
+}
+
+export function cachedContent(
+  rootPath: string,
+  rel: string,
+): Cached | undefined {
+  return contentCache.get(cacheKey(rootPath, rel));
+}
+
+export function activeTab(rootPath: string): RuntimeTab | undefined {
+  const st = tabsState.byRoot[rootPath];
+  if (!st?.activeFileRelativePath) return undefined;
+  return st.openFiles.find(
+    (t) => t.relativePath === st.activeFileRelativePath,
+  );
+}
+
+function addOrActivate(rootPath: string, tab: RuntimeTab) {
+  const st = projectTabs(rootPath);
+  const existing = st.openFiles.find(
+    (t) => t.relativePath === tab.relativePath,
+  );
+  if (existing) {
+    // Re-open keeps position and per-tab state, refreshes the verdicts.
+    Object.assign(existing, tab, {
+      markdownMode: existing.markdownMode ?? tab.markdownMode,
+    });
+    st.activeFileRelativePath = tab.relativePath;
+    return;
+  }
+  st.openFiles.push(tab);
+  st.activeFileRelativePath = tab.relativePath;
+}
+
+export function activateFile(rootPath: string, rel: string) {
+  const st = projectTabs(rootPath);
+  if (st.openFiles.some((t) => t.relativePath === rel)) {
+    st.activeFileRelativePath = rel;
+    void recheckDeleted(rootPath, rel);
+  }
+}
+
+export function closeFile(rootPath: string, rel: string) {
+  const st = projectTabs(rootPath);
+  const idx = st.openFiles.findIndex((t) => t.relativePath === rel);
+  if (idx === -1) return;
+  st.openFiles.splice(idx, 1);
+  contentCache.delete(cacheKey(rootPath, rel));
+  if (st.activeFileRelativePath === rel) {
+    const next = st.openFiles[Math.min(idx, st.openFiles.length - 1)];
+    st.activeFileRelativePath = next ? next.relativePath : null;
+  }
+}
+
+export function cycleTab(rootPath: string, direction: 1 | -1) {
+  const st = projectTabs(rootPath);
+  if (st.openFiles.length < 2) return;
+  const idx = st.openFiles.findIndex(
+    (t) => t.relativePath === st.activeFileRelativePath,
+  );
+  const next =
+    st.openFiles[(idx + direction + st.openFiles.length) % st.openFiles.length];
+  st.activeFileRelativePath = next.relativePath;
+}
+
+/** §83 detection point: tab activation and Ctrl+R (spec-003 D5). */
+async function recheckDeleted(rootPath: string, rel: string) {
+  try {
+    await inspectFile(rootPath, rel);
+    const tab = projectTabs(rootPath).openFiles.find(
+      (t) => t.relativePath === rel,
+    );
+    if (tab) tab.deleted = false;
+  } catch {
+    const tab = projectTabs(rootPath).openFiles.find(
+      (t) => t.relativePath === rel,
+    );
+    if (tab) tab.deleted = true;
+  }
+}
+
+/**
+ * Open a file from the tree through the §101 pipeline (spec-003 R3):
+ * binary → binary placeholder; >20 MB → huge placeholder; 5–20 MB text →
+ * confirm dialog first (§106); images ride the media channel.
+ */
+export async function openFile(rootPath: string, rel: string) {
+  let info;
+  try {
+    info = await inspectFile(rootPath, rel);
+  } catch (err) {
+    toast(`Cannot open file: ${err}`, { kind: "error" });
+    return;
+  }
+
+  if (info.isBinary) {
+    addOrActivate(rootPath, {
+      relativePath: rel,
+      viewerType: "binary",
+      unsupportedReason: "binary",
+      sizeBytes: info.sizeBytes,
+    });
+    return;
+  }
+  if (info.sizeClass === "huge") {
+    addOrActivate(rootPath, {
+      relativePath: rel,
+      viewerType: "unsupported",
+      unsupportedReason: "huge",
+      sizeBytes: info.sizeBytes,
+    });
+    return;
+  }
+
+  if (isImageName(rel)) {
+    try {
+      const media = await readMediaFile(rootPath, rel);
+      contentCache.set(cacheKey(rootPath, rel), {
+        kind: "media",
+        dataUrl: media.dataUrl,
+      });
+      addOrActivate(rootPath, {
+        relativePath: rel,
+        viewerType: "image",
+        sizeBytes: info.sizeBytes,
+      });
+    } catch (err) {
+      toast(`Cannot open image: ${err}`, { kind: "error" });
+    }
+    return;
+  }
+
+  if (info.sizeClass === "large") {
+    const yes = await ask(
+      `${fileNameOf(rel)} is ${(info.sizeBytes / 1048576).toFixed(1)} MB.\n\nOpening this file may affect performance.`,
+      { title: "Large File", kind: "warning", okLabel: "Open Anyway", cancelLabel: "Cancel" },
+    );
+    if (!yes) return;
+  }
+
+  try {
+    const content = await readTextFile(rootPath, rel);
+    contentCache.set(cacheKey(rootPath, rel), {
+      kind: "text",
+      text: content.text,
+      encoding: content.encoding,
+    });
+    addOrActivate(rootPath, {
+      relativePath: rel,
+      viewerType: viewerTypeFor(rel),
+      markdownMode: "rendered",
+      jsonMode: "formatted",
+      encoding: content.encoding,
+      sizeBytes: info.sizeBytes,
+      scrollPosition: 0,
+    });
+  } catch (err) {
+    toast(`Cannot open file: ${err}`, { kind: "error" });
+  }
+}
+
+/** Ctrl+R slice (§82 manual): reload the active file, toast if it changed. */
+export async function refreshActiveFile(rootPath: string) {
+  const st = projectTabs(rootPath);
+  const rel = st.activeFileRelativePath;
+  if (!rel) return;
+  const tab = st.openFiles.find((t) => t.relativePath === rel);
+  if (!tab) return;
+
+  let info;
+  try {
+    info = await inspectFile(rootPath, rel);
+  } catch {
+    tab.deleted = true;
+    return;
+  }
+  tab.deleted = false;
+
+  if (tab.viewerType === "image") {
+    const media = await readMediaFile(rootPath, rel).catch(() => null);
+    if (media) {
+      contentCache.set(cacheKey(rootPath, rel), {
+        kind: "media",
+        dataUrl: media.dataUrl,
+      });
+    }
+    return;
+  }
+  if (tab.viewerType === "binary" || tab.viewerType === "unsupported") return;
+
+  const fresh = await readTextFile(rootPath, rel).catch(() => null);
+  if (!fresh) return;
+  const prev = contentCache.get(cacheKey(rootPath, rel));
+  if (prev?.kind === "text" && prev.text !== fresh.text) {
+    toast(`✓ ${fileNameOf(rel)} updated`);
+  }
+  contentCache.set(cacheKey(rootPath, rel), {
+    kind: "text",
+    text: fresh.text,
+    encoding: fresh.encoding,
+  });
+  tab.encoding = fresh.encoding;
+}
+
+export function forgetTabs(rootPath: string) {
+  for (const key of [...contentCache.keys()]) {
+    if (key.startsWith(`${rootPath}\n`)) contentCache.delete(key);
+  }
+  delete tabsState.byRoot[rootPath];
+}

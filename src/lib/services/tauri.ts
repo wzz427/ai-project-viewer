@@ -58,6 +58,32 @@ export function inspectFile(
   return invoke<FileInspection>("inspect_file", { rootPath, relPath });
 }
 
+export interface TextFileContent {
+  text: string;
+  encoding: FileEncoding;
+  sizeBytes: number;
+}
+
+/** Decoded text (guards already passed in Rust, §104/§106). */
+export function readTextFile(
+  rootPath: string,
+  relPath: string,
+): Promise<TextFileContent> {
+  return invoke<TextFileContent>("read_text_file", { rootPath, relPath });
+}
+
+export interface MediaFileContent {
+  dataUrl: string;
+}
+
+/** Image bytes as a base64 data URL (SVG rides the same safe path, §110). */
+export function readMediaFile(
+  rootPath: string,
+  relPath: string,
+): Promise<MediaFileContent> {
+  return invoke<MediaFileContent>("read_media_file", { rootPath, relPath });
+}
+
 /** Milliseconds from Rust process start to the moment this is called. */
 export function startupElapsedMs(): Promise<number> {
   return invoke<number>("startup_elapsed_ms");

@@ -11,6 +11,7 @@
     treeState,
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
+  import { openFile } from "$lib/stores/tabsStore.svelte";
   import NodeContextMenu from "$lib/components/FileTree/NodeContextMenu.svelte";
   // Self-import is the Svelte 5 way to recurse (`<svelte:self>` is legacy).
   import Self from "$lib/components/FileTree/TreeItem.svelte";
@@ -56,9 +57,10 @@
     if (entry.isDir) {
       void toggleExpand(rootPath, rel);
     } else {
-      // Files are selectable but not openable in Phase 2 — opening a file
-      // means File Tabs + viewers, which is Phase 3 scope (spec-002 D6).
+      // Single click opens the file (spec-003 D1) — reading is this app's
+      // main verb; the row stays highlighted as the selected node.
       selectNode(rootPath, rel);
+      void openFile(rootPath, rel);
     }
   }
 

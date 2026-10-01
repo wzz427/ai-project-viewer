@@ -14,9 +14,24 @@
   import {
     installShortcutDispatcher,
     onShortcut,
-    knownCombos,
   } from "$lib/services/shortcuts";
   import { startupElapsedMs } from "$lib/services/tauri";
+  import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
+  import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
+  import {
+    activeTab,
+    closeFile,
+    cycleTab,
+    refreshActiveFile,
+  } from "$lib/stores/tabsStore.svelte";
+  import { refreshProject } from "$lib/stores/fileTreeStore.svelte";
+  import { tabsState } from "$lib/stores/tabsStore.svelte";
+
+  function tabsOf(rootPath: string) {
+    return tabsState.byRoot[rootPath]?.openFiles ?? [];
+  }
+  import { openSearchPanel } from "@codemirror/search";
+  import { getActiveSearchView } from "$lib/components/Viewers/codeSearchRegistry";
 
   type SidebarMode = "files" | "git" | "settings";
 
@@ -24,26 +39,43 @@
 
   const project = $derived(activeProject());
 
+  // Real P0 behaviors (V1.5 §146/§147). The dispatcher claims the keydown at
+  // capture phase, so these run instead of any browser default — Ctrl+R must
+  // refresh the project, never reload the WebView (formal acceptance item).
+  function wireShortcuts() {
+    const unsubs = [
+      onShortcut("ctrl+w", () => {
+        const root = project?.rootPath;
+        const tab = root ? activeTab(root) : undefined;
+        if (root && tab) closeFile(root, tab.relativePath);
+      }),
+      onShortcut("ctrl+f", () => {
+        const view = getActiveSearchView();
+        if (view) openSearchPanel(view);
+      }),
+      onShortcut("ctrl+tab", () => {
+        if (project) cycleTab(project.rootPath, 1);
+      }),
+      onShortcut("ctrl+shift+tab", () => {
+        if (project) cycleTab(project.rootPath, -1);
+      }),
+      onShortcut("ctrl+r", () => {
+        if (!project) return;
+        void refreshProject(project.rootPath);
+        void refreshActiveFile(project.rootPath);
+      }),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }
+
   onMount(() => {
     initTheme();
     installShortcutDispatcher();
-
-    // Phase 1 placeholder handlers: prove interception; real behaviors arrive
-    // with their features (V1.5 §177 — Phase 3 wires file-tab actions).
-    const message: Record<string, string> = {
-      "ctrl+w": "Ctrl+W — close file tab (file tabs arrive in Phase 3)",
-      "ctrl+f": "Ctrl+F — find in viewer (viewers arrive in Phase 3)",
-      "ctrl+tab": "Ctrl+Tab — next file tab (file tabs arrive in Phase 3)",
-      "ctrl+shift+tab": "Ctrl+Shift+Tab — previous file tab (file tabs arrive in Phase 3)",
-      "ctrl+r": "Ctrl+R — refresh active project (file tree arrives in Phase 2)",
-    };
-    const unsubscribers = knownCombos.map((combo) =>
-      onShortcut(combo, () => toast(message[combo])),
-    );
+    const unwire = wireShortcuts();
 
     startupElapsedMs().then(recordStartup).catch(() => {});
 
-    return () => unsubscribers.forEach((u) => u());
+    return () => unwire();
   });
 </script>
 
@@ -66,12 +98,21 @@
       {#if projectState.tabs.length === 0}
         <EmptyState />
       {:else if project}
-        <div class="viewer-placeholder">
-          <div class="placeholder-card">
-            <h2>{project.name}</h2>
-            <p class="mono muted">{project.rootPath}</p>
-            <p class="muted">Viewers (Markdown, code, PDF, …) arrive in Phase 3.</p>
-          </div>
+        <div class="viewer-stack">
+          <FileTabs rootPath={project.rootPath} />
+          {#if tabsOf(project.rootPath).length > 0}
+            <div class="viewer-body">
+              <ActiveViewer rootPath={project.rootPath} />
+            </div>
+          {:else}
+            <div class="viewer-placeholder">
+              <div class="placeholder-card">
+                <h2>{project.name}</h2>
+                <p class="mono muted">{project.rootPath}</p>
+                <p class="muted">Open a file from the tree to view it.</p>
+              </div>
+            </div>
+          {/if}
         </div>
       {/if}
     </main>
@@ -112,6 +153,17 @@
     flex: 1;
     min-width: 0;
     background: var(--bg);
+  }
+
+  .viewer-stack {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .viewer-body {
+    flex: 1;
+    min-height: 0;
   }
 
   .viewer-placeholder {
