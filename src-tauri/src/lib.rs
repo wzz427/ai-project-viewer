@@ -12,6 +12,14 @@ use tauri::Manager;
 /// `startup_elapsed_ms` on mount.
 static STARTED_AT: OnceLock<Instant> = OnceLock::new();
 
+/// Test hook (testing.md 1): project to auto-add, avoiding the native
+/// picker dialog during GUI tests. Pull-based so the frontend can ask
+/// once its listeners are ready.
+#[tauri::command]
+fn test_project_arg() -> Option<String> {
+    std::env::var("AIV_TEST_PROJECT").ok().filter(|s| !s.is_empty())
+}
+
 #[tauri::command]
 fn startup_elapsed_ms() -> u64 {
     STARTED_AT
@@ -39,11 +47,18 @@ pub fn run() {
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 disable_browser_accelerators(&window);
+                // Test mode (testing.md §1): AIV_HIDDEN=1 keeps the window
+                // off the owner's desktop entirely — GUI tests must never
+                // steal focus or flash. Normal launches show as usual.
+                if std::env::var("AIV_HIDDEN").as_deref() != Ok("1") {
+                    let _ = window.show();
+                }
             }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             startup_elapsed_ms,
+            test_project_arg,
             project::resolve_project,
             file_tree::list_directory,
             file_inspect::inspect_file,

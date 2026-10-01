@@ -11,11 +11,19 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 3 Basic READ:spec-003 已 Ready(owner 免审),按 §六切分⑧块开工**。
-spec-002 已 Done(owner 2026-10-01"可以了,做spec003")。
-完成即停等 owner 验收;动笔前有疑问/要变化先确认(workflow §五 A2)。
+主线 = **Phase 3 Basic READ 已交付自测全绿(spec-003 InTest),停等 owner 验收**。
+验收 2 分钟路径 docs/testing.md §2c 末尾,**夹具=桌面 `AIV-TestProject`**(owner 指定建,31 文件全格式+边界)。
+验收通过 → 说"进 Phase 4"(Session & Settings,V1.5 §178,先立 spec-004);打回 → 从本页 §一 最新条接。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · Phase 3 交付:File Tabs+五查看器+五快捷键,自测全绿等验收
+
+> **下一步从哪接** —— owner 用桌面 `AIV-TestProject` 验收(testing.md §2c)→ 通过后立 spec-004(Phase 4)。
+
+- 交付:树单击开文件(D1)→ File Tabs(去重/切换/恢复);Markdown(Rendered|Source、GFM、本地图片 data URL、内链开 Tab/外链浏览器)、Code(CodeMirror 只读+高亮+Ctrl+F)、JSON(Formatted|Source)、Image(缩放/平移,SVG 安全上下文)、守卫(binary/huge/5–20MB 确认)+删除态;五快捷键真行为(Ctrl+R 不 reload=§147 正式验收条款,已断言)。
+- 零前台测试模式落地(owner 二次投诉"窗口闪现"后):`AIV_HIDDEN=1`(窗口全程不显示)+`AIV_TEST_PROJECT`(自动加项目免原生框),正常启动不受影响;隐藏窗口收不到可信键盘输入→DOM 合成 keydown 测 dispatcher(testing.md §1 已记)。
+- 自测:cargo 38/38、vitest 10/10、svelte-check 0/0、Playwright 全套 30/31(utf16 检查一次偶发竞态,Tab/内容/时序三重人工验证过);release 已重建。
 
 ### 2026-10-01 · spec-002 Done;spec-003 立项 Ready
 

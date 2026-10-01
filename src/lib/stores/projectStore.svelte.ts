@@ -30,23 +30,10 @@ export function activateProject(id: string) {
   }
 }
 
-/** "+" flow: folder picker → canonicalize → dedup → add or switch (V1.5 §13/§14). */
-export async function addProjectViaPicker() {
-  let picked: string | null;
+/** Add (or switch to) a project by raw path — shared by picker and test hook. */
+export async function addProjectFromPath(rawPath: string) {
   try {
-    picked = await open({
-      directory: true,
-      multiple: false,
-      title: "Open Folder",
-    });
-  } catch (err) {
-    toast(`Cannot open folder picker: ${err}`, { kind: "error" });
-    return;
-  }
-  if (typeof picked !== "string" || picked.length === 0) return;
-
-  try {
-    const resolved = await resolveProject(picked);
+    const resolved = await resolveProject(rawPath);
 
     const existing = projectState.tabs.find((t) => t.rootPath === resolved.rootPath);
     if (existing) {
@@ -65,6 +52,23 @@ export async function addProjectViaPicker() {
   } catch (err) {
     toast(`Cannot open folder: ${err}`, { kind: "error" });
   }
+}
+
+/** "+" flow: folder picker → canonicalize → dedup → add or switch (V1.5 §13/§14). */
+export async function addProjectViaPicker() {
+  let picked: string | null;
+  try {
+    picked = await open({
+      directory: true,
+      multiple: false,
+      title: "Open Folder",
+    });
+  } catch (err) {
+    toast(`Cannot open folder picker: ${err}`, { kind: "error" });
+    return;
+  }
+  if (typeof picked !== "string" || picked.length === 0) return;
+  await addProjectFromPath(picked);
 }
 
 /** Remove from the viewer only — never touches the directory on disk (V1.5 §15). */

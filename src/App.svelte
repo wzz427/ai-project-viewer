@@ -16,6 +16,8 @@
     onShortcut,
   } from "$lib/services/shortcuts";
   import { startupElapsedMs } from "$lib/services/tauri";
+  import { invoke } from "@tauri-apps/api/core";
+  import { addProjectFromPath } from "$lib/stores/projectStore.svelte";
   import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
@@ -72,6 +74,12 @@
     initTheme();
     installShortcutDispatcher();
     const unwire = wireShortcuts();
+
+    // Test hook (testing.md §1): auto-add a project without the native
+    // picker so GUI tests never surface a dialog on the owner's desktop.
+    void invoke<string | null>("test_project_arg").then((path) => {
+      if (path) void addProjectFromPath(path);
+    });
 
     startupElapsedMs().then(recordStartup).catch(() => {});
 

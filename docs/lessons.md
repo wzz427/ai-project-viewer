@@ -86,3 +86,11 @@
 - **判据**:凡 HTML5 DnD,合成事件测试只能证明 handler 逻辑;发布前必须过一次真输入。CDP 连不上/前台锁见 L8/L3。
 - **出处**:Phase 2 owner 验收反馈"pin 之间无法拖拽",2026-10-01。脚本:`%TEMP%iv-drag.ps1`(已废弃,见补记)。
 - **补记(同日二轮)**:① **dragenter 也必须 preventDefault**,否则 WebView2 里 drop 事件根本不触发(dragover 拦了也没用;实测 enter:7→drop:1)——行与面板的接受逻辑要同时挂 dragenter+dragover;② 拖拽落点语义补全:行上/下半=插前/插后,置顶区上方空白(路径框一带)= 插到最顶,否则"甩到顶"落进死区;③ **测试脚本禁止抢 owner 前台**(SetForegroundWindow/Alt 技巧/SW_RESTORE 全部禁止——owner 明确抱怨被打断);拖拽验证改用 **Playwright connect_over_cdp(pywork)**,输入走 CDP 管道零前台,窗口用 SW_SHOWMINNOACTIVE 起最小化不激活。脚本:`%TEMP%iv-p2-drag-test.py`。
+
+### L11:隐藏窗口测 GUI:窗口 show 闪现与可信输入两层坑
+
+- **症状**:owner 两次抱怨测试打扰——①应用启动瞬间窗口弹出再被最小化;②旧法(启动后 SW_SHOWMINNOACTIVE)仍有闪现。
+- **根因**:①调试期间反复重启应用,每次正常启动都置前;②最小化是"显示后再收",第一帧仍上桌面;③根治后发现新坑:从未 show 过的 WebView2 窗口收不到 CDP 可信键盘输入(Input 层),Playwright keyboard 全失效。
+- **修法**:tauri.conf `visible:false`+应用启动显式 show;测试态 `AIV_HIDDEN=1` 跳过 show(窗口永不出现),`AIV_TEST_PROJECT` 自动加项目(免原生选择框,它也会上桌面);键盘测 dispatcher 用 DOM 合成 keydown(物理链路 Phase 1 已验)。Playwright evaluate 只传**一个**参数对象——按位置收多参全 undefined,曾让全部合成按键静默失效。
+- **判据**:GUI 测试标准启动式见 testing.md §1;凡"测过但用户说没反应",先查输入到底走的哪一层。
+- **出处**:Phase 3 自测,2026-10-01。

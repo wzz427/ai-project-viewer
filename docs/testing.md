@@ -29,7 +29,9 @@
 - 驱动原生 Folder Picker / MessageBox:`aiv-picker.ps1` / `aiv-confirm.ps1`(UIA+Win32 消息,按 ClassName 找控件,不需要前台)
 - 窗口截图(可穿透遮挡):`aiv-shot.ps1`(PrintWindow PW_RENDERFULLCONTENT)
 - ⚠️ **禁止**向"当前前台窗口"盲发按键(SendKeys):按键会落进宿主终端;必须先 `GetForegroundWindow` 校验目标(见 lessons L3)
-- 🔴 **测试一律零前台**(owner 2026-10-01 立规):脚本不得 SetForegroundWindow/AppActivate/SW_RESTORE 抢焦点打断 owner。拖拽验证用 Playwright(pywork)connect_over_cdp:`python %TEMP%iv-p2-drag-test.py`(输入走 CDP 管道);应用以 SW_SHOWMINNOACTIVE(7) 起最小化不激活;截图用 PrintWindow 穿遮挡
+- 🔴 **测试一律零前台**(owner 2026-01 立规,含"不许窗口闪现"):脚本不得 SetForegroundWindow/AppActivate/SW_RESTORE 抢焦点。**标准测法**(spec-003 起):
+  `AIV_HIDDEN=1 AIV_TEST_PROJECT="<夹具路径>" WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222" <exe>` ——窗口全程不显示、项目自动添加(免原生选择框)、CDP/Playwright 驱动;正常双击启动不受影响(窗口由应用显式 show)。
+  ⚠️ 隐藏窗口收不到可信键盘输入(CDP Input 层)——测应用 dispatcher 用 **DOM 合成 keydown**(window.dispatchEvent);物理键盘链路属 Phase 1 验证项,未变。拖拽用 Playwright mouse;截图用 PrintWindow 穿遮挡。旧法 SW_SHOWMINNOACTIVE 已废弃(启动瞬间仍会闪)。
 
 ## 2. Phase 1 功能自测记录(2026-10-01,全部通过)
 
@@ -88,6 +90,25 @@ owner 三条反馈,全部落地并实测:
 ### 2026-10-01 二轮反馈:拖不到最顶(release 已重建)
 
 owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① 落点语义只有"插到目标前",第一行上方的空白带(路径框+间隙约 30px)不接任何 drop,"甩到顶"就丢;② WebView2 要求 **dragenter 也 preventDefault** drop 才触发(lessons L10 补记)。修复:置顶行按光标上下半分"插前/插后"(顺带补上"移到最底"能力);面板级顶部区(光标高于第一个置顶行=插到最顶);行与面板同时挂 dragenter+dragover。验证:Playwright over CDP 三场景(甩顶区/最底半区/行内)全 PASS,零前台。
+
+
+## 2c. Phase 3 功能自测记录(2026-10-01,spec-003)
+
+夹具:**桌面 `AIV-TestProject`**(owner 指定建,31 文件:md/json/yaml/toml/txt/csv/log/py/ts/rs/css/html/sql/ps1/bat + png/jpg/gif/webp/svg + edge-cases[GB18030/UTF-16BOM/UTF-8BOM/二进制/5MB/21MB],两层嵌套子目录,含内嵌脚本的安全 SVG 样本)——owner 验收直接用它;旧 `aiv-test-projects\TreeAlpha` 可删。零前台模式跑 `%TEMP%iv-p3-read-test.py`(Playwright over CDP)。
+
+| §188 块 | 实测 | 结果 |
+|---|---|---|
+| Markdown 10 行 | 默认 Rendered/表格/任务清单/代码块/本地图片(data URL)/内链开 Tab/Source 只读/Raw `<script>` 注入不执行 | ✅ |
+| Text/Code 9 行 | txt/log/csv、py/ps1(嵌套深层)高亮行号、Ctrl+F 面板、只读 | ✅ |
+| JSON/YAML/TOML 4 行 | JSON 默认 Formatted 可切 Source | ✅ |
+| Images 7 行 | 五格式+SVG `<img>` 上下文+onload/script 双验证不执行 | ✅ |
+| File Inspection 补 | GB18030 中文/UTF-16 BOM 正确解码(cargo 7 项单测+界面);binary/huge 两大守卫;5–20MB 确认框流程(Rust 侧单测覆盖) | ✅(utf16 自动化检查一次偶发竞态,三重人工验证过:Tab 开、内容对、行点击→内容 400ms) |
+| Tabs/生命周期 | 多 Tab 增/切/关/去重/激活恢复;Ctrl+Tab 双向循环 | ✅ |
+| 删除态 §83 | 删当前文件→Ctrl+R→"This file has been deleted."+[Close Tab] | ✅ |
+| §147 正式验收 | Ctrl+R:树+活动文件刷新、页面**不 reload**(window 标记存活断言)、Tab 全保留;Ctrl+W 关当前 | ✅ |
+| Rust | cargo test 38/38(read_text_file 五编码解码/BOM 剥离/binary/huge 拒/越界拒;read_media 五格式 mime/超大拒) | ✅ |
+
+**owner 验收建议路径**(2 分钟,release 已重建):双击桌面 AI Project Viewer → + 加 `Desktop\AIV-TestProject` → 点 README.md(渲染/表格/任务清单/图片/链接)→ 点 main.py(高亮行号)→ Ctrl+F 搜 → 点 metrics.json(Formatted/Source)→ 点 assets\logo.svg(缩放/100%)→ 点 edge-cases\huge-21mb.log(守卫)与 chinese-gb18030.txt(中文)→ Ctrl+Tab/Ctrl+W/Ctrl+R 各试一次。
 
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 

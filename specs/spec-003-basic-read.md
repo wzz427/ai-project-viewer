@@ -106,3 +106,4 @@ Phase 3 是 V1.5 §175–182 排期定死的第三批,判:做(应用从"看结�
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
 | 2026-10-01 | Draft→Ready | R/V 指针化、D1–D8、覆盖矩阵;开工切分:①Rust 读命令+单测 ②tabsStore+FileTabs+树开文件 ③CodeViewer+Ctrl+F ④MarkdownViewer ⑤JsonViewer ⑥ImageViewer+SVG 安全 ⑦快捷键+删除态+大文件闸 ⑧自测+文档 |
+| 2026-10-01 | Ready→InDev→InTest | ⑧块全落地(3fae581/067809a+收尾);cargo 38/38、svelte-check 0/0、vitest 10/10;夹具=桌面 AIV-TestProject(owner 指定);零前台模式全套自测 30/31 自动+utf16 三重人工(证据 docs/testing.md §2c);release 已重建 |
