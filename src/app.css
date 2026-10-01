@@ -1,0 +1,77 @@
+/* AI Project Viewer — shell theme tokens (V1.5 §154/§155).
+   Compact developer-tool look; theme driven by [data-theme] on <html>. */
+
+:root {
+  --font-ui: system-ui, "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", monospace;
+  --font-size: 13px;
+  --radius: 4px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #1b1d21;
+  --bg-raised: #22252b;
+  --bg-hover: #2a2e36;
+  --bg-active: #31363f;
+  --border: #33363d;
+  --text: #d6d9de;
+  --text-muted: #8b909a;
+  --accent: #4f8cc9;
+  --accent-text: #ffffff;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f6f8;
+  --bg-raised: #ffffff;
+  --bg-hover: #e9ebef;
+  --bg-active: #dfe3e9;
+  --border: #d8dce2;
+  --text: #26282c;
+  --text-muted: #6b717c;
+  --accent: #2f6db3;
+  --accent-text: #ffffff;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--font-size);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+#app {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.muted {
+  color: var(--text-muted);
+}
