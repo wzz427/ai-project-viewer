@@ -44,6 +44,13 @@ export function setSidebarMode(rootPath: string, mode: SidebarMode) {
   if (tab) tab.sidebarMode = mode;
 }
 
+/** Drag-resize write (owner 2026-10-01); clamped to the same 200–600 range
+ *  the state parser enforces, and picked up by the debounced save loop. */
+export function setSidebarWidth(rootPath: string, width: number) {
+  const tab = projectState.tabs.find((t) => t.rootPath === rootPath);
+  if (tab) tab.sidebarWidth = Math.min(600, Math.max(200, Math.round(width)));
+}
+
 /** Add (or switch to) a project by raw path — shared by picker and test hook. */
 export async function addProjectFromPath(rawPath: string) {
   try {

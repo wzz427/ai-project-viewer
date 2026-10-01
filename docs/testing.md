@@ -128,6 +128,10 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **开发中发现并修复**:contentCache 原为 `$state(new Map())`——Svelte 5 深代理只包 plain object/array,**Map 零响应性**,会话恢复的页签永久卡 Loading;换 `SvelteMap`(svelte/reactivity)后全绿(lessons L13)。正常开文件路径此前一直正常纯属时序巧合(先 set 缓存后写 active 字段,对象字段写顺带触发了 derived),该坑自 Phase 3 就埋着。
 
+### 2026-10-01 追加:侧栏拖拽调宽(owner 验收后拍板"要拖拽";回归 7/7 PASS)
+
+侧栏右缘分隔条(4px,悬停/拖动高亮):鼠标拖拽 200–600px、拖动中全局 col-resize 光标+禁文本选择;分隔条可聚焦(Tab),←/→ 步进 16px(role=slider+aria 值,Svelte a11y 0 警告);宽度按项目写入 ProjectSession.sidebarWidth,防抖 800ms 落盘,重启还原。普通鼠标事件(非 HTML5 DnD),CDP mouse API 可信输入直接可测——脚本 `%TEMP%\aiv-p4-resize-test.py`:拖宽 260→440 生效/防抖写入 state.json/狂拖上限 600 钳制/键盘步进/重启宽度还原。
+
 **owner 验收建议路径**(1.5 分钟,release 已重建):双击桌面 AI Project Viewer → + 加 `Desktop\AIV-TestProject` → 展开一两层目录、右键 Pin 一个文件 → 开两三个文件页签 → ⚙ 改 Theme=Dark、字号 + 两次 → **完全关闭应用** → 再双击打开:项目标签、展开、置顶、页签(含激活页和 Rendered/Source 模式)、主题、字号应全部还原;点开恢复的页签内容正常显示(大文件不弹确认);关掉重开 Settings 确认两个开关还在。
 
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)

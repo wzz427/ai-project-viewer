@@ -17,7 +17,11 @@
   } from "$lib/services/shortcuts";
   import { startupElapsedMs } from "$lib/services/tauri";
   import { invoke } from "@tauri-apps/api/core";
-  import { addProjectFromPath, setSidebarMode } from "$lib/stores/projectStore.svelte";
+  import {
+    addProjectFromPath,
+    setSidebarMode,
+    setSidebarWidth,
+  } from "$lib/stores/projectStore.svelte";
   import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
@@ -42,6 +46,45 @@
   // Real P0 behaviors (V1.5 §146/§147). The dispatcher claims the keydown at
   // capture phase, so these run instead of any browser default — Ctrl+R must
   // refresh the project, never reload the WebView (formal acceptance item).
+  // Sidebar drag-resize (owner 2026-10-01). Plain mouse events, not HTML5
+  // DnD; every move writes the per-project width and the debounced save
+  // loop coalesces the stream into one disk write (V1.5 §26).
+  let resizing = $state(false);
+
+  function startResize(e: MouseEvent) {
+    const proj = project;
+    if (!proj) return;
+    e.preventDefault();
+    resizing = true;
+    const startX = e.clientX;
+    const startWidth = proj.sidebarWidth;
+    const onMove = (ev: MouseEvent) => {
+      setSidebarWidth(proj.rootPath, startWidth + ev.clientX - startX);
+    };
+    const onUp = () => {
+      resizing = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.documentElement.classList.remove("col-resizing");
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    document.documentElement.classList.add("col-resizing");
+  }
+
+  // Keyboard resize: ←/→ nudges by 16px (a11y for the separator handle).
+  function resizeViaKeyboard(e: KeyboardEvent) {
+    const proj = project;
+    if (!proj) return;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setSidebarWidth(proj.rootPath, proj.sidebarWidth - 16);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setSidebarWidth(proj.rootPath, proj.sidebarWidth + 16);
+    }
+  }
+
   function wireShortcuts() {
     const unsubs = [
       onShortcut("ctrl+w", () => {
@@ -103,6 +146,21 @@
         {/if}
       </div>
     </aside>
+    <!-- role=slider (not separator): a width-adjusting handle with arrow-key
+         control; Svelte's a11y rules don't recognize focusable separators. -->
+    <div
+      class="sidebar-resizer"
+      class:active={resizing}
+      onmousedown={startResize}
+      onkeydown={resizeViaKeyboard}
+      role="slider"
+      aria-orientation="vertical"
+      aria-label="Sidebar width"
+      aria-valuemin={200}
+      aria-valuemax={600}
+      aria-valuenow={project?.sidebarWidth ?? 260}
+      tabindex="0"
+    ></div>
     <main class="viewer">
       {#if projectState.tabs.length === 0}
         <EmptyState />
@@ -148,6 +206,20 @@
     flex-direction: column;
     border-right: 1px solid var(--border);
     background: var(--bg-raised);
+  }
+
+  .sidebar-resizer {
+    width: 4px;
+    flex-shrink: 0;
+    margin-left: -2px;
+    z-index: 5;
+    cursor: col-resize;
+    background: transparent;
+  }
+
+  .sidebar-resizer:hover,
+  .sidebar-resizer.active {
+    background: var(--border);
   }
 
   .sidebar-panel {

@@ -84,3 +84,11 @@ button {
 .muted {
   color: var(--text-muted);
 }
+
+/* While dragging the sidebar separator: uniform cursor + no text
+   selection anywhere (owner 2026-10-01 sidebar resize). */
+.col-resizing,
+.col-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}

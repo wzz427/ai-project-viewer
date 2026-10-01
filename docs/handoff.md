@@ -11,19 +11,17 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 4 已 Done(owner 2026-10-01 原话"通过了"),下一步 Phase 5 PDF.js Spike(V1.5 §179):先立 spec-005 再开发**(owner 已免审,workflow §五 A2;模板 specs/SPEC-template.md,写法照 spec-002/003/004)。
-Phase 4 同句 owner 追问"为什么侧栏宽度无拖拽"——答复:字段已持久化就绪,拖拽交互 V1.5 无明文故未做(spec-004 D6);**owner 是否要补拖拽等他表态,表态前不动**(要加≈半小时:splitter+写 sidebarWidth,持久化管道现成)。
+主线 = **Phase 4 Done(含 owner 拍板补的侧栏拖拽),下一步 Phase 5 PDF.js Spike(V1.5 §179):先立 spec-005 再开发**(owner 已免审,workflow §五 A2;模板 specs/SPEC-template.md,写法照 spec-002/003/004)。
 纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-01 · Phase 4 Done:会话恢复+设置持久化验收通过
+### 2026-10-01 · Phase 4 Done + 侧栏拖拽补交付
 
-> **下一步从哪接** —— owner 若确认补侧栏拖拽则先做(半小时级);否则立 spec-005(Phase 5 PDF.js Spike)开工。
+> **下一步从哪接** —— owner 复验拖拽(把侧栏拖宽→关掉重开,宽度应还原;Tab 聚焦分隔条可用 ←/→)→ 过则立 spec-005(Phase 5 PDF.js Spike)开工。
 
-- owner 原话"通过了"已入档(spec-004 §六);同句追问"为什么侧栏宽度无拖拽",答复收在本页 §〇——**这是待表态项不是待办**,他不说就不动。
-- Phase 4 交付细节与踩坑(SvelteMap/lessons L13)见 spec-004 §六与 testing.md §2d;五 commit:09859c5→c349740→9f021c5→7ba2584→3b7b041(+本次收口)。
-- 状态文件 `%APPDATA%\com.aiprojectviewer.app\state.json`(version=1,迁移骨架就位);测试态闸门:AIV_TEST_PROJECT 无 AIV_STATE_FILE 时永不在真实 state 上读写。
+- owner 验收原话"通过了"入档;追问侧栏拖拽后拍板"要拖拽"——已交付:右缘分隔条拖拽 200–600+键盘步进,按项目持久化(V1.5 §17 增量修订+§197 审计行已落);CDP 拖拽回归 7/7,release 已重建。
+- spec-004 全程:五 commit(立项→块①②③→收口)+ 拖拽追加;核心踩坑 SvelteMap(lessons L13);状态文件与测试态闸门见 testing.md §2d。
 
 ### 2026-10-01 · Phase 4 交付:会话恢复+设置持久化,自测全绿等验收
 

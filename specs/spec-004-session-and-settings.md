@@ -78,7 +78,7 @@ Phase 4 是 V1.5 §175–182 排期定死的第四批,判:做(应用从"每次�
 | D3 | 退出双保险:前端 pagehide flush + Rust RunEvent::Exit 兜底写 last_state | WebView 卸载时 async invoke 不可靠 | 只靠前端 beforeunload | 同左 |
 | D4 | 恢复懒读内容,5–20MB 不弹确认 | §106 确认针对用户打开动作;恢复是自动流程,弹窗打断 | 恢复也弹确认 | 体验断点无意义 |
 | D5 | showSystemFolders 全局化(§22 AppSettings 字段),foldersFirst 保持每项目(§17) | 基线字面;且无持久化期间"每项目各自的值"本就无从体现,用户无感 | 保持每项目 | 与 §22 冲突 |
-| D6 | sidebarMode 入 ProjectSession(含 settings 三态);sidebarWidth 持久化恒 260、不做拖拽 | §17 字面/§30 修订;拖拽无 V1.5 明文 | 顺手做拖拽 | 范围膨胀,标"未确认"留给 owner 点头 |
+| D6 | sidebarMode 入 ProjectSession(含 settings 三态);sidebarWidth 持久化,拖拽调宽 200–600+键盘 ←/→ 步进 16px(**owner 2026-10-01 验收后拍板"要拖拽",翻掉首交"无明文不做"的原判**,V1.5 §17 增量修订已落) | §17 字面/§30 修订;owner 拍板 | 首交仅持久化字段不做交互 | 无需求明文时不擅自加交互——该默认已被 owner 翻案,交互随翻案补上 |
 | D7 | 页签 jsonMode/pinned 一并持久化 | §197 两项修订(Formatted\|Source 菜单、Pin File Tab)的行为自然延伸;丢则重启后状态全丢,用户可感 | 严格只存 §21 字面 | 教条对齐字面牺牲可感体验 |
 | D8 | fontSize 入 AppSettings.viewer.fontSize,默认 13,§22 增量修订+§197 审计行随本批落 | §197 已有技术性行认领该设置,需归位进正式结构 | 塞进 ProjectSession | 字号是应用级偏好非项目会话 |
 | D9 | 恢复时逐项目 resolve,失效项目静默跳过 | 项目被移动/删除是常态;§188 未列,自愈优先于报错 | 弹提示/留僵尸标签 | 无处可点的入口只添堵 |
@@ -102,3 +102,4 @@ Phase 4 是 V1.5 §175–182 排期定死的第四批,判:做(应用从"每次�
 | 2026-10-01 | Draft→Ready | R/V 指针化、D1–D10、覆盖矩阵;开工切分:①Rust state 模块+单测 ②前端 appState 纯函数+vitest ③接线(恢复懒读/防抖/兜底/作用域对齐) ④Settings 面板+§22 增量修订 ⑤自测+release+文档 |
 | 2026-10-01 | Ready→InDev→InTest | ⑤块全落地(c349740/9f021c5/7ba2584);**开发中发现并修复:contentCache 原为 `$state(new Map())` 无响应性(Svelte 深代理不包 Map,恢复页签曾永久卡 Loading),换 SvelteMap(lessons L13)**;V1.5 §22 增量修订 viewer.fontSize+§197 审计行。自测:cargo 48/48、vitest 18/18、svelte-check 0/0、CDP 持久化回归 24/24(防抖/重启恢复/自愈/隔离)、Phase 3 回归 17/17 防退化全绿;release 已重建。夹具=桌面 AIV-TestProject,测试脚本 %TEMP%\aiv-p4-state-test.py(AIV_STATE_FILE 指向独立文件) |
 | 2026-10-01 | InTest → Done | **owner 验收原话:"通过了"**(同句追问"为什么侧栏宽度无拖拽"——原因与去处见 D6/挂账:字段就绪、交互无需求明文未做,等 owner 表态是否补) |
+| 2026-10-01 | Done 后追加:侧栏拖拽 | owner 拍板"要拖拽"(翻 D6 原判):侧栏右缘分隔条拖拽 200–600 + ←/→ 键盘步进,宽度按项目持久化(防抖管道复用);V1.5 §17 增量修订+§197 审计行。CDP 拖拽回归 7/7(拖宽生效/防抖落盘/上限钳制/键盘步进/重启恢复);svelte-check 0/0(role=slider 过 a11y);release 重建 |
