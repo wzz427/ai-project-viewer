@@ -1,3 +1,5 @@
+mod file_inspect;
+mod file_tree;
 mod project;
 
 use std::sync::OnceLock;
@@ -41,7 +43,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             startup_elapsed_ms,
-            project::resolve_project
+            project::resolve_project,
+            file_tree::list_directory,
+            file_inspect::inspect_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
