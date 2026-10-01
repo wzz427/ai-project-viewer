@@ -161,6 +161,10 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **owner 验收建议路径**(1 分钟,release 已重建):打开应用 → `AIV-TestProject\pdf` → 点 sample-10p-text.pdf(渲染/工具栏)→ 翻页/跳页/缩放/Fit Width/Fit Page/Ctrl+滚轮 → 搜索框输 "Page 8"(跳页+计数,上一处/下一处)→ 滚到深页(只有窗口内的页在渲染)→ 切到别的文件再切回(页码/缩放/滚动还原)→ 点 sample-100p-scan.pdf(18.4MB 扫描件)→ 关掉重开应用,PDF 页签与页码还在(§93 持久化)。
 
+### 2026-10-02 验收轮返工(三项反馈;回归:修复 6/6+PDF 19/19+P3 PASS+P4 24/24)
+
+① "点 PDF 没显示"=旧实例在跑(单实例激活旧窗,exe 本身实测正常),完全重启即好;② **引擎卸载策略改**(owner 拍板"关掉 PDF 页签引擎也要卸载"):每文档独立 worker+关最后页签 terminate——**连带修复 pdfjs destroy 连环哑炮**(先关 A 后 B 永挂 Loading,lessons L15);③ **全局文本不可选 bug**:body 的 user-select:none(Phase 1 壳层防误选)盖住了查看器,.viewer-body 恢复 text(txt/md/code 可划选复制;**PDF 画布选字=文本层功能,待 owner 表态**);④ 树右键 "Open with Default App" 点了没反应=L12 同族漏网(只修了页签菜单),快照先行修复(lessons L12 补记:按菜单族扫,不是修单个)。修复回归脚本 `%TEMP%\aiv-p5-fix-test.py`(选择断言 getSelection 非空;右键用无关联的 .bin 验证 handler 真执行→失败 toast,不弹真程序;worker 数开=1/关=0/重开=1)。
+
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
 | 指标 | 值 | 口径 | 目标(§163–§165) |

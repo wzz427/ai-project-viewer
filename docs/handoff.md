@@ -17,6 +17,14 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-02 · Phase 5 验收轮返工:引擎卸载/文本选择/右键三修,等 owner 复验
+
+> **下一步从哪接** —— owner 复验(testing.md §2e 末尾返工段:完全重启应用→选字/右键/PDF 全流程)→ 过则 Done、立 spec-006(Phase 6 HANDOFF);**PDF 文本层(画布内选字)待 owner 表态**,要则约半天(textLayer 对齐)。
+
+- 三修:① 引擎卸载改"关最后一个 PDF 页签即归零"(每文档独立 worker+关尾 terminate;**连带修 pdfjs destroy 连环哑炮**——先关 A 后 B 永挂,lessons L15);② 文本不可选=body 全局 user-select:none 盖查看器,.viewer-body 恢复 text;③ 树右键 Open with Default App 无反应=L12 同族漏网,快照先行(L12 补记:按菜单族扫)。
+- "点 PDF 没显示"复现排查:owner 真实 state+当前 release exe 实测正常,判定为旧实例(单实例激活旧窗);已嘱完全重启。
+- 回归:修复 6/6+PDF 19/19+P3 PASS+P4 24/24+cargo 49/49+vitest 19/19;release 已重建。
+
 ### 2026-10-01 · Phase 5 交付:PDF 查看器全功能,自测全绿等验收
 
 > **下一步从哪接** —— owner 验收(testing.md §2e 末尾:开 PDF/工具栏/搜索/深滚/切回恢复/扫描件/重启还原)→ 过则 Done、立 spec-006(Phase 6 HANDOFF)。
