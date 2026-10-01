@@ -6,6 +6,7 @@
   import {
     activeTab,
     cachedContent,
+    ensureContentLoaded,
   } from "$lib/stores/tabsStore.svelte";
   import MarkdownViewer from "./MarkdownViewer.svelte";
   import CodeViewer from "./CodeViewer.svelte";
@@ -23,6 +24,19 @@
     const c = cachedContent(rootPath, tab.relativePath);
     return c?.kind === "text" ? c.text : null;
   }
+
+  // Restored tabs (session restore, spec-004 D4) arrive without cached
+  // content — the previous "Loading…" dead-end becomes a lazy read here.
+  // Reading the cache inside the effect makes it self-stopping: once the
+  // content lands, the dependency fires, the guard fails, no refetch.
+  $effect(() => {
+    const t = tab;
+    if (!t || t.deleted) return;
+    if (t.viewerType === "binary" || t.viewerType === "unsupported") return;
+    if (!cachedContent(rootPath, t.relativePath)) {
+      void ensureContentLoaded(rootPath, t.relativePath);
+    }
+  });
 </script>
 
 {#if tab}

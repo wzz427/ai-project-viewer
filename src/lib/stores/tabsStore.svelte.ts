@@ -8,6 +8,7 @@
  */
 
 import { ask } from "@tauri-apps/plugin-dialog";
+import { SvelteMap } from "svelte/reactivity";
 import {
   inspectFile,
   readMediaFile,
@@ -58,7 +59,12 @@ type Cached =
   | { kind: "text"; text: string; encoding: FileEncoding }
   | { kind: "media"; dataUrl: string };
 
-const contentCache = $state(new Map<string, Cached>());
+// SvelteMap, NOT $state(new Map()): the $state deep proxy only wraps plain
+// objects and arrays (svelte proxy.js returns other prototypes as-is), so
+// a raw Map has no reactivity — writes would never re-run the viewers'
+// content derivations (spec-004: restored tabs stuck on "Loading…" until
+// this was switched to the official reactive container).
+const contentCache = new SvelteMap<string, Cached>();
 
 function projectTabs(rootPath: string): ProjectTabs {
   let st = tabsState.byRoot[rootPath];
@@ -391,4 +397,66 @@ export function forgetTabs(rootPath: string) {
     if (key.startsWith(`${rootPath}\n`)) contentCache.delete(key);
   }
   delete tabsState.byRoot[rootPath];
+}
+
+/** Session restore (Phase 4): adopt persisted tabs — identities and modes
+ *  only; content is read lazily when a viewer mounts (ensureContentLoaded). */
+export function restoreTabs(
+  rootPath: string,
+  files: {
+    relativePath: string;
+    viewerType: ViewerType;
+    markdownMode?: MarkdownMode;
+    jsonMode?: "formatted" | "source";
+    pinned?: boolean;
+    scrollPosition?: number;
+  }[],
+  activeRel: string | null,
+) {
+  tabsState.byRoot[rootPath] = {
+    openFiles: files.map((f) => ({ ...f })),
+    activeFileRelativePath: activeRel,
+  };
+}
+
+/**
+ * Session-restore companion (spec-004 D4): a restored tab carries identity
+ * and modes but no cached content — viewers call this on mount when the
+ * cache is empty. Mirrors openFile's routing without dialogs: restoring is
+ * automatic, so the 5–20MB confirmation (§106) does not re-apply, and
+ * binary/unsupported verdicts from the previous run stand as-is.
+ */
+export async function ensureContentLoaded(rootPath: string, rel: string) {
+  const tab = projectTabs(rootPath).openFiles.find(
+    (t) => t.relativePath === rel,
+  );
+  if (!tab || tab.deleted) return;
+  if (tab.viewerType === "binary" || tab.viewerType === "unsupported") return;
+  if (contentCache.has(cacheKey(rootPath, rel))) return;
+
+  if (tab.viewerType === "image") {
+    const media = await readMediaFile(rootPath, rel).catch(() => null);
+    if (media) {
+      contentCache.set(cacheKey(rootPath, rel), {
+        kind: "media",
+        dataUrl: media.dataUrl,
+      });
+    } else {
+      tab.deleted = true;
+    }
+    return;
+  }
+
+  const content = await readTextFile(rootPath, rel).catch(() => null);
+  if (!content) {
+    // Vanished since the last run — same deleted-state contract as §83.
+    tab.deleted = true;
+    return;
+  }
+  contentCache.set(cacheKey(rootPath, rel), {
+    kind: "text",
+    text: content.text,
+    encoding: content.encoding,
+  });
+  tab.encoding = content.encoding;
 }

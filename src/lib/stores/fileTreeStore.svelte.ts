@@ -140,6 +140,37 @@ export async function loadRoot(rootPath: string) {
   await loadDir(rootPath, TREE_ROOT, false);
 }
 
+/**
+ * Session restore (Phase 4): adopt persisted expanded folders — fetch
+ * exactly those levels (one listing each, never deeper, §27/§160.1) and
+ * mark them expanded. Levels that no longer exist simply stay collapsed.
+ */
+export async function restoreExpandedFolders(
+  rootPath: string,
+  relDirs: string[],
+) {
+  const st = treeFor(rootPath);
+  for (const rel of relDirs) {
+    if (rel === TREE_ROOT) continue;
+    await loadDir(rootPath, rel, false);
+    if (!st.loadErrors[rel] && !st.expandedFolders.includes(rel)) {
+      st.expandedFolders.push(rel);
+    }
+  }
+}
+
+/** Session restore (Phase 4): adopt persisted pins and preferences. */
+export function restoreTreeState(
+  rootPath: string,
+  prefs: { foldersFirst: boolean; pinnedItems: Record<string, string[]> },
+) {
+  const st = treeFor(rootPath);
+  st.foldersFirst = prefs.foldersFirst;
+  st.pinnedItems = Object.fromEntries(
+    Object.entries(prefs.pinnedItems).map(([k, v]) => [k, [...v]]),
+  );
+}
+
 export async function toggleExpand(rootPath: string, relDir: string) {
   const st = treeFor(rootPath);
   const idx = st.expandedFolders.indexOf(relDir);

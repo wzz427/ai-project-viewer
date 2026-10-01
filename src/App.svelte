@@ -17,7 +17,7 @@
   } from "$lib/services/shortcuts";
   import { startupElapsedMs } from "$lib/services/tauri";
   import { invoke } from "@tauri-apps/api/core";
-  import { addProjectFromPath } from "$lib/stores/projectStore.svelte";
+  import { addProjectFromPath, setSidebarMode } from "$lib/stores/projectStore.svelte";
   import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
@@ -35,11 +35,9 @@
   import { openSearchPanel } from "@codemirror/search";
   import { getActiveSearchView } from "$lib/components/Viewers/codeSearchRegistry";
 
-  type SidebarMode = "files" | "git" | "settings";
-
-  let sidebarMode = $state<SidebarMode>("files");
-
+  // §17 ProjectSession.sidebarMode — per project, persisted since Phase 4.
   const project = $derived(activeProject());
+  const sidebarMode = $derived(project?.sidebarMode ?? "files");
 
   // Real P0 behaviors (V1.5 §146/§147). The dispatcher claims the keydown at
   // capture phase, so these run instead of any browser default — Ctrl+R must
@@ -90,8 +88,11 @@
 <div class="shell">
   <ProjectTabs />
   <div class="body">
-    <aside class="sidebar">
-      <SidebarHeader mode={sidebarMode} onModeChange={(m) => (sidebarMode = m)} />
+    <aside class="sidebar" style:width={`${project?.sidebarWidth ?? 260}px`}>
+      <SidebarHeader
+        mode={sidebarMode}
+        onModeChange={(m) => project && setSidebarMode(project.rootPath, m)}
+      />
       <div class="sidebar-panel">
         {#if sidebarMode === "files"}
           <FilesPanel />
@@ -142,7 +143,6 @@
   }
 
   .sidebar {
-    width: 260px;
     min-width: 200px;
     display: flex;
     flex-direction: column;

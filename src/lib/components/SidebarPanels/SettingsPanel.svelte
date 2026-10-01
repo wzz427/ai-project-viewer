@@ -2,6 +2,7 @@
   import {
     settings,
     setFontSize,
+    setShowSystemFolders,
     setTheme,
     type Theme,
   } from "$lib/stores/settingsStore.svelte";
@@ -10,7 +11,6 @@
   import {
     refreshProject,
     setFoldersFirst,
-    setShowSystemFolders,
     treeState,
   } from "$lib/stores/fileTreeStore.svelte";
 
@@ -39,15 +39,6 @@
         />
         Folders First
       </label>
-      <label class="row">
-        <input
-          type="checkbox"
-          checked={tree.showSystemFolders}
-          onchange={(e) =>
-            setShowSystemFolders(project.rootPath, e.currentTarget.checked)}
-        />
-        Show system/generated folders
-      </label>
       <div class="row">
         <button class="refresh" onclick={() => void refreshProject(project.rootPath)}>
           Refresh
@@ -56,6 +47,19 @@
       </div>
     </section>
   {/if}
+
+  <section>
+    <h3>Visibility</h3>
+    <label class="row">
+      <input
+        type="checkbox"
+        checked={settings.fileTree.showSystemGeneratedFolders}
+        onchange={(e) => setShowSystemFolders(e.currentTarget.checked)}
+      />
+      Show system/generated folders
+    </label>
+    <p class="muted hint">Applies to every project (V1.5 §22 AppSettings).</p>
+  </section>
 
   <section>
     <h3>Viewer</h3>
@@ -104,7 +108,7 @@
     {/if}
   </section>
 
-  <p class="muted note">More settings arrive in Phase 4 (V1.5 §178).</p>
+  <p class="muted note">Editor, PDF and Git settings arrive with their features (Phase 5–7).</p>
 </div>
 
 <style>
@@ -168,6 +172,7 @@
 
   .hint {
     font-size: 11px;
+    margin: 2px 0 0;
   }
 
   .note {

@@ -101,3 +101,13 @@ export function openWithDefaultApp(
 export function startupElapsedMs(): Promise<number> {
   return invoke<number>("startup_elapsed_ms");
 }
+
+/** Persisted AppState JSON, or null when starting fresh (spec-004). */
+export function loadState(): Promise<string | null> {
+  return invoke<string | null>("load_state");
+}
+
+/** Debounced/atomic state write; the Rust side also flushes on exit (§26). */
+export function saveState(json: string): Promise<void> {
+  return invoke<void>("save_state", { json });
+}
