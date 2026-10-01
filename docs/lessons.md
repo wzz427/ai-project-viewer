@@ -99,7 +99,7 @@
 
 - **症状 A**:页签右键菜单的"View Source/Close Tab"点了毫无反应,同菜单"Keep Tab Open"却正常。
 - **根因 A**:菜单 act() 先 onclose()(卸载菜单组件)再执行动作闭包;Svelte 5 组件卸载后闭包再读其 prop(如 tab.markdownMode)直接抛异常,**把整个 handler 吞掉**——无报错无效果。Keep Open 恰好不读需要响应性的字段所以幸存。诊断法:在 handler 两端埋 window 标记,一段有一段无=中间抛了。
-- **修法 A**:**动作先执行、后 onclose()**;或进 handler 先快照字段值。凡"先关弹层再做事实体"的写法都要过这条自检。
+- **修法 A**:**动作先执行、后 onclose()**;或进 handler 先快照字段值。凡"先关弹层再做事实体"的写法都要过这条自检。**补记(2026-10-02)**:树右键菜单的 "Open with Default App" 是同族漏网——当时只修了页签右键菜单,树菜单的 `onclose()` 先执行再读 `name` prop,handler 被吞、点了毫无反应(owner 报障"不管什么文件都没反应")。判据升级:**L12 修复要按"菜单族"扫一遍,不是修单个菜单**。
 - **症状 B**:PNG/JPG/GIF 全部显示"Binary file",SVG 正常。
 - **根因 B**:图片字节天然含 NULL,文本检测流水线判为二进制;而开文件流程先查二进制再查图片扩展名,图片永远进不了查看器。
 - **修法 B**:路由顺序=超大守卫→图片扩展名(媒体通道)→二进制→文本。判据:**二进制判定只对文本通道有意义**,按扩展名的专用通道要放在它前面。
@@ -120,3 +120,11 @@
 - **修法**:import 一律用 `pdfjs-dist/legacy/build/pdf.mjs` + `legacy/build/pdf.worker.min.mjs?worker`(legacy 自带 polyfill);**判据:WebView/Node 环境跑 pdfjs 6 报 `#t`/`getOrInsertComputed` 类 TypeError → 先换 legacy build,再怀疑别的**。附带两条 Svelte 5 连坐坑(同日):①外部库大对象(pdfjs doc/task)**绝不进 `$state`**——深代理穿透私有字段必炸;②`$effect` 里条件早退会**漏收集依赖**(refit effect 首跑 `if (!doc) return` 把 baseW 挡在依赖外,之后永不触发)——**响应式就绪信号要放进条件本身**(如 `if (!baseW) return`),别拿非响应变量当门卫。
 - **验证**:legacy build + 上述修正后 PDF 回归 19/19(渲染/工具栏/虚拟化/释放/恢复/搜索)。
 - **出处**:Phase 5 PDF spike(spec-005),2026-10-01。
+
+### L15:pdfjs `loadingTask.destroy()` 无条件杀 worker——共享 workerPort 会连环哑炮
+
+- **症状**:先开 PDF A 再开 PDF B,一切正常;切回/关闭 A 后,B 永久停在 Loading(0 个 canvas、无任何报错);引擎未被我们 terminate(日志证明)。
+- **根因**:pdfjs(v6 实证)`PDFDocumentLoadingTask.destroy()` 末尾 **无条件** `this._worker?.destroy()`——包括 `GlobalWorkerOptions.workerPort` 指定的共享 worker;第一个被销毁的文档把共享引擎带走,后续文档的请求发进死线程,Promise 永挂、无异常无超时。
+- **修法**:**每个文档一个 worker**(加载文档前 `GlobalWorkerOptions.workerPort = new WorkerCtor()`),destroy 只回收自己的线程,生命周期自洽;另在"最后一个 pdf 页签关闭"时 terminate worker+丢弃库引用(owner 2026-10-02 要求的"关页签=引擎归零")。**判据:凡 pdfjs 多文档场景,别共享 workerPort;destroy 的清理范围要按"它拥有什么"核对,不是按"我希望它做什么"**。
+- **验证**:per-document worker 后 PDF 回归 19/19、修复回归 6/6(含关最后页签 worker 线程归零、重开重载)。
+- **出处**:Phase 5 owner 验收轮(spec-005),2026-10-02。
