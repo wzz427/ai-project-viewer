@@ -47,7 +47,11 @@
 其余 4 个 P0 组合(Ctrl+W/F/Tab/Shift+Tab)与 Ctrl+R 同一 dispatcher 分支,留 owner 手测(30 秒)。
 Rust 侧 `resolve_root` 单测覆盖:尾斜杠/大小写归一、basename、盘根拒绝、文件拒绝、不存在拒绝、`\\?\` 前缀剥离、空串拒绝。
 
-**owner 验收建议路径**(2 分钟):启动 release exe → 点 + 加任意项目 → 再加同项目(小写)看切换 → 右键 tab Remove(确认目录还在)→ ⚙ 切 Dark → 按 Ctrl+R 看拦截 toast → Settings 诊断面板看拦截计数与启动耗时。
+**owner 验收建议路径**(2 分钟):启动 release exe → 点 + 加任意项目 → 再加同项目(小写)看切换 → Remove(**两处入口**:顶栏项目标签右键,或 Files 面板项目路径右键;确认目录还在)→ ⚙ 切 Dark → 按 Ctrl+R 看拦截 toast → Settings 诊断面板看拦截计数与启动耗时。空白处右键不应弹出任何浏览器菜单(Back/Reload/Print/Inspect)。
+
+### 2026-10-01 验收反馈修复(release 已重建)
+
+owner 验收时在 Files 面板项目路径处右键找不到 Remove——入口只挂在顶栏标签上,反直觉。已修:① Files 面板项目路径右键弹出同一菜单(共享组件 ProjectContextMenu,Phase 2 文件树根节点沿用);② 全局禁用 WebView 默认右键菜单(此前右键会露出浏览器菜单 Back/Reload/Print/Inspect,违背桌面应用定位)。CDP+UIA 全链回归通过。
 
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 

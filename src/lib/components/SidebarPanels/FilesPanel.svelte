@@ -1,16 +1,37 @@
 <script lang="ts">
   import { activeProject } from "$lib/stores/projectStore.svelte";
+  import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
 
   const project = $derived(activeProject());
+
+  // The project root is the natural place users look for project actions
+  // (matches the file-tree root context menu that arrives in Phase 2).
+  let menu = $state<{ x: number; y: number } | null>(null);
+
+  function openMenu(e: MouseEvent) {
+    e.preventDefault();
+    menu = { x: e.clientX, y: e.clientY };
+  }
 </script>
 
 {#if project}
   <div class="panel">
-    <div class="path mono" title={project.rootPath}>{project.rootPath}</div>
+    <div class="path mono" role="presentation" title={project.rootPath} oncontextmenu={openMenu}>
+      {project.rootPath}
+    </div>
     <p class="muted note">File tree arrives in Phase 2.</p>
   </div>
 {:else}
   <p class="muted note">No project open.</p>
+{/if}
+
+{#if menu && project}
+  <ProjectContextMenu
+    project={project}
+    x={menu.x}
+    y={menu.y}
+    onclose={() => (menu = null)}
+  />
 {/if}
 
 <style>
@@ -29,6 +50,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: context-menu;
   }
 
   .note {

@@ -21,10 +21,12 @@ Baseline 数字与验收建议路径见 docs/testing.md;汇报在 2026-10-01 会
 
 > **下一步从哪接** —— owner 验收(testing.md §2 末尾有 2 分钟手测路径)→ 通过后进 Phase 2(V1.5 §176,一次只做一个 Phase)。
 
+- ⚠️ 验收中发现并已修复两件(2026-10-01,release 已重建,细节在 testing.md §2"验收反馈修复"):① Remove 入口原来只在顶栏标签右键,现 Files 面板项目路径右键也有(共享组件 ProjectContextMenu);② 全局禁用了 WebView 默认右键菜单(此前会露出 Back/Reload/Print/Inspect)。owner 需用新 exe 重验。
+- Python 一律用 conda pywork 环境(owner 指定,architecture.md §0)。
 - Tauri 2.12 + Svelte 5(纯 Vite,剥掉模板 SvelteKit)+ single-instance + dialog 插件;工程结构见 architecture.md §3。
 - 实测全过:单实例 / 项目标签增删切去重(含原生 Picker 全链自动化)/ Files·Git·Settings 壳 / Theme / Ctrl+R 物理级拦截(WebView2 加速键已 COM 禁用,Tauri 2 无配置项,lessons L5)。
 - Baseline:启动冷 992ms·温 88ms;进程树 Private 179MB(⚠️超 150 target,判读见 testing.md §3,Rust 主进程仅 5.9MB);空闲 CPU 0.35% 单核;WebView2 6 进程。
-- GUI 自动化测试基建(CDP+UIA,无需前台)方法在 testing.md §1、踩坑在 lessons L3/L4/L6/L7,下次做 UI 验证直接复用。
+- GUI 自动化测试基建(CDP+UIA,无需前台)方法在 testing.md §1、踩坑在 lessons L3/L4/L6–L8,下次做 UI 验证直接复用。
 - 测试目录 `%USERPROFILE%\aiv-test-projects\`(Alpha/Beta 空目录)留给 owner 验收用,用后可删。
 
 ### 2026-10-01 · 会话收口:owner 确认建仓,批准开工
