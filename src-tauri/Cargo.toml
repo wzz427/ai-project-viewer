@@ -24,6 +24,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dunce = "1"
 encoding_rs = "0.8"
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3"

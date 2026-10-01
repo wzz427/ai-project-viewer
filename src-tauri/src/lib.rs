@@ -45,7 +45,9 @@ pub fn run() {
             startup_elapsed_ms,
             project::resolve_project,
             file_tree::list_directory,
-            file_inspect::inspect_file
+            file_inspect::inspect_file,
+            file_inspect::read_text_file,
+            file_inspect::read_media_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -178,6 +178,112 @@ pub fn inspect_file(
     inspect(&path)
 }
 
+#[derive(Debug)]
+pub struct TextContent {
+    pub text: String,
+    pub encoding: FileEncoding,
+    pub size_bytes: u64,
+}
+
+/// Decode a file to text per its detected encoding (V1.5 §101/§105).
+/// Binary and >20 MB files are refused here — the guard lives in Rust so
+/// the WebView can never receive them as text (§104/§106, spec-003 R3).
+pub fn read_text(path: &Path) -> Result<TextContent, String> {
+    let info = inspect(path)?;
+    if info.encoding == FileEncoding::Binary {
+        return Err("Binary file — not shown as text.".into());
+    }
+    if info.size_class == SizeClass::Huge {
+        return Err("File is larger than 20 MB and will not be opened in the viewer.".into());
+    }
+    let bytes = std::fs::read(path).map_err(|e| format!("Cannot read file: {e}"))?;
+    let text = decode_bytes(&bytes, info.encoding)?;
+    Ok(TextContent {
+        text,
+        encoding: info.encoding,
+        size_bytes: info.size_bytes,
+    })
+}
+
+fn decode_bytes(bytes: &[u8], enc: FileEncoding) -> Result<String, String> {
+    let (cow, _, _) = match enc {
+        FileEncoding::Utf8 => UTF_8.decode(bytes),
+        FileEncoding::Utf8Bom => UTF_8.decode(&bytes[3..]),
+        FileEncoding::Utf16LeBom => UTF_16LE.decode(&bytes[2..]),
+        FileEncoding::Utf16BeBom => UTF_16BE.decode(&bytes[2..]),
+        FileEncoding::Gb18030 => GB18030.decode(bytes),
+        FileEncoding::Binary => return Err("Binary file.".into()),
+    };
+    Ok(cow.into_owned())
+}
+
+#[tauri::command]
+pub fn read_text_file(
+    root_path: String,
+    rel_path: String,
+) -> Result<serde_json::Value, String> {
+    let path = resolve_file(Path::new(&root_path), &rel_path)?;
+    let content = read_text(&path)?;
+    serde_json::to_value(serde_json::json!({
+        "text": content.text,
+        "encoding": content.encoding,
+        "sizeBytes": content.size_bytes,
+    }))
+    .map_err(|e| format!("Serialization failed: {e}"))
+}
+
+/// Media (image) mime per extension; SVG rides the same safe `<img>` path
+/// (V1.5 §110, spec-003 D3).
+fn media_mime(name: &str) -> Option<&'static str> {
+    let lower = name.to_lowercase();
+    let ext = lower.rsplit('.').next()?;
+    Some(match ext {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        _ => return None,
+    })
+}
+
+pub struct MediaContent {
+    pub data_url: String,
+}
+
+/// Read an image as a base64 data URL. >20 MB is refused with the same
+/// never-send-whole rule as text (§106).
+pub fn read_media(path: &Path) -> Result<MediaContent, String> {
+    let info = inspect(path)?;
+    if info.size_class == SizeClass::Huge {
+        return Err("Image is larger than 20 MB and will not be opened.".into());
+    }
+    let mime = media_mime(
+        &path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default(),
+    )
+    .ok_or_else(|| "Not a supported image format.".to_string())?;
+    let bytes = std::fs::read(path).map_err(|e| format!("Cannot read file: {e}"))?;
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(MediaContent {
+        data_url: format!("data:{mime};base64,{b64}"),
+    })
+}
+
+#[tauri::command]
+pub fn read_media_file(
+    root_path: String,
+    rel_path: String,
+) -> Result<serde_json::Value, String> {
+    let path = resolve_file(Path::new(&root_path), &rel_path)?;
+    let content = read_media(&path)?;
+    serde_json::to_value(serde_json::json!({ "dataUrl": content.data_url }))
+        .map_err(|e| format!("Serialization failed: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -333,5 +439,90 @@ mod tests {
         std::fs::write(root.join("docs/a.md"), "# hi").unwrap();
         let r = inspect_file(root.to_string_lossy().into_owned(), "docs/a.md".into()).unwrap();
         assert_eq!(r.encoding, FileEncoding::Utf8);
+    }
+}
+
+#[cfg(test)]
+mod read_tests {
+    use super::*;
+
+    fn tmp_project(name: &str) -> PathBuf {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let project = dir.path().join(name);
+        std::fs::create_dir_all(&project).expect("create project dir");
+        std::mem::forget(dir);
+        project
+    }
+
+    fn write_bytes(root: &Path, rel: &str, bytes: &[u8]) {
+        let p = root.join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, bytes).unwrap();
+    }
+
+    #[test]
+    fn read_text_decodes_all_supported_encodings() {
+        let root = tmp_project("ReadEnc");
+        write_bytes(&root, "a.txt", "plain 中文".as_bytes());
+        let mut bom = vec![0xEF, 0xBB, 0xBF];
+        bom.extend_from_slice(b"bom text");
+        write_bytes(&root, "b.txt", &bom);
+        write_bytes(&root, "c.txt", &[0xFF, 0xFE, b'h', 0x00, b'i', 0x00]);
+        write_bytes(&root, "d.txt", &[0xFE, 0xFF, 0x00, b'h', 0x00, b'i']);
+        write_bytes(&root, "e.txt", &[0xD6, 0xD0, 0xCE, 0xC4]); // GB18030 中文
+
+        assert_eq!(read_text(&root.join("a.txt")).unwrap().text, "plain 中文");
+        assert_eq!(read_text(&root.join("b.txt")).unwrap().text, "bom text");
+        assert_eq!(read_text(&root.join("c.txt")).unwrap().text, "hi");
+        assert_eq!(read_text(&root.join("d.txt")).unwrap().text, "hi");
+        assert_eq!(read_text(&root.join("e.txt")).unwrap().text, "中文");
+    }
+
+    #[test]
+    fn read_text_refuses_binary() {
+        let root = tmp_project("ReadBin");
+        write_bytes(&root, "x.bin", b"ab\x00cd");
+        assert!(read_text(&root.join("x.bin")).is_err());
+    }
+
+    #[test]
+    fn read_text_refuses_huge_but_allows_large() {
+        let root = tmp_project("ReadSize");
+        write_bytes(&root, "large.log", &vec![b'x'; 6 * 1024 * 1024]);
+        write_bytes(&root, "huge.log", &vec![b'x'; 21 * 1024 * 1024]);
+        assert!(read_text(&root.join("large.log")).is_ok()); // 5–20 MB: allowed, gated by UI confirm
+        let err = read_text(&root.join("huge.log")).unwrap_err();
+        assert!(err.contains("20 MB"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn read_command_rejects_escape_and_dir() {
+        let base = tempfile::tempdir().unwrap();
+        let root = base.path().join("In");
+        std::fs::create_dir_all(root.join("sub")).unwrap();
+        std::mem::forget(base);
+        assert!(read_text_file(root.to_string_lossy().into_owned(), "../x".into()).is_err());
+        assert!(read_text_file(root.to_string_lossy().into_owned(), "sub".into()).is_err());
+    }
+
+    #[test]
+    fn read_media_returns_data_url_for_all_formats() {
+        let root = tmp_project("ReadMedia");
+        // Minimal PNG header is enough — the reader does not parse the image.
+        write_bytes(&root, "a.png", &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3]);
+        write_bytes(&root, "b.svg", b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>");
+        let png = read_media(&root.join("a.png")).unwrap();
+        assert!(png.data_url.starts_with("data:image/png;base64,"));
+        let svg = read_media(&root.join("b.svg")).unwrap();
+        assert!(svg.data_url.starts_with("data:image/svg+xml;base64,"));
+    }
+
+    #[test]
+    fn read_media_rejects_non_image_and_huge() {
+        let root = tmp_project("ReadMediaBad");
+        write_bytes(&root, "a.txt", b"not an image");
+        write_bytes(&root, "big.png", &vec![0u8; 21 * 1024 * 1024]);
+        assert!(read_media(&root.join("a.txt")).is_err());
+        assert!(read_media(&root.join("big.png")).is_err());
     }
 }
