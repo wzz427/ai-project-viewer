@@ -61,8 +61,16 @@ body {
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  /* Shell chrome is not selectable (desktop-app feel), but viewer content
+     MUST be (V1.5 §100/§107: select + copy) — re-enabled on .viewer-body. */
   user-select: none;
   cursor: default;
+}
+
+/* Viewer content is selectable (owner 2026-10-02: nothing could be
+   selected anywhere while body carried user-select: none). */
+.viewer-body {
+  user-select: text;
 }
 
 #app {

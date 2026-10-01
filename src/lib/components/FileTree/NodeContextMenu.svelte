@@ -62,10 +62,14 @@
     <button
       class="menu-item"
       onclick={() => {
-        onclose();
-        openWithDefaultApp(rootPath, joinRel(parentRel, name)).catch((err) =>
-          toast(`Cannot open: ${err}`, { kind: "error" }),
-        );
+        // Snapshot props BEFORE onclose (lessons L12): reading a live prop
+        // after the menu unmounts throws and silently swallows the handler
+        // — this exact bug made "Open with Default App" do nothing.
+        const root = rootPath;
+        const rel = joinRel(parentRel, name);
+        void openWithDefaultApp(root, rel)
+          .catch((err) => toast(`Cannot open: ${err}`, { kind: "error" }))
+          .finally(() => onclose());
       }}
     >Open with Default App</button>
   {/if}

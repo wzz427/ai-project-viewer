@@ -16,30 +16,19 @@
     savePdfState,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
+  import {
+    acquireLib,
+    releaseEngineIfIdle,
+  } from "$lib/services/pdfEngine";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
   const cached = $derived(cachedContent(rootPath, tab.relativePath));
   const data = $derived(cached?.kind === "pdf" ? cached.data : null);
 
-  type PdfLib = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
   type PdfDoc = import("pdfjs-dist").PDFDocumentProxy;
   type PdfPage = import("pdfjs-dist").PDFPageProxy;
   type PdfTask = import("pdfjs-dist").PDFDocumentLoadingTask;
-
-  // Shared worker singleton: one thread for all documents, ever (D1).
-  let libSingleton: PdfLib | null = null;
-  async function loadLib(): Promise<PdfLib> {
-    if (!libSingleton) {
-      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-      const WorkerCtor = (
-        await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker")
-      ).default;
-      pdfjs.GlobalWorkerOptions.workerPort = new WorkerCtor();
-      libSingleton = pdfjs;
-    }
-    return libSingleton;
-  }
 
   // Plain let on purpose: pdf.js objects must never enter the reactive
   // system — Svelte's deep proxy wraps their internals (private fields,
@@ -81,7 +70,7 @@
     let cancelled = false;
     void (async () => {
       try {
-        const pdfjs = await loadLib();
+        const pdfjs = await acquireLib();
         // getDocument transfers/detaches its input — hand it a copy so the
         // cache copy stays reusable across tab switches.
         const t = pdfjs.getDocument({ data: buf.slice(0) });
@@ -121,6 +110,9 @@
       void task?.destroy();
       task = null;
       doc = null;
+      // Owner 2026-10-02: closing the last pdf tab unloads the engine
+      // (worker thread) entirely; a no-op while other pdf tabs remain.
+      releaseEngineIfIdle();
     };
   });
 
