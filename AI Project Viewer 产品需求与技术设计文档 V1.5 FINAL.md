@@ -5524,3 +5524,7 @@ state.json 解析失败
 | 2026-10-01 | §33 | 取消 Name / Favorites First 两模式,合并为单一排序制(Pinned 区 + Unpinned 区);Name 模式删除 | owner:"没必要单独保留 name 选项" |
 | 2026-10-01 | —(技术性,不改需求) | Windows 下 HTML5 拖拽失效根因 = Tauri 默认 `dragDropEnabled` 拦截;窗口配置改 false(实现细节见 architecture.md §12) | owner:"pin 之间无法拖拽调序" |
 | 2026-10-01 | §39(细化) | 拖拽落点语义补全:置顶行上/下半=插前/插后;置顶区上方=插到最顶(原"甩到顶"落死区) | owner:"移动不到最顶部,别的位置可以" |
+| 2026-10-01 | §86/§108(细化) | Rendered\|Source、Formatted\|Source 切换入口由查看器内浮动按钮改为**文件页签右键菜单** | owner:"右边又开一个窗口多难看" |
+| 2026-10-01 | §186(提前) | "Pin File Tab" 由 P1 提前入 V1:预览页签模型——未 Keep Open 的页签被下一个打开的文件原位顶替,防页签堆积 | owner 第 8 条 |
+| 2026-10-01 | §111(泛化,提前) | 新增右键 "Open with Default App"(opener 直达系统关联程序,不经资源管理器),承接应用内不可看格式(视频等) | owner 第 10 条:"常见类型不要跳出去" |
+| 2026-10-01 | —(技术性) | 图片路由修正:JPEG/PNG/GIF 字节天然含 NULL 被文本二进制判定拦截,改为扩展名优先走媒体通道;视觉打磨:浅色阅读面纯白/字体栈 Segoe UI Variable+Cascadia/查看器字号设置(§155 范围) | owner 第 3/6/7/10 条 |

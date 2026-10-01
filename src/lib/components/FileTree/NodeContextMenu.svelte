@@ -4,6 +4,9 @@
     unpin,
     treeState,
   } from "$lib/stores/fileTreeStore.svelte";
+  import { openWithDefaultApp } from "$lib/services/tauri";
+  import { toast } from "$lib/stores/toastStore.svelte";
+  import { joinRel } from "$lib/stores/fileTreeStore.svelte";
 
   let {
     rootPath,
@@ -55,6 +58,17 @@
   <button class="menu-item" onclick={togglePin}>
     {pinned ? "Unpin" : "Pin to Top"}
   </button>
+  {#if !isDir}
+    <button
+      class="menu-item"
+      onclick={() => {
+        onclose();
+        openWithDefaultApp(rootPath, joinRel(parentRel, name)).catch((err) =>
+          toast(`Cannot open: ${err}`, { kind: "error" }),
+        );
+      }}
+    >Open with Default App</button>
+  {/if}
 </div>
 
 <style>

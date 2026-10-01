@@ -160,7 +160,7 @@
   .viewer {
     flex: 1;
     min-width: 0;
-    background: var(--bg);
+    background: var(--viewer-bg);
   }
 
   .viewer-stack {

@@ -13,14 +13,16 @@
   import * as legacy from "./codeLanguages";
   import { setActiveSearchView } from "./codeSearchRegistry";
   import { settings } from "$lib/stores/settingsStore.svelte";
-  import type { RuntimeTab } from "$lib/stores/tabsStore.svelte";
+  import { saveScrollPosition, type RuntimeTab } from "$lib/stores/tabsStore.svelte";
 
   let {
+    rootPath,
     tab,
     text,
     language,
     fixedLanguage,
   }: {
+    rootPath: string;
     tab: RuntimeTab;
     text: string;
     /** Extension-derived language name; omit for plain text. */
@@ -60,8 +62,11 @@
           themeComp.of(isDark() ? oneDark : []),
           EditorView.theme({
             "&": { backgroundColor: "transparent", height: "100%" },
-            ".cm-scroller": { fontFamily: "var(--mono)", overflow: "auto" },
-            ".cm-content": { caretColor: "transparent" },
+            ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
+            ".cm-content": {
+              fontSize: "var(--viewer-font-size)",
+              caretColor: "transparent",
+            },
             ".cm-gutters": {
               backgroundColor: "transparent",
               color: "var(--text-muted)",
@@ -76,7 +81,7 @@
     setActiveSearchView(view);
 
     return () => {
-      tab.scrollPosition = view?.scrollDOM.scrollTop ?? 0;
+      if (view) saveScrollPosition(rootPath, tab.relativePath, view.scrollDOM.scrollTop);
       setActiveSearchView(null);
       view?.destroy();
       view = null;

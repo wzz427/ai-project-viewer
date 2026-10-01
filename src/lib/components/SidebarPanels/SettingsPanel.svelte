@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     settings,
+    setFontSize,
     setTheme,
     type Theme,
   } from "$lib/stores/settingsStore.svelte";
@@ -55,6 +56,17 @@
       </div>
     </section>
   {/if}
+
+  <section>
+    <h3>Viewer</h3>
+    <div class="row">
+      <span>Font size</span>
+      <span class="spacer"></span>
+      <button class="step" aria-label="Smaller font" onclick={() => setFontSize(settings.fontSize - 1)}>−</button>
+      <span class="mono size">{settings.fontSize} px</span>
+      <button class="step" aria-label="Larger font" onclick={() => setFontSize(settings.fontSize + 1)}>+</button>
+    </div>
+  </section>
 
   <section>
     <h3>Theme</h3>
@@ -128,6 +140,30 @@
 
   .refresh:hover {
     background: var(--bg-hover);
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .step {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .step:hover {
+    background: var(--bg-hover);
+  }
+
+  .size {
+    min-width: 40px;
+    text-align: center;
+    font-size: 11px;
   }
 
   .hint {

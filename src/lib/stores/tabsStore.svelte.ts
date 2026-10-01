@@ -37,6 +37,9 @@ export interface RuntimeTab {
   encoding?: FileEncoding;
   /** runtime-only: file vanished from disk (§83). */
   deleted?: boolean;
+  /** runtime-only: pinned ("Keep Open") vs preview — a new file replaces
+   *  the active PREVIEW tab (VS Code model, owner 2026-10-01 item 8). */
+  pinned?: boolean;
   /** runtime-only: why "unsupported" (binary guard verdict etc.). */
   unsupportedReason?: "binary" | "huge";
   sizeBytes?: number;
@@ -55,7 +58,7 @@ type Cached =
   | { kind: "text"; text: string; encoding: FileEncoding }
   | { kind: "media"; dataUrl: string };
 
-const contentCache = new Map<string, Cached>();
+const contentCache = $state(new Map<string, Cached>());
 
 function projectTabs(rootPath: string): ProjectTabs {
   let st = tabsState.byRoot[rootPath];
@@ -94,12 +97,86 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
     // Re-open keeps position and per-tab state, refreshes the verdicts.
     Object.assign(existing, tab, {
       markdownMode: existing.markdownMode ?? tab.markdownMode,
+      jsonMode: existing.jsonMode ?? tab.jsonMode,
+      scrollPosition: existing.scrollPosition,
+      pinned: existing.pinned,
     });
     st.activeFileRelativePath = tab.relativePath;
     return;
   }
-  st.openFiles.push(tab);
+  // Preview model (owner 2026-10-01): unless the active tab is pinned, the
+  // new file REPLACES it in place — tab accumulation needs an explicit
+  // "Keep Open". New tabs are preview (not pinned) by default.
+  const activeIdx = st.openFiles.findIndex(
+    (t) => t.relativePath === st.activeFileRelativePath,
+  );
+  const active = activeIdx === -1 ? undefined : st.openFiles[activeIdx];
+  if (active && !active.pinned) {
+    contentCache.delete(cacheKey(rootPath, active.relativePath));
+    st.openFiles.splice(activeIdx, 1, tab);
+  } else {
+    st.openFiles.push(tab);
+  }
   st.activeFileRelativePath = tab.relativePath;
+}
+
+/** View-mode writes go through the store, never through component props —
+ *  a prop reference stopped being live once its menu/viewer unmounted
+ *  (owner round 2026-10-01: the first mode-toggle click was silently lost). */
+export function setMarkdownMode(
+  rootPath: string,
+  rel: string,
+  mode: MarkdownMode,
+) {
+  const tab = projectTabs(rootPath).openFiles.find(
+    (t) => t.relativePath === rel,
+  );
+  if (tab) tab.markdownMode = mode;
+}
+
+export function setJsonMode(
+  rootPath: string,
+  rel: string,
+  mode: "formatted" | "source",
+) {
+  const tab = projectTabs(rootPath).openFiles.find(
+    (t) => t.relativePath === rel,
+  );
+  if (tab) tab.jsonMode = mode;
+}
+
+/** Persist scroll offsets from unmounting viewers (§160.5 restore). */
+export function saveScrollPosition(
+  rootPath: string,
+  rel: string,
+  scrollTop: number,
+) {
+  const tab = projectTabs(rootPath).openFiles.find(
+    (t) => t.relativePath === rel,
+  );
+  if (tab) tab.scrollPosition = scrollTop;
+}
+
+/** Right-click "Keep Open" — stops this tab from being replaced (item 8). */
+export function setTabPinned(rootPath: string, rel: string, pinned: boolean) {
+  const tab = projectTabs(rootPath).openFiles.find(
+    (t) => t.relativePath === rel,
+  );
+  if (tab) tab.pinned = pinned;
+}
+
+/** Drag-reorder tabs (owner 2026-10-01 item 9). */
+export function reorderTabs(
+  rootPath: string,
+  fromRel: string,
+  toRel: string,
+) {
+  const st = projectTabs(rootPath);
+  const from = st.openFiles.findIndex((t) => t.relativePath === fromRel);
+  const to = st.openFiles.findIndex((t) => t.relativePath === toRel);
+  if (from === -1 || to === -1 || from === to) return;
+  const [moved] = st.openFiles.splice(from, 1);
+  st.openFiles.splice(to, 0, moved);
 }
 
 export function activateFile(rootPath: string, rel: string) {
@@ -163,15 +240,10 @@ export async function openFile(rootPath: string, rel: string) {
     return;
   }
 
-  if (info.isBinary) {
-    addOrActivate(rootPath, {
-      relativePath: rel,
-      viewerType: "binary",
-      unsupportedReason: "binary",
-      sizeBytes: info.sizeBytes,
-    });
-    return;
-  }
+  // Routing order matters (owner 2026-10-01 item 10): JPEG/PNG/GIF bytes
+  // legitimately contain NULLs, so the TEXT pipeline flags them binary —
+  // image extensions must be routed to the media channel BEFORE the binary
+  // verdict. Only >20 MB guards everything.
   if (info.sizeClass === "huge") {
     addOrActivate(rootPath, {
       relativePath: rel,
@@ -197,6 +269,16 @@ export async function openFile(rootPath: string, rel: string) {
     } catch (err) {
       toast(`Cannot open image: ${err}`, { kind: "error" });
     }
+    return;
+  }
+
+  if (info.isBinary) {
+    addOrActivate(rootPath, {
+      relativePath: rel,
+      viewerType: "binary",
+      unsupportedReason: "binary",
+      sizeBytes: info.sizeBytes,
+    });
     return;
   }
 

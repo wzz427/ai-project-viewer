@@ -26,25 +26,15 @@
 
   const mode = $derived(formatted.ok ? (tab.jsonMode ?? "formatted") : "source");
 
-  function setMode(next: "formatted" | "source") {
-    tab.jsonMode = next;
-  }
 </script>
 
 <div class="json-viewer">
-  <div class="mode-switch" role="toolbar" aria-label="View mode">
-    <button class:active={mode === "formatted"} disabled={!formatted.ok} onclick={() => setMode("formatted")}>
-      Formatted
-    </button>
-    <button class:active={mode === "source"} onclick={() => setMode("source")}>
-      Source
-    </button>
-  </div>
+  <!-- View mode toggles via the file tab's right-click menu (owner item 5). -->
   <div class="host">
     {#if mode === "formatted" && formatted.ok}
-      <CodeViewer {tab} text={formatted.text} fixedLanguage={json()} />
+      <CodeViewer {rootPath} {tab} text={formatted.text} fixedLanguage={json()} />
     {:else}
-      <CodeViewer {tab} text={raw} language="json" />
+      <CodeViewer {rootPath} {tab} text={raw} language="json" />
     {/if}
   </div>
   {#if !formatted.ok}
@@ -58,34 +48,6 @@
     display: flex;
     flex-direction: column;
     position: relative;
-  }
-
-  .mode-switch {
-    position: absolute;
-    top: 8px;
-    right: 16px;
-    z-index: 5;
-    display: flex;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    background: var(--bg-raised);
-  }
-
-  .mode-switch button {
-    padding: 3px 10px;
-    font-size: 11.5px;
-    color: var(--text-muted);
-  }
-
-  .mode-switch button.active {
-    background: var(--bg-active);
-    color: var(--text);
-  }
-
-  .mode-switch button:disabled {
-    opacity: 0.4;
-    cursor: default;
   }
 
   .host {

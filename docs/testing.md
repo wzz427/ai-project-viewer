@@ -110,6 +110,10 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **owner 验收建议路径**(2 分钟,release 已重建):双击桌面 AI Project Viewer → + 加 `Desktop\AIV-TestProject` → 点 README.md(渲染/表格/任务清单/图片/链接)→ 点 main.py(高亮行号)→ Ctrl+F 搜 → 点 metrics.json(Formatted/Source)→ 点 assets\logo.svg(缩放/100%)→ 点 edge-cases\huge-21mb.log(守卫)与 chinese-gb18030.txt(中文)→ Ctrl+Tab/Ctrl+W/Ctrl+R 各试一次。
 
+### 2026-10-01 十项验收反馈返工(release 已重建;回归 16/16 PASS,零前台)
+
+① 内容不刷新(txt/html 显示旧文件)=缓存非响应式+同型查看器不重挂载→`{#key 文件}`+`$state(Map)`;② 图片看不了=二进制判定先于图片路由→扩展名优先媒体通道(lessons L12);③ 预览页签模型:未 Keep Open 的页签被下一文件原位顶替(右键 Keep Tab Open 固定,📌 标记,预览态斜体);④ 页签右键菜单=模式切换(Markdown/JSON)/Keep Open/Open with Default App/Close,浮动切换窗删除;⑤ 页签可拖拽重排、激活自动滚入、高亮强化(顶部色条);⑥ 视觉:浅色阅读面纯白、字体栈 Segoe UI Variable+Cascadia、Settings→Viewer 可调字号;⑦ GIF 实测渲染;视频等应用外格式走右键"默认程序打开"(opener 直达播放器)。V1.5 §197 审计 4 行(§86/108 细化、§186 提前、§111 泛化)。复验 1 分钟:连点几个文件(页签不堆积)→ 右键 Keep Tab Open 再点(新页签)→ 右键 README 切 Source/Rendered → 拖动页签换位 → 点 assets\photo.jpg(应显示)→ 右键 icon.gif "Open with Default App"(系统看图打开)。
+
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
 | 指标 | 值 | 口径 | 目标(§163–§165) |

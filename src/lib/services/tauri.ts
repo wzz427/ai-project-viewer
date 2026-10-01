@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
 
 export interface ResolvedProject {
   rootPath: string;
@@ -82,6 +83,18 @@ export function readMediaFile(
   relPath: string,
 ): Promise<MediaFileContent> {
   return invoke<MediaFileContent>("read_media_file", { rootPath, relPath });
+}
+
+/**
+ * Hand a project-relative file to its OS-associated application — the
+ * media player directly, never the file manager (owner 2026-10-01 item 10).
+ */
+export function openWithDefaultApp(
+  rootPath: string,
+  relPath: string,
+): Promise<void> {
+  const abs = `${rootPath}\\${relPath.replace(/\//g, "\\")}`;
+  return openPath(abs).then(() => undefined);
 }
 
 /** Milliseconds from Rust process start to the moment this is called. */

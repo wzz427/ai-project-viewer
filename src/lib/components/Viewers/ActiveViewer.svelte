@@ -26,6 +26,9 @@
 </script>
 
 {#if tab}
+  <!-- Keyed by file: switching files always remounts the viewer, so content
+       can never go stale (owner 2026-10-01 items 3/10 root cause). -->
+  {#key tab.relativePath}
   {#if tab.deleted || tab.viewerType === "binary" || tab.viewerType === "unsupported"}
     <UnsupportedViewer {rootPath} {tab} />
   {:else if tab.viewerType === "markdown" && text !== null}
@@ -36,11 +39,12 @@
     <ImageViewer {rootPath} {tab} />
   {:else if text !== null}
     <div class="code-host">
-      <CodeViewer {tab} text={text} language={extOf(tab.relativePath)} />
+      <CodeViewer {rootPath} {tab} text={text} language={extOf(tab.relativePath)} />
     </div>
   {:else}
     <div class="loading">Loading…</div>
   {/if}
+  {/key}
 {/if}
 
 <style>

@@ -14,6 +14,7 @@
   import {
     cachedContent,
     openFile,
+    saveScrollPosition,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
   import { readMediaFile } from "$lib/services/tauri";
@@ -77,35 +78,19 @@
     const el = container;
     if (el) el.scrollTop = tab.scrollPosition ?? 0;
     return () => {
-      if (el) tab.scrollPosition = el.scrollTop;
+      if (el) saveScrollPosition(rootPath, tab.relativePath, el.scrollTop);
     };
   });
 
-  function setMode(mode: "rendered" | "source") {
-    tab.markdownMode = mode;
-  }
 </script>
 
 <div class="markdown-viewer">
-  <div class="mode-switch" role="toolbar" aria-label="View mode">
-    <button
-      class:active={tab.markdownMode !== "source"}
-      onclick={() => setMode("rendered")}
-    >
-      Rendered
-    </button>
-    <button
-      class:active={tab.markdownMode === "source"}
-      onclick={() => setMode("source")}
-    >
-      Source
-    </button>
-  </div>
-
+  <!-- View mode toggles via the file tab's right-click menu (owner item 5);
+       no floating overlay. -->
   {#if tab.markdownMode === "source"}
     <div class="source-host">
       {#if content?.kind === "text"}
-        <CodeViewer {tab} text={content.text} language={extOf(tab.relativePath)} />
+        <CodeViewer {rootPath} {tab} text={content.text} language={extOf(tab.relativePath)} />
       {/if}
     </div>
   {:else}
@@ -131,28 +116,6 @@
     position: relative;
   }
 
-  .mode-switch {
-    position: absolute;
-    top: 8px;
-    right: 16px;
-    z-index: 5;
-    display: flex;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    background: var(--bg-raised);
-  }
-
-  .mode-switch button {
-    padding: 3px 10px;
-    font-size: 11.5px;
-    color: var(--text-muted);
-  }
-
-  .mode-switch button.active {
-    background: var(--bg-active);
-    color: var(--text);
-  }
 
   .source-host {
     flex: 1;
@@ -167,7 +130,7 @@
     padding: 16px 24px 48px 24px;
     max-width: 860px;
     line-height: 1.65;
-    font-size: 13.5px;
+    font-size: var(--viewer-font-size);
   }
 
   .rendered :global(h1) { font-size: 1.6em; margin: 0.6em 0 0.4em; }
