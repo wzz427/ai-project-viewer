@@ -17,6 +17,13 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-02 · Phase 5 验收二轮:opener scope 真机修通+I-beam+页签宽,等 owner 复验
+
+> **下一步从哪接** —— owner 复验(完全重启应用:右键 txt/PDF → 系统程序真打开;内容区 I-beam 可划选;长名页签封顶)→ 过则 Done、立 spec-006(Phase 6 HANDOFF);**PDF 文本层(画布内选字)待 owner 表态**。
+
+- 右键 Not allowed 根因=opener 第二层门 scope 默认空(capability 权限≠scope,lessons L16);修复后**真机实证记事本弹出打开**——外联功能验证标准从"handler 执行"升到"真程序弹出"。
+- I-beam 光标、长名页签 160px 封顶+省略号;回归 PDF 19/19+P3 PASS;release 已重建。
+
 ### 2026-10-02 · Phase 5 验收轮返工:引擎卸载/文本选择/右键三修,等 owner 复验
 
 > **下一步从哪接** —— owner 复验(testing.md §2e 末尾返工段:完全重启应用→选字/右键/PDF 全流程)→ 过则 Done、立 spec-006(Phase 6 HANDOFF);**PDF 文本层(画布内选字)待 owner 表态**,要则约半天(textLayer 对齐)。
