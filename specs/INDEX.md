@@ -11,3 +11,4 @@
 | spec-002 | 文件树、收藏置顶、文件识别怎么做? | Done | owner 验收通过(2026-10-01 原话"可以了,做spec003");冷却后搬 specs/archive/ |
 | spec-003 | 文件打开与查看器:点一个文件能看到什么?(File Tabs / Markdown / Text / Code / JSON / Image / SVG + 五快捷键) | Done | owner 验收通过(2026-10-01 原话"这个就算过了吧");三轮返工全记录在本 SPEC §六;冷却后搬 specs/archive/ |
 | spec-004 | Session & Settings:关掉再开,一切还在?(会话恢复+设置持久化+防抖原子写盘) | Done | owner 验收通过(2026-10-01 原话"通过了");Done 后同日补侧栏拖拽(owner 拍板"要拖拽",D6 翻案留痕,回归 7/7);冷却后搬 specs/archive/ |
+| spec-005 | PDF.js Spike:点一个 PDF 能看到什么?(验证→首页→完整查看器→Benchmark) | Ready | 免审门已过(workflow §五 A2);按 spec-005 §六切分⑤块开工,块①spike 实测起(2026-10-01 owner"可以了,继续spec005") |

@@ -11,17 +11,19 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 4 Done(含 owner 拍板补的侧栏拖拽),下一步 Phase 5 PDF.js Spike(V1.5 §179):先立 spec-005 再开发**(owner 已免审,workflow §五 A2;模板 specs/SPEC-template.md,写法照 spec-002/003/004)。
+主线 = **Phase 5 PDF.js Spike(V1.5 §179)开发中:spec-005 已立项**(2026-10-01 owner"可以了,继续spec005")。
+Phase 4 完全闭环(owner 原话"通过了"+侧栏拖拽复验"可以了")。
 纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-01 · Phase 4 Done + 侧栏拖拽补交付
+### 2026-10-01 · Phase 4 全闭环;spec-005(Phase 5 PDF.js Spike)立项开工
 
-> **下一步从哪接** —— owner 复验拖拽(把侧栏拖宽→关掉重开,宽度应还原;Tab 聚焦分隔条可用 ←/→)→ 过则立 spec-005(Phase 5 PDF.js Spike)开工。
+> **下一步从哪接** —— 按 specs/spec-005 §六切分开发:块①spike 实测(Asset Protocol/Worker/CSP 三路线决策)起。
 
-- owner 验收原话"通过了"入档;追问侧栏拖拽后拍板"要拖拽"——已交付:右缘分隔条拖拽 200–600+键盘步进,按项目持久化(V1.5 §17 增量修订+§197 审计行已落);CDP 拖拽回归 7/7,release 已重建。
-- spec-004 全程:五 commit(立项→块①②③→收口)+ 拖拽追加;核心踩坑 SvelteMap(lessons L13);状态文件与测试态闸门见 testing.md §2d。
+- owner"可以了"=侧栏拖拽复验通过,Phase 4 全闭环(Done+追加件)。
+- Phase 5 范围(V1.5 §179/§91–98):spike 验证(Asset Protocol/assetScope/Local PDF/Worker/CSP worker-src+img-src/md 本地图片/Worker Lifecycle)→ Load→Worker→Render One Page → 完整 UI(§92 十项)→ 虚拟化/搜索/缩放 → benchmark(§98 四场景)。
+- 新依赖预告:pdfjs-dist(npmmirror);PDF 夹具(benchmark 用 10 页文本/100 页文本/100 页扫描)待生成。
 
 ### 2026-10-01 · Phase 4 交付:会话恢复+设置持久化,自测全绿等验收
 
