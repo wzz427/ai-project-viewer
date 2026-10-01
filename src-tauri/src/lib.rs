@@ -66,6 +66,7 @@ pub fn run() {
             file_inspect::inspect_file,
             file_inspect::read_text_file,
             file_inspect::read_media_file,
+            file_inspect::read_binary_file,
             state::load_state,
             state::save_state
         ])

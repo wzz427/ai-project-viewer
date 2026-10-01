@@ -284,6 +284,35 @@ pub fn read_media_file(
         .map_err(|e| format!("Serialization failed: {e}"))
 }
 
+/// Hard cap for the raw-bytes channel (spec-005 D4): the page pipeline
+/// renders lazily, but the document bytes still live in memory whole, so
+/// pathological files must be refused somewhere. 100 MB covers every §98
+/// benchmark shape (100 scanned pages land well under it).
+pub const BINARY_CHANNEL_LIMIT: u64 = 100 * 1024 * 1024;
+
+/// Raw file bytes (PDFs, spec-005 D2: bytes over the bridge, no asset
+/// protocol scope). No text-pipeline guards apply — callers route by
+/// extension before the binary verdict (lessons L12 family).
+pub fn read_binary(path: &Path) -> Result<Vec<u8>, String> {
+    let info = inspect(path)?;
+    if info.size_bytes > BINARY_CHANNEL_LIMIT {
+        return Err("File is larger than 100 MB and will not be opened.".into());
+    }
+    std::fs::read(path).map_err(|e| format!("Cannot read file: {e}"))
+}
+
+/// Returns tauri::ipc::Response so the bytes cross as one ArrayBuffer
+/// instead of a JSON number array (Tauri 2 fast channel).
+#[tauri::command]
+pub fn read_binary_file(
+    root_path: String,
+    rel_path: String,
+) -> Result<tauri::ipc::Response, String> {
+    let path = resolve_file(Path::new(&root_path), &rel_path)?;
+    let bytes = read_binary(&path)?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -310,6 +339,14 @@ mod tests {
         assert_eq!(r.encoding, FileEncoding::Utf8);
         assert!(!r.is_binary);
         assert_eq!(r.size_class, SizeClass::Normal);
+    }
+
+    #[test]
+    fn binary_channel_reads_bytes_and_rejects_escape() {
+        let (root, file) = write("Bin", b"%PDF-1.7 fake bytes");
+        assert_eq!(read_binary(&file).unwrap(), b"%PDF-1.7 fake bytes".to_vec());
+        let escaped = read_binary(&Path::new(&root).join("..").join("nope.pdf"));
+        assert!(escaped.is_err());
     }
 
     #[test]
