@@ -87,7 +87,8 @@
 | D7 | rename 识别走刷新对账(消失 Pinned 名+同父恰一新增名) | Watcher 属 Phase 9,对账函数届时原位复用 | 现在就上 notify 库 | Phase 9 的活提前付,且口径未定 |
 | D8 | pinned/expanded 形状照抄 §17/§19 存内存 | Phase 4 持久化零迁移 | 自造结构 | 到 P4 还要写迁移 |
 | D9 | 树默认偏好:Folders First ON(Show system folders OFF 照 §30);排序无模式(见 D10) | §17 未定 UI 默认值;取 VS Code Explorer 惯例,用户最熟悉 | Folders First 默认关 | 混排对目录型项目反直觉 |
-| D10 | 【2026-10-01 owner 验收反馈】排序合一(删 Name 模式)、⋯ 菜单并入 Settings、`dragDropEnabled:false` 修真拖拽 | Name 模式无独立价值;入口收敛一个 ⚙;合成 DragEvent 测不出原生拖拽,须真鼠标验证 | 保留两模式 / 保留 ⋯ / 只改测试 | 均被 owner 原话否决 |
+| D10 | 【2026-10-01 owner 验收反馈】排序合一(删 Name 模式)、⋯ 菜单并入 Settings、`dragDropEnabled:false` 修真拖拽 | Name 模式无独立价值;入口收敛一个 ⚙;合成 DragEvent 测不出原生拖拽,须真输入验证 | 保留两模式 / 保留 ⋯ / 只改测试 | 均被 owner 原话否决 |
+| D11 | 【2026-10-01 二轮反馈】拖拽落点语义:行上/下半=插前/插后;置顶区上方空白=插到最顶;dragenter+dragover 都要 preventDefault | "甩到顶"落在无 drop 目标死区;WebView2 无 dragenter 取消则 drop 不触发(lessons L10 补记) | 只加顶部区 | 半区语义顺带补"移到最底",一次做对 |
 
 ## 五、测试覆盖矩阵(Draft→Ready 硬产物)
 
@@ -107,3 +108,4 @@
 | 2026-10-01 | 重构入指南 SPEC 模板;Draft→Ready | R/V 指针化、决策依据表、覆盖矩阵;owner 免审门见 workflow.md §五 |
 | 2026-10-01 | Ready→InDev→InTest | 六块全部落地(349f501 / 0816f84 / 08a9505);自测全绿:cargo 32/32、vitest 9/9、svelte-check 0/0、CDP 全链(证据 docs/testing.md §2b);release 已重建 |
 | 2026-10-01 | 验收反馈返工(InTest 内) | owner 三条:D10 全落地;真鼠标拖拽实测换序成功;release 重建待复验 |
+| 2026-10-01 | 二轮反馈返工(InTest 内) | "拖不到最顶":D11 落地(半区+顶部区+dragenter);Playwright over CDP 三场景 PASS(零前台);release 重建 |

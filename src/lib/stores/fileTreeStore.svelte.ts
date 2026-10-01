@@ -194,12 +194,18 @@ export function isPinned(
   return st.pinnedItems[parentRel]?.includes(name) ?? false;
 }
 
-/** Move `fromName` to sit just before `toName` (same parent only, §38/§39). */
+/**
+ * Move `fromName` to sit before/after `toName` (same parent only, §38/§39).
+ * Cursor-half semantics: top half of a row = before, bottom half = after —
+ * without "after" there is no way to reach the last slot, and without the
+ * top zone (FilesPanel) no way to reach the first (owner 2026-10-01).
+ */
 export function reorderPinned(
   rootPath: string,
   parentRel: string,
   fromName: string,
   toName: string,
+  position: "before" | "after" = "before",
 ) {
   const st = treeFor(rootPath);
   const list = st.pinnedItems[parentRel];
@@ -208,8 +214,19 @@ export function reorderPinned(
   const to = list.indexOf(toName);
   if (from === -1 || to === -1 || from === to) return;
   list.splice(from, 1);
-  const nextTo = list.indexOf(toName);
-  list.splice(nextTo, 0, fromName);
+  const anchor = list.indexOf(toName);
+  list.splice(position === "before" ? anchor : anchor + 1, 0, fromName);
+}
+
+/** Drop target was above the whole pinned area → first slot. */
+export function movePinnedToTop(rootPath: string, parentRel: string, name: string) {
+  const st = treeFor(rootPath);
+  const list = st.pinnedItems[parentRel];
+  if (!list) return;
+  const idx = list.indexOf(name);
+  if (idx <= 0) return;
+  list.splice(idx, 1);
+  list.unshift(name);
 }
 
 export function setFoldersFirst(rootPath: string, value: boolean) {

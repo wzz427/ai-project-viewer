@@ -49,7 +49,8 @@
   const selected = $derived(st.selectedRelPath === rel);
 
   let menu = $state<{ x: number; y: number } | null>(null);
-  let dropOver = $state(false);
+  // Cursor-half drop: "before" draws the line above the row, "after" below.
+  let dropAt = $state<"before" | "after" | null>(null);
 
   function activate() {
     if (entry.isDir) {
@@ -91,20 +92,25 @@
     e.dataTransfer.setData("text/plain", entry.name);
   }
 
+  // WebView2 requires canceling dragenter as well as dragover for the drop
+  // to fire (lessons L10 addendum); same body serves both events.
   function onDragOver(e: DragEvent) {
     if (!canAcceptDrop()) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    dropOver = true;
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    dropAt = e.clientY < rect.top + rect.height / 2 ? "before" : "after";
   }
 
   function onDrop(e: DragEvent) {
     e.preventDefault();
-    dropOver = false;
-    if (canAcceptDrop() && dragState.name) {
+    const position = dropAt;
+    dropAt = null;
+    if (canAcceptDrop() && dragState.name && position) {
       // Same-parent pinned reorder only (V1.5 §38/§39) — never moves files
       // on disk, only display order.
-      reorderPinned(rootPath, parentRel, dragState.name, entry.name);
+      reorderPinned(rootPath, parentRel, dragState.name, entry.name, position);
     }
     dragState.parentRel = null;
     dragState.name = null;
@@ -115,7 +121,8 @@
   class="row"
   class:selected
   class:pinned
-  class:drop-over={dropOver}
+  class:drop-before={dropAt === "before"}
+  class:drop-after={dropAt === "after"}
   class:dir={entry.isDir}
   role="treeitem"
   tabindex="-1"
@@ -127,8 +134,9 @@
   onkeydown={onKeydown}
   oncontextmenu={openMenu}
   ondragstart={onDragStart}
+  ondragenter={onDragOver}
   ondragover={onDragOver}
-  ondragleave={() => (dropOver = false)}
+  ondragleave={() => (dropAt = null)}
   ondrop={onDrop}
   title={rel}
 >
@@ -193,9 +201,12 @@
     background: var(--bg-active);
   }
 
-  .row.drop-over {
-    border-top: 2px solid var(--accent, var(--text));
-    margin-top: -2px;
+  .row.drop-before {
+    box-shadow: inset 0 2px 0 var(--accent, var(--text));
+  }
+
+  .row.drop-after {
+    box-shadow: inset 0 -2px 0 var(--accent, var(--text));
   }
 
   .chevron {

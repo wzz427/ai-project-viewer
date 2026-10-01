@@ -29,6 +29,7 @@
 - 驱动原生 Folder Picker / MessageBox:`aiv-picker.ps1` / `aiv-confirm.ps1`(UIA+Win32 消息,按 ClassName 找控件,不需要前台)
 - 窗口截图(可穿透遮挡):`aiv-shot.ps1`(PrintWindow PW_RENDERFULLCONTENT)
 - ⚠️ **禁止**向"当前前台窗口"盲发按键(SendKeys):按键会落进宿主终端;必须先 `GetForegroundWindow` 校验目标(见 lessons L3)
+- 🔴 **测试一律零前台**(owner 2026-10-01 立规):脚本不得 SetForegroundWindow/AppActivate/SW_RESTORE 抢焦点打断 owner。拖拽验证用 Playwright(pywork)connect_over_cdp:`python %TEMP%iv-p2-drag-test.py`(输入走 CDP 管道);应用以 SW_SHOWMINNOACTIVE(7) 起最小化不激活;截图用 PrintWindow 穿遮挡
 
 ## 2. Phase 1 功能自测记录(2026-10-01,全部通过)
 
@@ -83,6 +84,10 @@ owner 三条反馈,全部落地并实测:
 3. **⋯ 并入 Settings**:⋯ 按钮删除;⚙ 点击进 Settings(File Tree 区:Folders First/Show system folders/Refresh + Theme + Diagnostics),再点 ⚙ 回 Files;实测切换与勾选生效。
 
 复验 30 秒:双击桌面快捷方式 → 加项目 → 右键 Pin 两个文件 → **真鼠标拖动换序** → ⚙ 看 File Tree 区 → 取消 Folders First 看混排 → 再点 ⚙ 回树。
+
+### 2026-10-01 二轮反馈:拖不到最顶(release 已重建)
+
+owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① 落点语义只有"插到目标前",第一行上方的空白带(路径框+间隙约 30px)不接任何 drop,"甩到顶"就丢;② WebView2 要求 **dragenter 也 preventDefault** drop 才触发(lessons L10 补记)。修复:置顶行按光标上下半分"插前/插后"(顺带补上"移到最底"能力);面板级顶部区(光标高于第一个置顶行=插到最顶);行与面板同时挂 dragenter+dragover。验证:Playwright over CDP 三场景(甩顶区/最底半区/行内)全 PASS,零前台。
 
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 

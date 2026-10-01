@@ -5523,3 +5523,4 @@ state.json 解析失败
 | 2026-10-01 | §30 | Files `⋯` 菜单取消;Folders First / Show system folders / Refresh 并入 Settings(⚙ 点进再点回 Files) | owner Phase 2 验收反馈 |
 | 2026-10-01 | §33 | 取消 Name / Favorites First 两模式,合并为单一排序制(Pinned 区 + Unpinned 区);Name 模式删除 | owner:"没必要单独保留 name 选项" |
 | 2026-10-01 | —(技术性,不改需求) | Windows 下 HTML5 拖拽失效根因 = Tauri 默认 `dragDropEnabled` 拦截;窗口配置改 false(实现细节见 architecture.md §12) | owner:"pin 之间无法拖拽调序" |
+| 2026-10-01 | §39(细化) | 拖拽落点语义补全:置顶行上/下半=插前/插后;置顶区上方=插到最顶(原"甩到顶"落死区) | owner:"移动不到最顶部,别的位置可以" |

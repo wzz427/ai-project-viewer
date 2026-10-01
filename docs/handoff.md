@@ -17,6 +17,14 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-01 · 二轮反馈:拖到最顶修复 + 测试零前台立规
+
+> **下一步从哪接** —— owner 复验(重点:置顶项**甩到最顶**和**拖到最底**)→ 过则 Done、进 Phase 3(先立 spec-003)。
+
+- "拖不到最顶"根因两层:第一行上方约 30px 空白带(路径框+间隙)不接 drop;WebView2 要求 **dragenter 也 preventDefault** 才发 drop(lessons L10 补记)。修复=置顶行上/下半分插前/插后(顺带能拖到最底)+ 面板顶部区接"甩到顶"+ 行/面板双挂 dragenter/dragover。
+- 验证改 **Playwright connect_over_cdp**(pywork):输入走 CDP 管道,应用 SW_SHOWMINNOACTIVE 最小化不激活,三场景(甩顶/最底/行内)全 PASS——**测试脚本从此禁止抢 owner 前台**(owner 立规,testing.md §1 已记)。
+- V1.5 §197 审计加行(§39 落点语义细化);spec-002 D11;release 已重建。
+
 ### 2026-10-01 · Phase 2 验收反馈返工:排序合一/真拖拽修复/⋯并入 Settings
 
 > **下一步从哪接** —— owner 复验(30 秒路径 testing.md §2b"验收反馈返工")→ 过则 Done、进 Phase 3(先立 spec-003)。
