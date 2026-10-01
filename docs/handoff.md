@@ -11,11 +11,18 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 2 File System & Favorites 已交付自测全绿(spec-002 InTest),停等 owner 验收**(V1.5 §191 纪律:完成即停)。
-验收 1 分钟路径在 docs/testing.md §2b 末尾(桌面快捷方式双击即可,release 已重建)。
-验收通过 → 说"进 Phase 3"(Basic READ,V1.5 §177,先立 spec-003 再开发);打回 → 从本页 §一 最新条接。
+主线 = **Phase 3 Basic READ:spec-003 已 Ready(owner 免审),按 §六切分⑧块开工**。
+spec-002 已 Done(owner 2026-10-01"可以了,做spec003")。
+完成即停等 owner 验收;动笔前有疑问/要变化先确认(workflow §五 A2)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · spec-002 Done;spec-003 立项 Ready
+
+> **下一步从哪接** —— 按 specs/spec-003 §六切分⑧块开发(重点决策 D1 单击即开/D3 图片 data URL/D4 超大占位)。
+
+- spec-002 验收原话入档(InTest→Done);spec-003 Basic READ(File Tabs+五查看器+五快捷键+大文件闸+删除态)按 SPEC 模板立,R/V 指针化,决策 D1–D8,PDF 明确划给 Phase 5。
+- 新依赖预告:markdown-it(+task-lists)、CodeMirror 6(npmmirror 可取);Rust 新命令 read_text_file/read_media_file 复用 Phase 2 流水线。
 
 ### 2026-10-01 · 二轮反馈:拖到最顶修复 + 测试零前台立规
 

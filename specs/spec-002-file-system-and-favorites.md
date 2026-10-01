@@ -109,3 +109,4 @@
 | 2026-10-01 | Ready→InDev→InTest | 六块全部落地(349f501 / 0816f84 / 08a9505);自测全绿:cargo 32/32、vitest 9/9、svelte-check 0/0、CDP 全链(证据 docs/testing.md §2b);release 已重建 |
 | 2026-10-01 | 验收反馈返工(InTest 内) | owner 三条:D10 全落地;真鼠标拖拽实测换序成功;release 重建待复验 |
 | 2026-10-01 | 二轮反馈返工(InTest 内) | "拖不到最顶":D11 落地(半区+顶部区+dragenter);Playwright over CDP 三场景 PASS(零前台);release 重建 |
+| 2026-10-01 | InTest → Done | **owner 验收原话:"可以了,做spec003"** |
