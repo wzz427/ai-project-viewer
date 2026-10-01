@@ -75,6 +75,7 @@
 | 线上/用户现场出问题 | ⚡ **第一动作是取现场/取日志**,不是翻账本猜(本项目=应用崩溃时先取日志/复现步骤) |
 | 记"查清了还没修"的坑 | 【bugs 账/lessons.md】——必须写"去处" |
 | **改完东西,该更新哪些文档** | 🔴 【docs/doc-maintenance.md】同步总表,收口时逐行对照 |
+| **要建任何新文档/目录/编号体系** | 🔴 先开【docs/AI-Project-Guide/00-doc-map.md】+【templates/】对号:有明文的**照用**;要偏离,把差异+理由写进本项目对应文档(如 docs/workflow.md §五),**不许静默自创**(lessons L9) |
 | 查 AI-Project-Guide 方法论原文/模板 | 【docs/AI-Project-Guide/】(2026-10-01 owner 指令入库的副本;test-run 示例项目因含嵌套 .git 未搬) |
 | 查历史 / 当初为什么这么定 | 【history/INDEX.md】 / 【architecture.md 决策表】 |
 | 想让某规矩在动作发生时自动送达 | 【doc-routes.md,未建——同一条规矩第二次被忘时建,先靠本表】加一行,不改代码 |

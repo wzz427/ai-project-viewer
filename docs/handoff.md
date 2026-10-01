@@ -24,6 +24,8 @@ Phase 1 已放行(2026-10-01 owner 原话"继续下一个阶段开发",按验收
 - owner 拍板三件:① **Spec 免审**("我就不过目了,你自己能跟原始需求对上就行"),替代门 = agent 自核 R/V 对齐 V1.5 + 疑问先确认;② **specs 体系按指南落**:仓库根目录、spec-NNN 编号、INDEX 台账、workflow 状态机;③ 质疑指南是否有大问题——对证结论:**三件事指南全有明文**(00-doc-map 阶段2 行 11–12、阶段3 行 13、02-dev-workflow §二),错在 agent 立结构时未查指南、自创 docs/specs/phase-N(lessons L9)。
 - 现结构:specs/{INDEX.md, SPEC-template.md, spec-001(Phase 1 追溯建档,Done), spec-002(Ready)};docs/workflow.md 含本项目适配 A1–A5(一段=一个 Phase、免审门、界面确认以 V1.5 为基线、V1.5 兼任 spec/roadmap、R/V 指针化)。
 - 给 owner 的建议(改不改他定):指南可补一小节"项目已有权威需求基线(如本项目 V1.5)时怎么接入 specs/ 体系"——本项目接法可直接参考 docs/workflow.md §五。
+- **修改建议已成文**:[docs/AI-Project-Guide-revision-proposal.md](AI-Project-Guide-revision-proposal.md)(3 条建议:基线项目特殊入场、建新结构先对号的路由行、SPEC 文件名唯一格式;每条带插入锚点+可粘贴草稿+验证用例)——owner 将交给改指南的 agent 执行;指南改定后需重拷同步仓内快照(建议文末有命令)。
+- spec-001 已应 owner 要求补全为完整 SPEC 形态(R10 条/V6 组/实现方案/测试矩阵/验收原话,2026-10-01);AGENTS 路由表同步加"建新结构先对号"一行(lessons L9 的结构性修法)。
 
 ### 2026-10-01 · Phase 1 放行;立"每 Phase 先写 Spec"规矩,Phase 2 Spec 待过目
 
