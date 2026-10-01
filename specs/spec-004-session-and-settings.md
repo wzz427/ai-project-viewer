@@ -1,6 +1,6 @@
 # spec-004 · Session & Settings(关掉再开,一切还在:会话恢复 + 设置持久化)
 
-> 状态:InTest —— 真值 = specs/INDEX.md。
+> 状态:Done —— 真值 = specs/INDEX.md。
 > 创建:2026-10-01;Pre-Draft 结论:owner"这个就算过了吧"(spec-003 Done)+ 交接页主线指向 Phase 4;免审门适用(workflow §五 A2/A5)。
 > 需求源:V1.5 §178(Phase 4 批次);完成判据:§188 Application 块 5 行 + Path Persistence 块 5 行 + §192-7。
 
@@ -101,3 +101,4 @@ Phase 4 是 V1.5 §175–182 排期定死的第四批,判:做(应用从"每次�
 |---|---|---|
 | 2026-10-01 | Draft→Ready | R/V 指针化、D1–D10、覆盖矩阵;开工切分:①Rust state 模块+单测 ②前端 appState 纯函数+vitest ③接线(恢复懒读/防抖/兜底/作用域对齐) ④Settings 面板+§22 增量修订 ⑤自测+release+文档 |
 | 2026-10-01 | Ready→InDev→InTest | ⑤块全落地(c349740/9f021c5/7ba2584);**开发中发现并修复:contentCache 原为 `$state(new Map())` 无响应性(Svelte 深代理不包 Map,恢复页签曾永久卡 Loading),换 SvelteMap(lessons L13)**;V1.5 §22 增量修订 viewer.fontSize+§197 审计行。自测:cargo 48/48、vitest 18/18、svelte-check 0/0、CDP 持久化回归 24/24(防抖/重启恢复/自愈/隔离)、Phase 3 回归 17/17 防退化全绿;release 已重建。夹具=桌面 AIV-TestProject,测试脚本 %TEMP%\aiv-p4-state-test.py(AIV_STATE_FILE 指向独立文件) |
+| 2026-10-01 | InTest → Done | **owner 验收原话:"通过了"**(同句追问"为什么侧栏宽度无拖拽"——原因与去处见 D6/挂账:字段就绪、交互无需求明文未做,等 owner 表态是否补) |
