@@ -70,14 +70,17 @@ ProjectViewer/(仓库根)
 │   ├── testing.md —— 测试档位+Baseline 真值
 │   ├── how-to-report.md —— 汇报模板
 │   ├── doc-maintenance.md —— 文档同步总表
+│   ├── wrap-todo.md —— 一轮寿命执行清单(wrap 配套)
 │   ├── lessons.md —— 踩坑账
 │   └── history/INDEX.md —— 历史归档入口
+├── .zcode/commands/wrap.md —— /wrap 斜杠命令(压缩前收尾,方法全文)
 ├── index.html / vite.config.ts / tsconfig.json / svelte.config.js / package.json / .npmrc —— 前端工程(纯 Vite+Svelte5,无 SvelteKit)
 ├── public/favicon.png
 ├── src/ —— Svelte + TypeScript 前端
 │   ├── main.ts / App.svelte / app.css(主题 tokens,data-theme 切换)
 │   └── lib/
-│       ├── components/ProjectTabs/(顶栏项目标签:增/删/右键菜单/active)
+│       ├── components/ProjectTabs/(顶栏项目标签:增/删/切/active)
+│       ├── components/ContextMenu/(ProjectContextMenu:项目右键菜单,顶栏标签与 Files 面板路径共用)
 │       ├── components/SidebarHeader/(Files/Git/⚙)
 │       ├── components/SidebarPanels/(Files/Git/Settings 三个面板)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案)
