@@ -8,7 +8,7 @@
   import EmptyState from "$lib/components/EmptyState/EmptyState.svelte";
   import ToastHost from "$lib/components/Toast/ToastHost.svelte";
   import { initTheme } from "$lib/stores/settingsStore.svelte";
-  import { recordStartup } from "$lib/stores/diagnosticsStore.svelte";
+  import { recordStartup, recordBuildTime } from "$lib/stores/diagnosticsStore.svelte";
   import { projectState, activeProject } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
   import {
@@ -123,6 +123,7 @@
     });
 
     startupElapsedMs().then(recordStartup).catch(() => {});
+    invoke<number>("build_timestamp").then(recordBuildTime).catch(() => {});
 
     return () => unwire();
   });

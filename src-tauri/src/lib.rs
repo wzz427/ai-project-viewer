@@ -29,6 +29,21 @@ fn startup_elapsed_ms() -> u64 {
         .unwrap_or(0)
 }
 
+/// Build time = the exe file's own modification time, read at runtime —
+/// always truthful, no build-script plumbing. Lets the owner (and any
+/// screenshot) tell a stale instance from a fresh one (single-instance
+/// revives old windows, which has cost two false bug reports already).
+#[tauri::command]
+fn build_timestamp() -> u64 {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.metadata().ok())
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = STARTED_AT.set(Instant::now());
@@ -60,6 +75,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             startup_elapsed_ms,
+            build_timestamp,
             test_project_arg,
             project::resolve_project,
             file_tree::list_directory,

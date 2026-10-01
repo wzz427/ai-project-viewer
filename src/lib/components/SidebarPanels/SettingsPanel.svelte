@@ -91,6 +91,15 @@
   <section>
     <h3>Diagnostics</h3>
     <div class="row muted">
+      Build:
+      {#if diagnostics.buildTime}
+        <span class="mono">{new Date(diagnostics.buildTime * 1000).toLocaleString()}</span>
+      {:else}
+        …
+      {/if}
+      <span class="hint">(exe 时间=实例版本;双击图标只会唤醒已开旧窗,看到旧时间就完全退出重开)</span>
+    </div>
+    <div class="row muted">
       Startup time:
       {#if diagnostics.startupMs !== null}
         <span class="mono">{diagnostics.startupMs} ms</span>

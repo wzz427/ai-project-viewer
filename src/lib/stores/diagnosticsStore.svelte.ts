@@ -7,10 +7,17 @@ export const diagnostics = $state({
   startupMs: null as number | null,
   shortcutInterceptions: 0,
   lastShortcut: null as string | null,
+  /** Exe modification time (unix seconds); shown so a stale instance is
+   *  recognizable at a glance (single-instance revives old windows). */
+  buildTime: null as number | null,
 });
 
 export function recordStartup(ms: number) {
   diagnostics.startupMs = ms;
+}
+
+export function recordBuildTime(unixSeconds: number) {
+  diagnostics.buildTime = unixSeconds;
 }
 
 export function recordShortcutInterception(combo: string) {
