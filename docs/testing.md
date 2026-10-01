@@ -114,6 +114,22 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 ① 内容不刷新(txt/html 显示旧文件)=缓存非响应式+同型查看器不重挂载→`{#key 文件}`+`$state(Map)`;② 图片看不了=二进制判定先于图片路由→扩展名优先媒体通道(lessons L12);③ 固定页签模型(当日二次澄清后):默认页签正常累积;右键 Pin Tab 固定后,新文件顶替未固定页签(📌 标记,无斜体预览态——首版 VS Code 式全预览被否);④ 页签右键菜单=模式切换(Markdown/JSON)/Keep Open/Open with Default App/Close,浮动切换窗删除;⑤ 页签可拖拽重排、激活自动滚入、高亮强化(顶部色条);⑥ 视觉:浅色阅读面纯白、字体栈 Segoe UI Variable+Cascadia、Settings→Viewer 可调字号;⑦ GIF 实测渲染;视频等应用外格式走右键"默认程序打开"(opener 直达播放器)。V1.5 §197 审计 4 行(§86/108 细化、§186 提前、§111 泛化)。复验 1 分钟:连点几个文件(页签正常累积)→ 右键某个页签 Pin Tab → 再点其他文件(顶当前未固定者;停在固定页签时顶最右未固定者)→ 把一个页签**甩到页签条最右端空白处**(末位可达;空白带死区已修,2026-10-01 二次追加)→ 右键 README 切 Source/Rendered → 拖动页签换位 → 点 assets\photo.jpg(应显示)→ 右键 icon.gif "Open with Default App"(系统看图打开)。
 
+## 2d. Phase 4 功能自测记录(2026-10-01,spec-004;全部通过)
+
+状态文件:`%APPDATA%\com.aiprojectviewer.app\state.json`(JSON,version=1);写盘=800ms 防抖+同目录 tmp→flush→原子替换,退出时前端 pagehide+Rust RunEvent::Exit 双兜底。测试态闸门:`AIV_TEST_PROJECT` 设置且未给 `AIV_STATE_FILE` → 读写均不碰真实 state(owner 状态永不被测试污染);给了则读写该独立文件。
+
+| 档 | 内容 | 结果 |
+|---|---|---|
+| cargo 48/48 | state 模块 +10:原子写往返/无 tmp 残留/损坏 JSON 隔离自愈/缺 version 拒/未来版本拒/合法 v1 载入/迁移路由×3/测试闸门路由 | ✅ |
+| vitest 18/18 | appState +8:相对路径身份(除 rootPath 外无盘符)/FileTabState 白名单(runtime 字段不落盘)/容器拷贝不泄漏/往返一致/坏 JSON 与错版本拒/字段级自愈(fontSize 钳制、坏 viewerType 丢 tab、坏 sidebarMode 回 files) | ✅ |
+| svelte-check | 0 errors / 0 warnings | ✅ |
+| CDP 持久化回归 24/24 | `%TEMP%\aiv-p4-state-test.py`(AIV_STATE_FILE 独立文件,零前台):防抖非即时写/落盘结构(version/相对路径/激活页/主题/字号/全局开关/每项目 foldersFirst)/**重启恢复**(页签+激活页+内容懒读+主题+字号+sidebarMode+两个树开关)/损坏自愈+隔离备份/测试态不碰真实 state | ✅ |
+| Phase 3 回归 17/17 | aiv-p3-fix-test.py 复跑(SvelteMap 改动的防退化) | ✅ |
+
+**开发中发现并修复**:contentCache 原为 `$state(new Map())`——Svelte 5 深代理只包 plain object/array,**Map 零响应性**,会话恢复的页签永久卡 Loading;换 `SvelteMap`(svelte/reactivity)后全绿(lessons L13)。正常开文件路径此前一直正常纯属时序巧合(先 set 缓存后写 active 字段,对象字段写顺带触发了 derived),该坑自 Phase 3 就埋着。
+
+**owner 验收建议路径**(1.5 分钟,release 已重建):双击桌面 AI Project Viewer → + 加 `Desktop\AIV-TestProject` → 展开一两层目录、右键 Pin 一个文件 → 开两三个文件页签 → ⚙ 改 Theme=Dark、字号 + 两次 → **完全关闭应用** → 再双击打开:项目标签、展开、置顶、页签(含激活页和 Rendered/Source 模式)、主题、字号应全部还原;点开恢复的页签内容正常显示(大文件不弹确认);关掉重开 Settings 确认两个开关还在。
+
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
 | 指标 | 值 | 口径 | 目标(§163–§165) |

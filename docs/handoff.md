@@ -11,12 +11,22 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 4 Session & Settings(V1.5 §178)待开工:先立 spec-004 再开发**(owner 已免审,workflow §五 A2;模板 specs/SPEC-template.md,写法照 spec-002/003)。
-Phase 3 已 Done(owner 2026-10-01 原话"这个就算过了吧",换新会话继续后续需求)。
-Phase 4 范围(V1.5 §178):AppState.version / ProjectSession / AppSettings / Pin 与展开态持久化 / Debounced Save / Atomic Replace / State Migration Skeleton / Session Restore / Settings UI——Phase 2/3 的 store 已按 §17-§19 相对路径身份设计,持久化零迁移(D8)。
+主线 = **Phase 4 Session & Settings 已交付 InTest,等 owner 验收**(spec-004;1.5 分钟验收路径 testing.md §2d 末尾)。
+过则 Done → 下一批 **Phase 5 PDF.js Spike(V1.5 §179)**,先立 spec-005。
+Phase 3 已 Done(owner 2026-10-01 原话"这个就算过了吧");Phase 4 范围(V1.5 §178)全落地:AppState.version / 会话恢复(项目+展开+置顶+页签+侧栏面板)/防抖 800ms 原子写盘/迁移骨架/Settings 持久化。
 纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · Phase 4 交付:会话恢复+设置持久化,自测全绿等验收
+
+> **下一步从哪接** —— owner 验收(testing.md §2d 末尾 1.5 分钟路径:加项目→展开/Pin/开页签→改主题字号→关掉重开看还原)→ 过则 Done、立 spec-005(Phase 5 PDF.js Spike)。
+
+- 交付:关掉重开一切还在——项目标签、展开目录、置顶收藏、文件页签(含激活页/Rendered|Source/固定状态)、侧栏所在面板、主题/字号/两个树开关;写盘 800ms 防抖+tmp→flush→原子替换,退出前端 pagehide+Rust Exit 双兜底;state.json 损坏→自动隔离备份+全新启动不崩;测试态(AIV_TEST_PROJECT 无 AIV_STATE_FILE)永不在 owner 的 state 上读写。
+- **开发中发现真 bug:contentCache 原为 `$state(new Map())` 零响应性**(Svelte 5 深代理只包 plain object/array)——恢复页签永久卡 Loading,正常开文件一直正常纯属时序巧合;换 SvelteMap 修复(lessons L13,坑自 Phase 3 就埋着)。
+- 基线对齐三件(spec-004 决策表 D5/D6/D8):showSystemFolders 挪全局(§22 字面)、sidebarMode 入每项目会话(§17 字面,切项目恢复各自面板)、字号入 AppSettings.viewer.fontSize(V1.5 §22 增量修订+§197 审计行已落)。
+- 代拍默认两项待 owner 过目:sidebarWidth 持久化就绪但**无拖拽调宽 UI**(V1.5 无交互明文,要即加);恢复 5–20MB 页签**不弹确认**(§106 针对用户打开动作)。
+- 自测:cargo 48/48、vitest 18/18、svelte-check 0/0、CDP 持久化回归 24/24、Phase 3 回归 17/17 防退化;脚本 `%TEMP%\aiv-p4-state-test.py`(AIV_STATE_FILE 指独立文件);release 已重建。
 
 ### 2026-10-01 · 会话收口:spec-003 Done,交接给新会话做 Phase 4
 

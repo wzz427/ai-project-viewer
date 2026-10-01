@@ -702,6 +702,9 @@ Absolute Path：
 
 # 22. AppSettings
 
+> 【2026-10-01 增量修订】新增 `viewer.fontSize`(默认 13):查看器字号设置,
+> 承接 Phase 3 验收轮落地的字号控制(§155 UX 范围),随 Phase 4 AppSettings 持久化。
+
 ```typescript
 interface AppSettings {
   theme: "system" | "light" | "dark"
@@ -720,6 +723,10 @@ interface AppSettings {
 
   fileTree: {
     showSystemGeneratedFolders: boolean
+  }
+
+  viewer: {
+    fontSize: number
   }
 
   pdf: {
@@ -747,6 +754,8 @@ codeEditor = vscode
 vscodeOpenMode = new-window
 
 showSystemGeneratedFolders = false
+
+viewer.fontSize = 13
 
 pdf.defaultZoomMode = fit-width
 
@@ -5528,3 +5537,4 @@ state.json 解析失败
 | 2026-10-01 | §186(提前) | "Pin File Tab" 由 P1 提前入 V1:页签默认正常累积;任一页签被"固定"后,新文件顶替未固定页签(顶当前未固定者,其次最后一个未固定者),防堆积(同日二次澄清:首版误做成 VS Code 全预览模型,已改口) | owner 第 8 条+当日澄清 |
 | 2026-10-01 | §111(泛化,提前) | 新增右键 "Open with Default App"(opener 直达系统关联程序,不经资源管理器),承接应用内不可看格式(视频等) | owner 第 10 条:"常见类型不要跳出去" |
 | 2026-10-01 | —(技术性) | 图片路由修正:JPEG/PNG/GIF 字节天然含 NULL 被文本二进制判定拦截,改为扩展名优先走媒体通道;视觉打磨:浅色阅读面纯白/字体栈 Segoe UI Variable+Cascadia/查看器字号设置(§155 范围) | owner 第 3/6/7/10 条 |
+| 2026-10-01 | §22(增量) | AppSettings 新增 `viewer.fontSize`(默认 13),字号设置归位应用级设置并随 Phase 4 持久化;同批 §17 落地时 sortMode 字段随 §33 修订自然消失 | Phase 4(spec-004 D8) |

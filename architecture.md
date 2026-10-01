@@ -45,10 +45,11 @@
 ┌──────────────────────────── AI Project Viewer 进程树(7 进程,Phase 1 实测)────────────┐
 │  Rust 主进程 ai-project-viewer.exe(Private 5.9MB,src-tauri/)                          │
 │   ├─ project/(Phase 1 已建:canonicalize/去重);fs/ git/ runner/ external/ security/   │
-│   │  state/ 待后续 Phase(V1.5 §157)                                                   │
+│   │  state/(Phase 4 已建:load/save_state+原子替换+迁移骨架+测试态闸门)               │
 │   ├─ 插件:single-instance(二次启动激活已有窗)/ dialog(文件夹选择、确认框)          │
 │   └─ ↔ IPC(Tauri Commands:resolve_project / startup_elapsed_ms /                   │
-│        list_directory / inspect_file;清单见 V1.5 §159)                              │
+│        list_directory / inspect_file / read_text_file / read_media_file /           │
+│        load_state / save_state;清单见 V1.5 §159)                                     │
 │        ↕ WebView2 ×6(browser/renderer/GPU/network/storage/crashpad,Private 合计~173MB)│
 │  Svelte 5 前端(src/,纯 Vite 无路由,组件/ stores/ services/ 见 §3)                    │
 │  外部(后续 Phase):System git.exe / PowerShell / CMD / 默认浏览器 / Explorer / VS Code │
@@ -96,12 +97,13 @@ ProjectViewer/(仓库根)
 │       ├── components/SidebarPanels/(Files=路径框+FileTree / Git / Settings)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案)
 │       ├── components/Toast/(单槽 toast)
-│       ├── stores/projectStore.svelte.ts(内存态项目列表+去重+增删,持久化是 Phase 4)
-│       ├── stores/settingsStore.svelte.ts(Theme,Phase 4 才持久化)
+│       ├── stores/projectStore.svelte.ts(项目列表+去重+增删+每项目 sidebarMode/Width;会话字段,持久化走 appState)
+│       ├── stores/settingsStore.svelte.ts(AppSettings:theme/fontSize/全局 showSystemFolders;Phase 4 起持久化)
 │       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据)
 │       ├── stores/toastStore.svelte.ts
-│       ├── stores/fileTreeStore.svelte.ts(每项目树态:expanded/pinned/排序开关,相对路径身份,内存态 Phase 4 才持久化)
-│       ├── stores/tabsStore.svelte.ts(每项目 FileTabState+内容缓存,§21 形状;删除态/大文件闸/开文件流水线在 openFile)
+│       ├── stores/fileTreeStore.svelte.ts(每项目树态:expanded/pinned/foldersFirst,相对路径身份;恢复入口 restoreTreeState/restoreExpandedFolders)
+│       ├── stores/tabsStore.svelte.ts(每项目 FileTabState+内容缓存(SvelteMap——$state 深代理不包 Map,lessons L13);恢复入口 restoreTabs/ensureContentLoaded)
+│       ├── services/appState.ts(持久化纯函数:白名单序列化+自愈解析)+ sessionRestore.svelte.ts(启动恢复编排:resolve 校验,失效项目跳过)+ stateSync.svelte.ts($effect.root 防抖 800ms 保存+pagehide flush)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家,功能 Phase 9)/
@@ -110,8 +112,9 @@ ProjectViewer/(仓库根)
     ├── tauri.conf.json(窗口 1280×800/CSP/NSIS/dragDropEnabled:false——HTML5 拖拽必需,lessons L10)
     ├── capabilities/default.json(core:default + dialog:default)
     └── src/
-        ├── main.rs / lib.rs(插件装配+启动耗时命令+WebView2 加速键 COM 禁用)
+        ├── main.rs / lib.rs(插件装配+启动耗时命令+WebView2 加速键 COM 禁用+RunEvent::Exit 状态兜底写)
         ├── project/manager.rs(resolve_project:canonicalize+校验,8 个单测)
+        ├── state/(Phase 4:mod.rs 两命令+测试态闸门 AIV_STATE_FILE/拒访;persistence.rs 原子写+损坏隔离;migration.rs 版本路由,10 个单测)
         ├── file_tree.rs(list_directory:单层+§29 打标+hidden_count+越界拒;§176 块1)
         └── file_inspect.rs(inspect_file/read_text_file/read_media_file:§101 流水线+按编码解码+图片 data URL,守卫全在 Rust 侧)
 ```
@@ -137,6 +140,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-01 | — | Phase 4 落地:Session & Settings(specs/spec-004)——AppState.version=1+防抖 800ms 原子写盘+迁移骨架+会话恢复(懒读内容);showSystemFolders 全局化(§22 对齐)、sidebarMode/Width 入 ProjectSession(§17);contentCache 改 SvelteMap(lessons L13);测试态闸门 AIV_STATE_FILE | owner 指令(§178) |
 | 2026-10-01 | — | Phase 3 落地:File Tabs+五查看器+五快捷键真行为(specs/spec-003);新依赖 markdown-it/CodeMirror 6/opener/base64;测试模式 AIV_HIDDEN/AIV_TEST_PROJECT(零前台,testing.md §1) | owner 指令(§177) |
 | 2026-10-01 | — | Phase 2 落地:specs/ 体系(根目录,spec-NNN)+ docs/workflow.md 状态机 + 文件树/收藏/文件识别(specs/spec-002);新依赖 encoding_rs、vitest;文件树默认 UI 偏好 Name+Folders First(§17 未定,取 VS Code 惯例) | owner 指令(§176) |
 | 2026-10-01 | — | Phase 1 落地:Tauri 2.12 + Svelte 5.57 纯 Vite 工程建立(剥掉模板 SvelteKit);WebView2 浏览器加速键改 COM 禁用(Tauri 2 无配置项);Phase 1 Baseline 落 testing.md | owner 指令(§192) |

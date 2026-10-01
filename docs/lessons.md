@@ -104,3 +104,11 @@
 - **根因 B**:图片字节天然含 NULL,文本检测流水线判为二进制;而开文件流程先查二进制再查图片扩展名,图片永远进不了查看器。
 - **修法 B**:路由顺序=超大守卫→图片扩展名(媒体通道)→二进制→文本。判据:**二进制判定只对文本通道有意义**,按扩展名的专用通道要放在它前面。
 - **出处**:Phase 3 owner 十项验收反馈,2026-10-01。
+
+### L13:Svelte 5 `$state(new Map())` 没有响应性——深代理只包 plain object/array
+
+- **症状**:会话恢复后页签永久卡 "Loading…"。控制台证明内容已读到、`cache.set` 已执行(钩子函数读同一 Map 返回有值),但 `$derived` 读它恒为旧值 null。更迷惑的是**正常开文件路径一切正常**——因为 openFile 先 set 缓存、后写 activeFileRelativePath,是后一个**对象字段写**顺带触发了 derived 重算,掩盖了 Map 本身不响应。
+- **根因**:Svelte 5(5.57 实证)`$state` 深代理在 proxy.js 里只处理 `Object.prototype`/`Array.prototype` 两种原型,**Map/Set 原样返回、零追踪**;`Map.get` 不收集依赖、`Map.set` 不触发失效。
+- **修法**:换官方响应式容器 `import { SvelteMap } from "svelte/reactivity"`(API 兼容,零迁移);**判据:凡容器要参与 UI 反应链,一律 SvelteMap/SvelteSet,`$state(new Map())` 等于普通变量**。
+- **验证**:tabsStore 换 SvelteMap 后,持久化回归 24/24、Phase 3 回归 17/17 全绿。
+- **出处**:Phase 4 会话恢复(spec-004),2026-10-01。
