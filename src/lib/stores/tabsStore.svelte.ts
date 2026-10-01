@@ -11,6 +11,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { SvelteMap } from "svelte/reactivity";
 import {
   inspectFile,
+  readBinaryFile,
   readMediaFile,
   readTextFile,
   type FileEncoding,
@@ -18,12 +19,22 @@ import {
 import {
   fileNameOf,
   isImageName,
+  isPdfName,
   viewerTypeFor,
   type ViewerType,
 } from "$lib/services/viewerType";
 import { toast } from "$lib/stores/toastStore.svelte";
 
 export type MarkdownMode = "rendered" | "source";
+
+/** §21 FileTabState.pdfState (+ zoomMode extension, spec-005 D6 family:
+ *  fit modes must survive a tab switch, not just the numeric zoom). */
+export interface PdfState {
+  page: number;
+  zoom: number;
+  zoomMode: "fit-width" | "fit-page" | "custom";
+  scrollPosition?: number;
+}
 
 /** §21 FileTabState (+ runtime-only fields marked below). */
 export interface RuntimeTab {
@@ -36,6 +47,7 @@ export interface RuntimeTab {
   scrollPosition?: number;
   cursorLine?: number;
   encoding?: FileEncoding;
+  pdfState?: PdfState;
   /** runtime-only: file vanished from disk (§83). */
   deleted?: boolean;
   /** runtime-only: pinned tabs are never replaced; while any tab is pinned,
@@ -57,7 +69,8 @@ export const tabsState = $state({
 
 type Cached =
   | { kind: "text"; text: string; encoding: FileEncoding }
-  | { kind: "media"; dataUrl: string };
+  | { kind: "media"; dataUrl: string }
+  | { kind: "pdf"; data: ArrayBuffer };
 
 // SvelteMap, NOT $state(new Map()): the $state deep proxy only wraps plain
 // objects and arrays (svelte proxy.js returns other prototypes as-is), so
@@ -179,6 +192,18 @@ export function saveScrollPosition(
   if (tab) tab.scrollPosition = scrollTop;
 }
 
+/** Persist PDF view state (§93 page/zoom/scroll; spec-005). */
+export function savePdfState(
+  rootPath: string,
+  rel: string,
+  state: PdfState,
+) {
+  const tab = projectTabs(rootPath).openFiles.find(
+    (t) => t.relativePath === rel,
+  );
+  if (tab) tab.pdfState = state;
+}
+
 /** Right-click "Keep Open" — stops this tab from being replaced (item 8). */
 export function setTabPinned(rootPath: string, rel: string, pinned: boolean) {
   const tab = projectTabs(rootPath).openFiles.find(
@@ -278,10 +303,26 @@ export async function openFile(rootPath: string, rel: string) {
     return;
   }
 
-  // Routing order matters (owner 2026-10-01 item 10): JPEG/PNG/GIF bytes
-  // legitimately contain NULLs, so the TEXT pipeline flags them binary —
-  // image extensions must be routed to the media channel BEFORE the binary
-  // verdict. Only >20 MB guards everything.
+  // Routing order matters (owner 2026-10-01 item 10 + spec-005 D4):
+  // JPEG/PNG/GIF bytes legitimately contain NULLs and PDFs are binary by
+  // design, so extension-based channels must be routed BEFORE the binary
+  // verdict. PDFs skip the text-size dialogs entirely (§95 page pipeline).
+  if (isPdfName(rel)) {
+    try {
+      const data = await readBinaryFile(rootPath, rel);
+      contentCache.set(cacheKey(rootPath, rel), { kind: "pdf", data });
+      addOrActivate(rootPath, {
+        relativePath: rel,
+        viewerType: "pdf",
+        pdfState: { page: 1, zoom: 1, zoomMode: "fit-width" },
+        sizeBytes: info.sizeBytes,
+      });
+    } catch (err) {
+      toast(`Cannot open PDF: ${err}`, { kind: "error" });
+    }
+    return;
+  }
+
   if (info.sizeClass === "huge") {
     addOrActivate(rootPath, {
       relativePath: rel,
@@ -441,6 +482,16 @@ export async function ensureContentLoaded(rootPath: string, rel: string) {
         kind: "media",
         dataUrl: media.dataUrl,
       });
+    } else {
+      tab.deleted = true;
+    }
+    return;
+  }
+
+  if (tab.viewerType === "pdf") {
+    const data = await readBinaryFile(rootPath, rel).catch(() => null);
+    if (data) {
+      contentCache.set(cacheKey(rootPath, rel), { kind: "pdf", data });
     } else {
       tab.deleted = true;
     }

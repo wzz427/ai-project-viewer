@@ -6,6 +6,7 @@
 
 export type ViewerType =
   | "markdown"
+  | "pdf"
   | "text"
   | "code"
   | "json"
@@ -31,12 +32,17 @@ export function viewerTypeFor(name: string): ViewerType {
   const ext = extOf(name);
   if (MARKDOWN.has(ext)) return "markdown";
   if (ext === "json") return "json";
+  if (ext === "pdf") return "pdf";
   if (IMAGE.has(ext)) return "image";
   if (CODE.has(ext)) return "code";
   if (TEXT.has(ext)) return "text";
   // Unknown extension: open as plain text when the pipeline says it is text
   // (decided at open time) — reading is this app's main verb.
   return "text";
+}
+
+export function isPdfName(name: string): boolean {
+  return extOf(name) === "pdf";
 }
 
 export function isImageName(name: string): boolean {

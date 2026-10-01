@@ -12,6 +12,7 @@
   import CodeViewer from "./CodeViewer.svelte";
   import JsonViewer from "./JsonViewer.svelte";
   import ImageViewer from "./ImageViewer.svelte";
+  import PdfViewer from "./PdfViewer.svelte";
   import UnsupportedViewer from "./UnsupportedViewer.svelte";
   import { extOf } from "$lib/services/viewerType";
 
@@ -51,6 +52,8 @@
     <JsonViewer {rootPath} {tab} />
   {:else if tab.viewerType === "image"}
     <ImageViewer {rootPath} {tab} />
+  {:else if tab.viewerType === "pdf"}
+    <PdfViewer {rootPath} {tab} />
   {:else if text !== null}
     <div class="code-host">
       <CodeViewer {rootPath} {tab} text={text} language={extOf(tab.relativePath)} />

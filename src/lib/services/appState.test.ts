@@ -40,6 +40,11 @@ function sampleInput(): BuildInput {
             pinned: true,
             deleted: true,
           },
+          {
+            relativePath: "docs/report.pdf",
+            viewerType: "pdf",
+            pdfState: { page: 7, zoom: 1.63, zoomMode: "fit-width", scrollPosition: 4800 },
+          },
         ],
         activeFileRelativePath: "README.md",
       },
@@ -162,5 +167,41 @@ describe("parseAppState", () => {
       }),
     );
     expect(parsed!.settings.viewer.fontSize).toBe(20);
+  });
+
+  it("persists and heals pdfState (spec-005 D6)", () => {
+    const state = buildAppState(sampleInput());
+    const pdfTab = state.projects[0].openFiles.find(
+      (t) => t.viewerType === "pdf",
+    );
+    expect(pdfTab?.pdfState).toEqual({
+      page: 7,
+      zoom: 1.63,
+      zoomMode: "fit-width",
+      scrollPosition: 4800,
+    });
+
+    const healed = parseAppState(
+      JSON.stringify({
+        version: STATE_VERSION,
+        projects: [
+          {
+            id: "p1",
+            rootPath: "D:\\x",
+            openFiles: [
+              {
+                relativePath: "a.pdf",
+                viewerType: "pdf",
+                pdfState: { page: 0, zoom: 99, zoomMode: "bogus" },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(healed!.projects[0].openFiles[0].pdfState).toEqual({
+      page: 1,
+      zoom: 5,
+    });
   });
 });

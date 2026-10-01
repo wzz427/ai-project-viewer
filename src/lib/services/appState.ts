@@ -19,7 +19,7 @@ import type { SidebarMode } from "$lib/stores/projectStore.svelte";
 export const STATE_VERSION = 1;
 
 const VIEWER_TYPES = new Set([
-  "markdown", "text", "code", "json", "image", "binary", "unsupported",
+  "markdown", "pdf", "text", "code", "json", "image", "binary", "unsupported",
 ]);
 const SIDEBAR_MODES: SidebarMode[] = ["files", "git", "settings"];
 const THEMES: Theme[] = ["system", "light", "dark"];
@@ -31,6 +31,13 @@ export interface PersistedTab {
   jsonMode?: "formatted" | "source";
   pinned?: boolean;
   scrollPosition?: number;
+  /** §21 pdfState (spec-005 D6: rides the persistence whitelist). */
+  pdfState?: {
+    page: number;
+    zoom: number;
+    zoomMode?: "fit-width" | "fit-page" | "custom";
+    scrollPosition?: number;
+  };
 }
 
 export interface PersistedProject {
@@ -77,6 +84,12 @@ export interface TabsLike {
     jsonMode?: "formatted" | "source";
     pinned?: boolean;
     scrollPosition?: number;
+    pdfState?: {
+      page: number;
+      zoom: number;
+      zoomMode?: "fit-width" | "fit-page" | "custom";
+      scrollPosition?: number;
+    };
     deleted?: boolean;
   }[];
   activeFileRelativePath: string | null;
@@ -112,6 +125,16 @@ export function buildAppState(input: BuildInput): AppStateV1 {
         if (t.jsonMode) out.jsonMode = t.jsonMode;
         if (t.pinned) out.pinned = t.pinned;
         if (typeof t.scrollPosition === "number") out.scrollPosition = t.scrollPosition;
+        if (t.pdfState) {
+          out.pdfState = {
+            page: t.pdfState.page,
+            zoom: t.pdfState.zoom,
+            ...(t.pdfState.zoomMode ? { zoomMode: t.pdfState.zoomMode } : {}),
+            ...(typeof t.pdfState.scrollPosition === "number"
+              ? { scrollPosition: t.pdfState.scrollPosition }
+              : {}),
+          };
+        }
         return out;
       }),
       activeFileRelativePath: tabs?.activeFileRelativePath ?? undefined,
@@ -170,6 +193,20 @@ function parseTab(v: unknown): PersistedTab | null {
   if (typeof t.pinned === "boolean") out.pinned = t.pinned;
   if (typeof t.scrollPosition === "number" && Number.isFinite(t.scrollPosition)) {
     out.scrollPosition = t.scrollPosition;
+  }
+  const ps = t.pdfState;
+  if (typeof ps === "object" && ps !== null) {
+    const p = ps as Record<string, unknown>;
+    const page = Math.max(1, Math.round(asNum(p.page, 1)));
+    const zoom = Math.min(5, Math.max(0.1, asNum(p.zoom, 1)));
+    const healed: NonNullable<PersistedTab["pdfState"]> = { page, zoom };
+    if (p.zoomMode === "fit-width" || p.zoomMode === "fit-page" || p.zoomMode === "custom") {
+      healed.zoomMode = p.zoomMode;
+    }
+    if (typeof p.scrollPosition === "number" && Number.isFinite(p.scrollPosition)) {
+      healed.scrollPosition = p.scrollPosition;
+    }
+    out.pdfState = healed;
   }
   return out;
 }

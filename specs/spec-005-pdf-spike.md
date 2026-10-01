@@ -67,17 +67,17 @@ Phase 5 是 V1.5 §175–182 排期定死的第五批,判:做(PDF 是 READ 的�
 - **PdfViewer.svelte**(`components/Viewers/`):工具栏(页码输入/总数、Prev/Next、Zoom±、Fit Width、Fit Page、搜索框)+ 连续滚动页容器(canvas per page);懒加载=动态 `import()` 首次打开才拉模块(§94);虚拟化=IntersectionObserver 只挂可见±2 页,离屏 canvas 释放(§95);切离(unmount)销毁 document/task/worker 引用,只留 §93 状态(§96)。
 - **状态**:`FileTabState.pdfState {page, zoom, scrollPosition}`(§21 已有形状)进 RuntimeTab;持久化白名单带上(Phase 4 管道现成,scrollPosition 同型)。
 
-### 决策依据(后续翻案只翻这节;D1–D3 为 spike 预填,块①实测后回填结论)
+### 决策依据(后续翻案只翻这节;D1–D3 块①实测后回填 ✅)
 
 | # | 结论 | 理由 | 当时排除了什么 | 为什么排除 |
 |---|---|---|---|---|
-| D1 | Worker 走 Vite `?worker` 打包(CSP `worker-src 'self' blob:`) | 同源零配置,不扩大 assetScope | asset protocol 服务 worker | 多一个协议面+scope 配置,无收益 |
-| D2 | PDF 字节走 Rust 命令过桥(复用媒体通道族),`getDocument({data})` | 与图片同一模式;asset 无 Range 支持时两条路都要全量读,过桥少一层 | asset protocol URL 直读 | scope 面扩大;**块①若实测 asset 支持懒取且内存差显著则翻案** |
-| D3 | CSP 只加 `worker-src 'self' blob:`,img-src 不动 | canvas 渲染无需 img;最小放宽 | 大幅放宽 connect/img | 安全底线(§143–147) |
-| D4 | PDF 不套 >20MB 文本守卫,超大 PDF 进虚拟化管线 | §95 的设计本意就是扛大文件;守卫针对文本整体读 | PDF 也弹确认 | 结构化按页渲染无"整体进 WebView"问题;Benchmark 量化兜底 |
-| D5 | 搜索用 pdfjs 文本层(TextLayer/findController 思路,自实现轻量版:逐页文本抽取+跳页高亮) | §92 只要求命中跳转;自带 findController 依赖其官方 viewer UI | 引官方 viewer 整壳 | 违背自绘 UI 一致性,壳难剥离 |
-| D6 | pdfState 三字段随 Phase 4 白名单持久化 | §93+§21 明文;管道现成 | 只存运行时 | 重启丢页码违反"一切还在" |
-| D7 | md 本地图片**维持 data URL** 不切 asset | spec-003 D3 已验收;§97 只要求复核通道可用 | 切 asset URL | 已验收行为不动,spike 结论只记录备翻案 |
+| D1 | ✅ Worker 走 Vite `?worker` 打包(**legacy build**),CSP `worker-src 'self' blob:` | 同源零配置;回归断言无 fake-worker 回退=真 worker 线程 | asset protocol 服务 worker | 多一个协议面+scope 配置,无收益。**实测修正:必须用 legacy build——pdfjs 6 对原生 Map 调 `getOrInsertComputed`(upsert 提案),WebView2 143 没有,modern build 渲染全炸(lessons L14)** |
+| D2 | ✅ PDF 字节走 Rust 命令过桥(`read_binary_file`→tauri ipc Response→ArrayBuffer),`getDocument({data})` | 18.4MB 扫描 PDF 实测通过;零 assetScope 扩大 | asset protocol URL 直读 | 两条路都要全量读(无 Range),过桥少一层协议面;Benchmark 记录内存代价(块⑤) |
+| D3 | ✅ CSP 只加 `worker-src 'self' blob:`,img-src 不动 | canvas 渲染无需 img;legacy worker 是同源 chunk | 大幅放宽 connect/img | 安全底线(§143–147) |
+| D4 | PDF 不套 >20MB 文本守卫;**字节通道设 100MB 硬顶**(Rust 侧拒) | §95 设计本意扛大文件;但字节全量驻留内存,100MB 覆盖 §98 全部场景,防呆 | PDF 也弹确认 | 结构化渲染无"整体当文本读"问题;顶值代取默认可调 |
+| D5 | 搜索=页导航级(逐页文本抽取+命中计数+上一/下一跳页),**字符级高亮框不做** | §92 只要求 Text Search;字符级需完整 textLayer+几何对齐 | 引官方 findController/textLayer | 依赖其 viewer 整壳,难剥离;高亮精度记为已知限制,owner 要再上 |
+| D6 | pdfState 四字段(page/zoom/zoomMode/scrollPosition)随白名单持久化,zoomMode 为 §21 字面延伸 | §93 恢复必须含 fit 模式,否则重启后 fit 状态丢;同 spec-004 D7 家族 | 严格 §21 三字段 | 教条对齐牺牲可感体验 |
+| D7 | md 本地图片维持 data URL 不切 asset | spike 未启用 asset protocol(零需求);已验收行为不动 | 切 asset URL | 备将来大图内存优化时翻案 |
 
 ## 五、测试覆盖矩阵(Draft→Ready 硬产物)
 

@@ -86,6 +86,18 @@ export function readMediaFile(
 }
 
 /**
+ * Raw file bytes as one ArrayBuffer — the Tauri 2 fast channel (ipc
+ * Response). PDFs ride this (spec-005 D2: bytes over the bridge, no asset
+ * protocol); >100 MB refused Rust-side.
+ */
+export function readBinaryFile(
+  rootPath: string,
+  relPath: string,
+): Promise<ArrayBuffer> {
+  return invoke<ArrayBuffer>("read_binary_file", { rootPath, relPath });
+}
+
+/**
  * Hand a project-relative file to its OS-associated application — the
  * media player directly, never the file manager (owner 2026-10-01 item 10).
  */
