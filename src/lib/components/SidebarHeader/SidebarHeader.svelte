@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { activeProject } from "$lib/stores/projectStore.svelte";
-  import FilesMenu from "$lib/components/FileTree/FilesMenu.svelte";
-
   let {
     mode,
     onModeChange,
@@ -10,15 +7,10 @@
     onModeChange: (mode: "files" | "git" | "settings") => void;
   } = $props();
 
-  const project = $derived(activeProject());
-
-  // V1.5 §30: the Files row carries the "⋯" menu (sort / visibility /
-  // refresh). Only meaningful in Files mode with a project open.
-  let filesMenu = $state<{ x: number; y: number } | null>(null);
-
-  function openFilesMenu(e: MouseEvent) {
-    if (!project) return;
-    filesMenu = { x: e.clientX, y: e.clientY };
+  // Owner 2026-10-01: one entry button only. Clicking ⚙ opens Settings;
+  // clicking it again returns to the Files tree.
+  function toggleSettings() {
+    onModeChange(mode === "settings" ? "files" : "settings");
   }
 </script>
 
@@ -39,36 +31,16 @@
     Git
   </button>
   <div class="spacer"></div>
-  {#if mode === "files"}
-    <button
-      class="header-icon"
-      onclick={openFilesMenu}
-      disabled={!project}
-      title="Files options"
-      aria-label="Files options"
-    >
-      ⋯
-    </button>
-  {/if}
   <button
     class="header-icon settings"
     class:active={mode === "settings"}
-    onclick={() => onModeChange("settings")}
+    onclick={toggleSettings}
     title="Settings"
     aria-label="Settings"
   >
     ⚙
   </button>
 </div>
-
-{#if filesMenu && project}
-  <FilesMenu
-    rootPath={project.rootPath}
-    x={filesMenu.x}
-    y={filesMenu.y}
-    onclose={() => (filesMenu = null)}
-  />
-{/if}
 
 <style>
   .sidebar-header {

@@ -103,7 +103,7 @@ ProjectViewer/(仓库根)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家,功能 Phase 9)
 └── src-tauri/ —— Rust 后端
-    ├── tauri.conf.json(窗口 1280×800/CSP/NSIS)
+    ├── tauri.conf.json(窗口 1280×800/CSP/NSIS/dragDropEnabled:false——HTML5 拖拽必需,lessons L10)
     ├── capabilities/default.json(core:default + dialog:default)
     └── src/
         ├── main.rs / lib.rs(插件装配+启动耗时命令+WebView2 加速键 COM 禁用)

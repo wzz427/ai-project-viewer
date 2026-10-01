@@ -22,7 +22,6 @@
   const rootEntries = $derived(st?.children[TREE_ROOT] ?? []);
   const sorted = $derived(
     visibleSorted(rootEntries, {
-      sortMode: st?.sortMode ?? "name",
       foldersFirst: st?.foldersFirst ?? true,
       showSystemFolders: st?.showSystemFolders ?? false,
       pinned: st?.pinnedItems[TREE_ROOT],

@@ -32,9 +32,7 @@
   const st = $derived(treeState.byRoot[rootPath]!);
 
   const rel = $derived(joinRel(parentRel, entry.name));
-  const pinned = $derived(
-    st.sortMode === "favorites" && isPinned(st, parentRel, entry.name),
-  );
+  const pinned = $derived(isPinned(st, parentRel, entry.name));
   const draggable = $derived(pinned);
   const expanded = $derived(st.expandedFolders.includes(rel));
   const emptyDir = $derived(st.emptyDirs.includes(rel));
@@ -42,7 +40,6 @@
   const children = $derived(st.children[rel] ?? []);
   const sortedChildren = $derived(
     visibleSorted(children, {
-      sortMode: st.sortMode,
       foldersFirst: st.foldersFirst,
       showSystemFolders: st.showSystemFolders,
       pinned: st.pinnedItems[rel],

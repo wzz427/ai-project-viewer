@@ -8,7 +8,6 @@
  */
 
 import { listDirectory, type TreeEntry } from "$lib/services/tauri";
-import type { SortMode } from "$lib/services/treeSort";
 
 export const TREE_ROOT = ".";
 
@@ -23,7 +22,6 @@ export interface ProjectTreeState {
   loadErrors: Record<string, string>;
   /** Rel parent → pinned child names in manual order ("." = root, §19). */
   pinnedItems: Record<string, string[]>;
-  sortMode: SortMode;
   foldersFirst: boolean;
   /** V1.5 §30: default OFF. */
   showSystemFolders: boolean;
@@ -38,7 +36,6 @@ function newState(): ProjectTreeState {
     emptyDirs: [],
     loadErrors: {},
     pinnedItems: {},
-    sortMode: "name",
     foldersFirst: true,
     showSystemFolders: false,
     selectedRelPath: null,
@@ -213,10 +210,6 @@ export function reorderPinned(
   list.splice(from, 1);
   const nextTo = list.indexOf(toName);
   list.splice(nextTo, 0, fromName);
-}
-
-export function setSortMode(rootPath: string, mode: SortMode) {
-  treeFor(rootPath).sortMode = mode;
 }
 
 export function setFoldersFirst(rootPath: string, value: boolean) {

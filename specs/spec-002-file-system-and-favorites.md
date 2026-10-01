@@ -22,11 +22,10 @@
 | R1 | 打开项目只见第一层目录,展开哪层才读哪层,启动不递归全扫 | §27 |
 | R2 | 用户看到的目录可见性,与(将来)监听哪些目录变化,是两份独立清单 | §28 |
 | R3 | `.git`/`node_modules` 等 8 类默认隐藏;`dist`/`build`/`target` 默认显示 | §29 |
-| R4 | Files `⋯` 菜单:Sort(Name/Favorites First)、Folders First、Show system/generated folders(默认 OFF)、Refresh | §30 |
+| R4 | ~~Files `⋯` 菜单~~(2026-10-01 修订):Folders First、Show system folders(默认 OFF)、Refresh 住进 Settings 的 File Tree 区;⚙ 点进/点回 | §30 修订 |
 | R5 | 有目录被隐藏时显示"N system folders hidden",用户知道文件没丢 | §31 |
-| R6 | Name Sort:A→Z;Folders First 开=目录块在前、关=混排 | §33 §34 |
-| R7 | Favorites First:Pinned 区(用户手工序)+ Unpinned 区(自动序) | §35 |
-| R8 | Folders First 只作用于 Unpinned 区,Pinned 区永远按用户拖拽序混排 | §36 |
+| R6 | ~~Name/Favorites 两模式~~(2026-10-01 修订):恒为 Pinned 区(手工拖拽序)+ Unpinned 区(Name 自动序) | §33 修订 §35 |
+| R7 | Folders First 只作用于 Unpinned 区,Pinned 区永远按用户拖拽序混排 | §36 |
 | R9 | 文件和文件夹都能 Pin;Pin 只改同父 sibling 显示序 | §37 §38 |
 | R10 | Pinned 区内拖拽排序,文件文件夹混排 | §39 |
 | R11 | 新出现的文件/文件夹默认 Unpinned,自动落位 | §40 |
@@ -87,7 +86,8 @@
 | D6 | 文件行本 Phase 不可打开只可选中 | 打开=Tabs+Viewer=Phase 3,不造假入口 | 点击弹 toast"Phase 3 开放" | 假入口交付即拆,纯噪声 |
 | D7 | rename 识别走刷新对账(消失 Pinned 名+同父恰一新增名) | Watcher 属 Phase 9,对账函数届时原位复用 | 现在就上 notify 库 | Phase 9 的活提前付,且口径未定 |
 | D8 | pinned/expanded 形状照抄 §17/§19 存内存 | Phase 4 持久化零迁移 | 自造结构 | 到 P4 还要写迁移 |
-| D9 | 树默认偏好:Name + Folders First ON(Show system folders OFF 照 §30) | §17 未定 UI 默认值;取 VS Code Explorer 惯例,用户最熟悉 | Folders First 默认关 | 混排对目录型项目反直觉 |
+| D9 | 树默认偏好:Folders First ON(Show system folders OFF 照 §30);排序无模式(见 D10) | §17 未定 UI 默认值;取 VS Code Explorer 惯例,用户最熟悉 | Folders First 默认关 | 混排对目录型项目反直觉 |
+| D10 | 【2026-10-01 owner 验收反馈】排序合一(删 Name 模式)、⋯ 菜单并入 Settings、`dragDropEnabled:false` 修真拖拽 | Name 模式无独立价值;入口收敛一个 ⚙;合成 DragEvent 测不出原生拖拽,须真鼠标验证 | 保留两模式 / 保留 ⋯ / 只改测试 | 均被 owner 原话否决 |
 
 ## 五、测试覆盖矩阵(Draft→Ready 硬产物)
 
@@ -106,3 +106,4 @@
 | 2026-10-01 | 创建(Draft) | 首版(docs/specs/ 下,后被指未按指南,重构) |
 | 2026-10-01 | 重构入指南 SPEC 模板;Draft→Ready | R/V 指针化、决策依据表、覆盖矩阵;owner 免审门见 workflow.md §五 |
 | 2026-10-01 | Ready→InDev→InTest | 六块全部落地(349f501 / 0816f84 / 08a9505);自测全绿:cargo 32/32、vitest 9/9、svelte-check 0/0、CDP 全链(证据 docs/testing.md §2b);release 已重建 |
+| 2026-10-01 | 验收反馈返工(InTest 内) | owner 三条:D10 全落地;真鼠标拖拽实测换序成功;release 重建待复验 |

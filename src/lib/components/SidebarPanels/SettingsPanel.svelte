@@ -5,15 +5,57 @@
     type Theme,
   } from "$lib/stores/settingsStore.svelte";
   import { diagnostics } from "$lib/stores/diagnosticsStore.svelte";
+  import { activeProject } from "$lib/stores/projectStore.svelte";
+  import {
+    refreshProject,
+    setFoldersFirst,
+    setShowSystemFolders,
+    treeState,
+  } from "$lib/stores/fileTreeStore.svelte";
 
   const themes: { value: Theme; label: string }[] = [
     { value: "system", label: "System" },
     { value: "dark", label: "Dark" },
     { value: "light", label: "Light" },
   ];
+
+  const project = $derived(activeProject());
+  // Tree preferences are per-project (V1.5 §17); the section drives the
+  // active one. Owner 2026-10-01: the old "⋯" menu content lives here now.
+  const tree = $derived(project ? treeState.byRoot[project.rootPath] : undefined);
 </script>
 
 <div class="settings-panel">
+  {#if project && tree}
+    <section>
+      <h3>File Tree</h3>
+      <label class="row">
+        <input
+          type="checkbox"
+          checked={tree.foldersFirst}
+          onchange={(e) =>
+            setFoldersFirst(project.rootPath, e.currentTarget.checked)}
+        />
+        Folders First
+      </label>
+      <label class="row">
+        <input
+          type="checkbox"
+          checked={tree.showSystemFolders}
+          onchange={(e) =>
+            setShowSystemFolders(project.rootPath, e.currentTarget.checked)}
+        />
+        Show system/generated folders
+      </label>
+      <div class="row">
+        <button class="refresh" onclick={() => void refreshProject(project.rootPath)}>
+          Refresh
+        </button>
+        <span class="muted hint">Re-read the folders shown in the tree</span>
+      </div>
+    </section>
+  {/if}
+
   <section>
     <h3>Theme</h3>
     {#each themes as t (t.value)}
@@ -75,6 +117,21 @@
     gap: 6px;
     padding: 2px 0;
     font-size: 12px;
+  }
+
+  .refresh {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+  }
+
+  .refresh:hover {
+    background: var(--bg-hover);
+  }
+
+  .hint {
+    font-size: 11px;
   }
 
   .note {

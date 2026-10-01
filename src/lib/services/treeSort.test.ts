@@ -16,7 +16,6 @@ function names(entries: TreeEntry[]): string[] {
 }
 
 const basePrefs = {
-  sortMode: "name" as const,
   foldersFirst: true,
   showSystemFolders: false,
   pinned: undefined,
@@ -45,7 +44,7 @@ describe("visibility filter (V1.5 §29/§30)", () => {
   });
 });
 
-describe("name mode (V1.5 §34)", () => {
+describe("unpinned area ordering (V1.5 §34)", () => {
   it("folders first when enabled", () => {
     const entries = [file("a.txt"), dir("zeta"), dir("beta"), file("b.txt")];
     expect(names(visibleSorted(entries, { ...basePrefs }))).toEqual([
@@ -68,14 +67,13 @@ describe("name mode (V1.5 §34)", () => {
     expect(naturalCompare("Beta", "alpha")).toBeGreaterThan(0); // b > a
     expect(naturalCompare("same", "SAME")).toBe(0);
     const entries = [file("file10"), file("File2")];
-    expect(names(visibleSorted(entries, { ...basePrefs, foldersFirst: false }))).toEqual([
-      "File2",
-      "file10",
-    ]);
+    expect(
+      names(visibleSorted(entries, { ...basePrefs, foldersFirst: false })),
+    ).toEqual(["File2", "file10"]);
   });
 });
 
-describe("favorites mode (V1.5 §35/§36)", () => {
+describe("pinned area (V1.5 §35/§36, merged single ordering 2026-10-01)", () => {
   const entries = [
     file("config.yaml"),
     dir("docs"),
@@ -84,16 +82,10 @@ describe("favorites mode (V1.5 §35/§36)", () => {
     file("README.md"),
   ];
 
-  it("pinned area keeps manual order with files and folders interleaved", () => {
+  it("pinned area always sits on top, manual order, files and folders interleaved", () => {
     const pinned = ["architecture.md", "README.md", "src", "config.yaml"];
     expect(
-      names(
-        visibleSorted(entries, {
-          ...basePrefs,
-          sortMode: "favorites",
-          pinned,
-        }),
-      ),
+      names(visibleSorted(entries, { ...basePrefs, pinned })),
     ).toEqual([
       "architecture.md",
       "README.md",
@@ -106,12 +98,7 @@ describe("favorites mode (V1.5 §35/§36)", () => {
   it("folders first does NOT apply inside the pinned area but does in unpinned", () => {
     const pinned = ["README.md", "src"];
     const got = names(
-      visibleSorted(entries, {
-        ...basePrefs,
-        sortMode: "favorites",
-        foldersFirst: true,
-        pinned,
-      }),
+      visibleSorted(entries, { ...basePrefs, foldersFirst: true, pinned }),
     );
     // Pinned: file (README.md) before folder (src) — manual order wins (§36).
     // Unpinned: docs (dir) above architecture.md/config.yaml (files).
@@ -121,13 +108,7 @@ describe("favorites mode (V1.5 §35/§36)", () => {
   it("pinned names missing from disk are skipped (cleanup is the store's job, §42)", () => {
     const pinned = ["gone.txt", "README.md"];
     expect(
-      names(
-        visibleSorted(entries, {
-          ...basePrefs,
-          sortMode: "favorites",
-          pinned,
-        }),
-      )[0],
+      names(visibleSorted(entries, { ...basePrefs, pinned }))[0],
     ).toBe("README.md");
   });
 
@@ -135,13 +116,7 @@ describe("favorites mode (V1.5 §35/§36)", () => {
     const withNew = [...entries, file("zzz-new.log")];
     const pinned = ["README.md"];
     expect(
-      names(
-        visibleSorted(withNew, {
-          ...basePrefs,
-          sortMode: "favorites",
-          pinned,
-        }),
-      ),
+      names(visibleSorted(withNew, { ...basePrefs, pinned })),
     ).toEqual([
       "README.md",
       "docs",
@@ -149,6 +124,16 @@ describe("favorites mode (V1.5 §35/§36)", () => {
       "architecture.md",
       "config.yaml",
       "zzz-new.log",
+    ]);
+  });
+
+  it("no pins at all — plain auto order", () => {
+    expect(names(visibleSorted(entries, { ...basePrefs }))).toEqual([
+      "docs",
+      "src",
+      "architecture.md",
+      "config.yaml",
+      "README.md",
     ]);
   });
 });

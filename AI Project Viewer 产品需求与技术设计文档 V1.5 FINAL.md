@@ -944,33 +944,20 @@ target/debug/app.exe
 
 # 30. 显示隐藏目录
 
-Files 菜单：
+> 【2026-10-01 增量修订,owner 验收反馈】原 Files `⋯` 菜单取消,内容并入 Settings
+> (⚙ 点击进入,再点 ⚙ 自动切回 Files 树);排序两选项合一后 Sort 单选组撤销(见 §33 修订)。
+
+Settings → File Tree：
 
 ```text
-Files                                  ⋯
-
-Sort
-  ● Name
-  ○ Favorites First
-
 ☑ Folders First
 
-────────────────
-
 ☐ Show system/generated folders
-
-────────────────
 
 Refresh
 ```
 
-只保留：
-
-```text
-Show system/generated folders
-```
-
-一个 Toggle。
+`Show system/generated folders` 一个可见性 Toggle。
 
 默认：
 
@@ -1030,11 +1017,16 @@ dist
 
 # 33. 文件树排序
 
-V1 只提供：
+> 【2026-10-01 增量修订,owner 验收反馈】取消 Name / Favorites First 两种模式,
+> 合并为**单一排序制**:Pinned 区(用户手工序,§35)+ Unpinned 区(按 Name 自动序,§34)。
+> Pin 即置顶,无需切模式——原 Name 模式(置顶不生效的纯排序)无独立价值,删除。
+
+排序恒为：
 
 ```text
-Name
-Favorites First
+Pinned Area(手工拖拽序)
+↓
+Unpinned Area(Name 自动序)
 ```
 
 不提供：
@@ -5522,3 +5514,12 @@ state.json 解析失败
 ```
 
 实施时机：Phase 4。
+---
+
+# 197. 增量修订审计(2026-10-01 起,机制沿用 §193)
+
+| 日期 | 节 | 变更 | 出处 |
+|---|---|---|---|
+| 2026-10-01 | §30 | Files `⋯` 菜单取消;Folders First / Show system folders / Refresh 并入 Settings(⚙ 点进再点回 Files) | owner Phase 2 验收反馈 |
+| 2026-10-01 | §33 | 取消 Name / Favorites First 两模式,合并为单一排序制(Pinned 区 + Unpinned 区);Name 模式删除 | owner:"没必要单独保留 name 选项" |
+| 2026-10-01 | —(技术性,不改需求) | Windows 下 HTML5 拖拽失效根因 = Tauri 默认 `dragDropEnabled` 拦截;窗口配置改 false(实现细节见 architecture.md §12) | owner:"pin 之间无法拖拽调序" |

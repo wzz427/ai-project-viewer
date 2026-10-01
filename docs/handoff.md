@@ -17,6 +17,14 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-01 · Phase 2 验收反馈返工:排序合一/真拖拽修复/⋯并入 Settings
+
+> **下一步从哪接** —— owner 复验(30 秒路径 testing.md §2b"验收反馈返工")→ 过则 Done、进 Phase 3(先立 spec-003)。
+
+- owner 三条全落地:① 排序合一(Pinned 区+Unpinned 区单一排序制,V1.5 §33 增量修订+§197 审计);② 拖拽根因 = Tauri Windows 默认 `dragDropEnabled` 劫持 HTML5 DnD,配置置 false,**真实鼠标**(mouse_event)实测换序成功——CDP 合成 DragEvent 曾假阳性(lessons L10);③ ⋯ 菜单删除,Folders First/Show system folders/Refresh 住进 Settings 的 File Tree 区,⚙ 点进再点回 Files。
+- vitest 重写 10/10、svelte-check 0/0;V1.5 §30/§33 增量修订+§197 审计表;release 已重建(桌面快捷方式自动最新)。
+- owner 两问已答(收在会话汇报):Folders First 不勾=非置顶区文件文件夹混排按名;Refresh=重读已展开层并做 Pin 对账(实时监听是 Phase 9)。
+
 ### 2026-10-01 · Phase 2 交付:文件树/收藏/文件识别,自测全绿等验收
 
 > **下一步从哪接** —— owner 验收(testing.md §2b 末尾)→ 通过后立 spec-003(Phase 3 Basic READ)。

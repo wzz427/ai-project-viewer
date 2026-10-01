@@ -75,6 +75,15 @@ owner 验收时在 Files 面板项目路径处右键找不到 Remove——入口
 
 **owner 验收建议路径**(1 分钟,release 已重建,桌面快捷方式直接可用):双击 AI Project Viewer → + 加任意项目 → 展开/收起目录 → ⋯ 菜单切 Favorites First → 右键任一文件 Pin to Top(★ 置顶)→ 拖动置顶项换序 → 改一个文件名后 ⋯ → Refresh 看置顶保位 → 右键 Unpin。
 
+### 2026-10-01 Phase 2 验收反馈返工(release 已重建)
+
+owner 三条反馈,全部落地并实测:
+1. **排序合一**:删 Name/Favorites 两模式(V1.5 §33 增量修订),恒为 Pinned 区+Unpinned 区;vitest 重写 10/10。
+2. **Pin 拖拽修复**:根因 = Tauri Windows 默认 `dragDropEnabled:true` 劫持 HTML5 拖拽(lessons L10);`tauri.conf.json` 置 false 后**真实鼠标**(mouse_event 物理输入)拖 config.yaml 上移换序实测成功——此前 CDP 合成 DragEvent 假阳性。
+3. **⋯ 并入 Settings**:⋯ 按钮删除;⚙ 点击进 Settings(File Tree 区:Folders First/Show system folders/Refresh + Theme + Diagnostics),再点 ⚙ 回 Files;实测切换与勾选生效。
+
+复验 30 秒:双击桌面快捷方式 → 加项目 → 右键 Pin 两个文件 → **真鼠标拖动换序** → ⚙ 看 File Tree 区 → 取消 Folders First 看混排 → 再点 ⚙ 回树。
+
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
 | 指标 | 值 | 口径 | 目标(§163–§165) |
