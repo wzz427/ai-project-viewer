@@ -17,6 +17,13 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-01 · Rust 工具链安装完毕,Phase 1 前提全部就绪
+
+> **下一步从哪接** —— owner 确认后按 V1.5 §192 开始 Phase 1;开发环境已无阻塞项(备份 remote 仍是 owner 挂账)。
+
+- rustup 用户级安装 rustc/cargo 1.98.1(msvc),VS 2022 Build Tools 已存在提供链接器,hello-world 编译运行验证通过。
+- tauri-cli 决定用 pnpm 的 @tauri-apps/cli(JS 版,Phase 1 随脚手架安装),不装 cargo tauri-cli(免 10 分钟级本地编译)。
+
 ### 2026-10-01 · 建仓(按 AI-Project-Guide 阶段 0)
 
 > **下一步从哪接** —— owner 确认建仓结果后,按 V1.5 §192 开始 Phase 1;先装 Rust 工具链,再输出工程结构与风险清单,只做 Phase 1。
@@ -39,7 +46,6 @@
 
 | 事 | 去处(归谁·什么时候) | 提出日期 |
 |---|---|---|
-| 装 Rust stable 工具链 + tauri-cli(rustup 可代办) | agent·Phase 1 开工前 | 2026-10-01 |
 | 建异地备份 remote(私有库,SSH 认证),建好当天首推+核 0;建立之前仓库只有本地一份 | owner 亲手(AI-Project-Guide 07)·尽快 | 2026-10-01 |
 | owner 确认建仓结果,批准进入 Phase 1 | owner·当前 | 2026-10-01 |
 | V1.5 §196 附注 A(git -C 统一执行基准)合入 §65 正文 | agent·Phase 7 前 | 2026-10-01 |

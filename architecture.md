@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |---|---|
-| 解释器 / 运行时 | 前端 Node v24.14.0(npm 11.9.0 / pnpm 11.1.3 已装);**Rust 工具链未安装**(Tauri 2 硬前提,Phase 1 前必须装,见 handoff 挂账) |
+| 解释器 / 运行时 | 前端 Node v24.14.0(npm 11.9.0 / pnpm 11.1.3);Rust rustc/cargo 1.98.1 stable(x86_64-pc-windows-msvc,rustup 用户级安装于 `%USERPROFILE%\.cargo`;MSVC 链接器由已有 VS 2022 Build Tools 提供,hello-world 编译运行已验证)。⚠️ 安装后仅新终端 PATH 含 cargo,已开着的会话需 `export PATH="$USERPROFILE/.cargo/bin:$PATH"` |
 | 包管理 | pnpm(前端)+ cargo(随 rustup 安装);Windows 11 + WebView2 |
 | 装依赖 | 【Phase 1 脚手架建立后填实:`pnpm install` / `cargo build`】 |
 | 启动(开发) | 【Phase 1 后填实,预计 `pnpm tauri dev`】 |
