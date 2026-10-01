@@ -11,11 +11,23 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 3 Basic READ 已交付自测全绿(spec-003 InTest),停等 owner 验收**。
-验收 2 分钟路径 docs/testing.md §2c 末尾,**夹具=桌面 `AIV-TestProject`**(owner 指定建,31 文件全格式+边界)。
-验收通过 → 说"进 Phase 4"(Session & Settings,V1.5 §178,先立 spec-004);打回 → 从本页 §一 最新条接。
+主线 = **Phase 4 Session & Settings(V1.5 §178)待开工:先立 spec-004 再开发**(owner 已免审,workflow §五 A2;模板 specs/SPEC-template.md,写法照 spec-002/003)。
+Phase 3 已 Done(owner 2026-10-01 原话"这个就算过了吧",换新会话继续后续需求)。
+Phase 4 范围(V1.5 §178):AppState.version / ProjectSession / AppSettings / Pin 与展开态持久化 / Debounced Save / Atomic Replace / State Migration Skeleton / Session Restore / Settings UI——Phase 2/3 的 store 已按 §17-§19 相对路径身份设计,持久化零迁移(D8)。
+纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · 会话收口:spec-003 Done,交接给新会话做 Phase 4
+
+> **下一步从哪接** —— 新会话按 AGENTS.md 开机三步进来 → 读本页 → 立 spec-004(Phase 4)→ 免审开工。
+
+- **owner 协作习惯(本会话实证)**:高频验收、反馈以编号列表来;测试**绝不许抢前台/闪窗**(硬规矩,testing.md §1 零前台启动式);要求"说人话";每 Phase 完成即停等验收,他会快速试用并打回细节——预留返工轮次是常态。
+- **需求基线已被修订**:V1.5 尾部 §197 增量修订审计(排序合一/⋯ 并入 Settings/固定页签模型/Open with Default App 等)——查需求时**必须看 §197**,别按旧原文实现。
+- **测试基建(零前台)**:`AIV_HIDDEN=1 AIV_TEST_PROJECT=<夹具> WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222 <exe>`;脚本在 %TEMP%(aiv-p3-fix-test.py 回归 17 项/aiv-p3-read-test.py 全套/aiv-picker.ps1);**夹具=桌面 `AIV-TestProject`(owner 验收用,勿删)**;`aiv-test-projects\TreeAlpha` 可删;隐藏窗口收不到可信键盘→DOM 合成 keydown(L11)。
+- **工作树警示**:`docs/AI-Project-Guide/` 下 6 个文件是**另一会话(改指南的 agent)的未提交改动**,不是本会话的——别提交也别回滚,留给那边收尾。
+- 拖拽三连坑全修完(L10:dragDropEnabled/dragenter+dragover/before-after 双语义+空白带落点);菜单"点了没反应"=act 先执行后 onclose(L12);图片路由=扩展名先于二进制判定(L12)。
+- 挂账未动:Playwright 脚本正式化入库(等 owner 点头);备份 remote(owner 亲手,V1 验收后);V1.5 §196 附注 A(Phase 7 前)。
 
 ### 2026-10-01 · Phase 3 十项反馈返工:两根因+预览页签+视觉,回归 16/16
 
