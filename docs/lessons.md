@@ -112,3 +112,11 @@
 - **修法**:换官方响应式容器 `import { SvelteMap } from "svelte/reactivity"`(API 兼容,零迁移);**判据:凡容器要参与 UI 反应链,一律 SvelteMap/SvelteSet,`$state(new Map())` 等于普通变量**。
 - **验证**:tabsStore 换 SvelteMap 后,持久化回归 24/24、Phase 3 回归 17/17 全绿。
 - **出处**:Phase 4 会话恢复(spec-004),2026-10-01。
+
+### L14:pdfjs-dist 6 对原生 Map 调 `getOrInsertComputed`——新引擎环境必须用 legacy build
+
+- **症状**:PDF 首页渲染全部抛 `TypeError: this[#t].getOrInsertComputed is not a function`,栈指向 pdfjs 内部 `getOptionalContentConfig`/`#methodPromises`;worker 正常、getDocument 正常,只有 render 炸。
+- **根因**:pdfjs 6 的代码对普通 `new Map()` 实例到处调用 `.getOrInsertComputed(...)`——依赖**极新的 upsert 提案 API**(Map.prototype.getOrInsertComputed);WebView2 Runtime 143(Chromium 当前稳定)未实现。Svelte 深代理惹的错(`this[#t]` 私有字段撞 Proxy)是**同症状的第一层误诊**——把 pdfjs 对象移出 $state 后错误依旧,才暴露真根因。
+- **修法**:import 一律用 `pdfjs-dist/legacy/build/pdf.mjs` + `legacy/build/pdf.worker.min.mjs?worker`(legacy 自带 polyfill);**判据:WebView/Node 环境跑 pdfjs 6 报 `#t`/`getOrInsertComputed` 类 TypeError → 先换 legacy build,再怀疑别的**。附带两条 Svelte 5 连坐坑(同日):①外部库大对象(pdfjs doc/task)**绝不进 `$state`**——深代理穿透私有字段必炸;②`$effect` 里条件早退会**漏收集依赖**(refit effect 首跑 `if (!doc) return` 把 baseW 挡在依赖外,之后永不触发)——**响应式就绪信号要放进条件本身**(如 `if (!baseW) return`),别拿非响应变量当门卫。
+- **验证**:legacy build + 上述修正后 PDF 回归 19/19(渲染/工具栏/虚拟化/释放/恢复/搜索)。
+- **出处**:Phase 5 PDF spike(spec-005),2026-10-01。
