@@ -11,11 +11,20 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 2 File System & Favorites:spec-002 已 Ready(owner 免审),直接开工**。
-Phase 1 已放行(2026-10-01 owner 原话"继续下一个阶段开发",按验收通过处理);Spec 免审 + specs 体系已按指南落位(根目录 specs/ 编号台账 + docs/workflow.md 状态机)。
-下一步从哪接:按 specs/spec-002 §四提交切分(六块)逐块开发,InTest 后按 testing.md 自测,完成即停等 owner 验收;**动笔前有疑问/要变化先跟 owner 确认**(workflow §五 A2)。
+主线 = **Phase 2 File System & Favorites 已交付自测全绿(spec-002 InTest),停等 owner 验收**(V1.5 §191 纪律:完成即停)。
+验收 1 分钟路径在 docs/testing.md §2b 末尾(桌面快捷方式双击即可,release 已重建)。
+验收通过 → 说"进 Phase 3"(Basic READ,V1.5 §177,先立 spec-003 再开发);打回 → 从本页 §一 最新条接。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · Phase 2 交付:文件树/收藏/文件识别,自测全绿等验收
+
+> **下一步从哪接** —— owner 验收(testing.md §2b 末尾)→ 通过后立 spec-003(Phase 3 Basic READ)。
+
+- 六块全落地:Rust `list_directory`(单层+§29 打标)/`inspect_file`(§101 流水线,encoding_rs)→ 前端 fileTreeStore(相对路径身份)+treeSort 纯函数 → FileTree/TreeItem 懒加载树 + §30 ⋯菜单 + Pin 右键 + 同父拖拽 + Refresh rename 对账(1:1 才算可靠识别)。
+- 自测:cargo 32/32(新增 24)、vitest 9/9(新引入)、svelte-check 0/0、CDP 全链(懒加载/可见性/两种排序/Pin 混排/拖拽/rename 保位/delete 清 Pin/磁盘 md5 前后对比 PASS);fixture `aiv-test-projects\TreeAlpha`(含 GB18030/二进制/5MB/21MB,用后可删)。
+- release 已重建,桌面快捷方式自动最新;spec-002 增补 D9(树默认偏好 Name+Folders First,§17 未定取 VS Code 惯例)。
+- 拖拽手感与 ⋯ 菜单视觉留 owner 手测;inspect_file 的 UI 消费(编码状态栏/Large File 确认框)按计划随 Phase 3 第一个 Viewer。
 
 ### 2026-10-01 · specs 体系对齐指南;owner 拍板 Spec 免审
 

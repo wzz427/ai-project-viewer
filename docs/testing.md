@@ -53,6 +53,28 @@ Rust 侧 `resolve_root` 单测覆盖:尾斜杠/大小写归一、basename、盘�
 
 owner 验收时在 Files 面板项目路径处右键找不到 Remove——入口只挂在顶栏标签上,反直觉。已修:① Files 面板项目路径右键弹出同一菜单(共享组件 ProjectContextMenu,Phase 2 文件树根节点沿用);② 全局禁用 WebView 默认右键菜单(此前右键会露出浏览器菜单 Back/Reload/Print/Inspect,违背桌面应用定位)。CDP+UIA 全链回归通过。
 
+## 2b. Phase 2 功能自测记录(2026-10-01,全部通过;spec-002 V1–V5)
+
+环境:debug 构建 + CDP(方法同 §1);fixture = `%USERPROFILE%iv-test-projects\TreeAlpha`(含 node_modules/.git/dist、GB18030 中文、NULL 二进制、5MB/21MB 文件、空目录;用后可删)。截图证据 `%TEMP%iv-p2-final.png`。
+
+| §188 块 | 实测方式 | 结果 |
+|---|---|---|
+| File Tree:Lazy Load / 启动不递归 | 加项目后 DOM 只有根层;展开 src 才见 main.py+utils,展开 utils 才见 helper.py(逐层) | ✅ |
+| .git/node_modules 默认隐藏,dist/build/target 默认显示 | 根层行序 dist,docs,empty_dir,src + 文件;隐藏者不在行内 | ✅ |
+| Show system folders Toggle / 隐藏提示 / 两清单独立 | ⋯ 菜单开关即时生效(零 IO);提示行 "2 system folders hidden" 随之显隐;可见性 8 名单在 Rust file_tree.rs、watcher 11 名单在 services/watcherIgnore.ts,物理两个模块无共享 | ✅ |
+| Name Sort × Folders First | 开=目录块在前;关=混排(alpha.txt<config.yaml<dist<…<zeta.txt 自然序) | ✅ |
+| Favorites First / Pin 文件+文件夹 / 混排 / 同父约束 | Pin README.md+config.yaml+src → 置顶区手工序混排带 ★;Pin 只改显示序 | ✅ |
+| Pinned Drag Sort | 拖 README.md 落到 src 前 → [config.yaml, README.md, src];drop 只收同父 Pinned 目标 | ✅ |
+| Unpinned 自动排序 / 新文件落位 | 新建 alpha.txt 回归(重建)后落 Unpinned 区自动序,不带 ★ | ✅ |
+| Rename 保位 / Delete 清 Pin | 盘上 README.md→renamed-doc.md 后 Refresh:置顶区原位换名;删 alpha.txt 后 Pin 记录真被清(重建同名回 Unpinned) | ✅ |
+| File Inspection(§188 11 行) | cargo 单测 24 项:流水线顺序、UTF-8/BOM×3/GB18030/NULL 二进制、无 BOM UTF-16 判 binary(§103 已知限制)、4.9/5/20/20.1MB 边界、`..` 越界、目录拒绝 | ✅ |
+| Path Persistence 相对路径身份 | store 数据形状照 §17/§19(`.`=根) vitest 9/9;写盘属 Phase 4 | ✅ |
+| **排序红线(V5)** | 全程前后磁盘 md5 快照对比:仅测试脚本自身的 README 改名与 alpha 删除/重建,其余逐字节未动 | ✅ PASS |
+
+未覆盖留 owner 手感项:拖拽手感(V-human)、⋯ 菜单视觉。inspect_file 的 UI 消费(状态栏编码/Large File 确认框)按 spec-002 随 Phase 3 第一个 Viewer 落地。
+
+**owner 验收建议路径**(1 分钟,release 已重建,桌面快捷方式直接可用):双击 AI Project Viewer → + 加任意项目 → 展开/收起目录 → ⋯ 菜单切 Favorites First → 右键任一文件 Pin to Top(★ 置顶)→ 拖动置顶项换序 → 改一个文件名后 ⋯ → Refresh 看置顶保位 → 右键 Unpin。
+
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
 | 指标 | 值 | 口径 | 目标(§163–§165) |

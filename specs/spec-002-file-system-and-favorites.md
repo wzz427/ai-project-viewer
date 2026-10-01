@@ -87,6 +87,7 @@
 | D6 | 文件行本 Phase 不可打开只可选中 | 打开=Tabs+Viewer=Phase 3,不造假入口 | 点击弹 toast"Phase 3 开放" | 假入口交付即拆,纯噪声 |
 | D7 | rename 识别走刷新对账(消失 Pinned 名+同父恰一新增名) | Watcher 属 Phase 9,对账函数届时原位复用 | 现在就上 notify 库 | Phase 9 的活提前付,且口径未定 |
 | D8 | pinned/expanded 形状照抄 §17/§19 存内存 | Phase 4 持久化零迁移 | 自造结构 | 到 P4 还要写迁移 |
+| D9 | 树默认偏好:Name + Folders First ON(Show system folders OFF 照 §30) | §17 未定 UI 默认值;取 VS Code Explorer 惯例,用户最熟悉 | Folders First 默认关 | 混排对目录型项目反直觉 |
 
 ## 五、测试覆盖矩阵(Draft→Ready 硬产物)
 
@@ -104,3 +105,4 @@
 |---|---|---|
 | 2026-10-01 | 创建(Draft) | 首版(docs/specs/ 下,后被指未按指南,重构) |
 | 2026-10-01 | 重构入指南 SPEC 模板;Draft→Ready | R/V 指针化、决策依据表、覆盖矩阵;owner 免审门见 workflow.md §五 |
+| 2026-10-01 | Ready→InDev→InTest | 六块全部落地(349f501 / 0816f84 / 08a9505);自测全绿:cargo 32/32、vitest 9/9、svelte-check 0/0、CDP 全链(证据 docs/testing.md §2b);release 已重建 |
