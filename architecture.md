@@ -1,0 +1,94 @@
+# architecture —— AI Project Viewer 技术架构(怎么做)
+
+> 记录技术选型与实现结构。需求与开发顺序见《AI Project Viewer 产品需求与技术设计文档 V1.5 FINAL.md》
+> (唯一基线,兼任 spec),交接见 docs/handoff.md,测试规范见 docs/testing.md(未建)。
+> **§0 开发环境是建仓第一天就填实的**,其余随项目长。
+
+## 0. 开发环境与跑法(新 agent 第一站;判据:只读这节就能把项目跑起来)
+
+| 项 | 值 |
+|---|---|
+| 解释器 / 运行时 | 前端 Node v24.14.0(npm 11.9.0 / pnpm 11.1.3 已装);**Rust 工具链未安装**(Tauri 2 硬前提,Phase 1 前必须装,见 handoff 挂账) |
+| 包管理 | pnpm(前端)+ cargo(随 rustup 安装);Windows 11 + WebView2 |
+| 装依赖 | 【Phase 1 脚手架建立后填实:`pnpm install` / `cargo build`】 |
+| 启动(开发) | 【Phase 1 后填实,预计 `pnpm tauri dev`】 |
+| 跑测试 | 【Phase 1 后填实;Benchmark 体系与各档耗时见 V1.5 §162–§173】 |
+| 平台已知坑 | ① 路径含空格/中文必须加引号;② WebView2 浏览器加速键会抢占应用快捷键(Ctrl+F/R/W,V1.5 §147);③ git 输出路径基准不一致:status 相对 cwd、diff/log 相对 Git Root,一律用 `git -C <GitRoot>` 规避(V1.5 §196 附注A);④ Rust `canonicalize` 产生 `\\?\` 前缀,做前缀比较前须 strip(V1.5 §144) |
+| 🚫 别碰 | 需求文档是唯一基线,不得未经 owner 修改;密钥文件别读(见 AGENTS.md 红线);不得绕过 V1.5 §143–§147 安全章节"图快" |
+
+## 1. 核心决策表(D 编号;否决项一栏是灵魂——三个月后有人问"为什么不用 X",答案住这)
+
+> 全部决策的完整论证见 V1.5 对应章节;本表是落地索引。
+
+| # | 决策项 | 选定方案 | 否决项 / 关键理由 | 出处 |
+|---|---|---|---|---|
+| D1 | 桌面框架 | Tauri 2 + WebView2 | 否决 Electron:低 RAM 是核心目标,不为生态引入完整 Chromium | V1.5 §156/§163 |
+| D2 | PDF 方案 | PDF.js(含虚拟化/懒加载/非活动释放) | 否决 WebView2 Native PDF:宿主无法控制工具栏/页码/搜索/生命周期,是能力缺失不是性能差异 | V1.5 §91–§98 |
+| D3 | 代码查看 | CodeMirror 6 Minimal Read-only | 否决 Monaco:携带大量 IDE 能力,违背 Viewer-only | V1.5 §107 |
+| D4 | Markdown | markdown-it,Raw HTML 默认禁用 | 禁脚本执行的安全要求 | V1.5 §86–§88 |
+| D5 | Git | System git CLI,只读 Review,全部 `git -C <GitRoot>` + 安全参数(`--no-pager`/`core.quotepath=false`/`--no-ext-diff`/`--no-textconv`) | 否决内嵌 git 引擎:维护成本;安全参数防仓库配置触发外部程序 | V1.5 §68–§70/§196A |
+| D6 | 状态持久化 | JSON + debounce 500–1500ms + 原子替换,AppState.version=1 + migration 骨架 | 否决 SQLite:状态量小不值当 | V1.5 §23–§26 |
+| D7 | 文件树排序 | Name + Favorites First(Pinned 手工序 + Unpinned 自动序) | 否决 Full Manual Sort:Agent 高频增删文件,人工顺序维护成本持续上升 | V1.5 §33–§40 |
+| D8 | Git 子目录场景 | Git identity 仓库级、变化呈现项目级(Badge/Changes/Tab 只算 Project Scope,Branch/Ahead/Behind 仓库级) | 否决父仓库全量呈现:与"当前项目"直觉不符;否决 multi-repo 递归发现:复杂度 | V1.5 §55–§66 |
+| D9 | UI 布局 | Sidebar Header Tabs(Files/Git),非 Activity Bar | 否决竖向 Activity Bar:两个工作区不值得占一列 | V1.5 §7–§8 |
+
+## 1.5 待决问题(摆上桌但"以后再说"的;不是 bug 不是待办,是没被遗忘也没被拍死的取舍)
+
+| # | 问题 | 已知事实 | 何时回来评估 | 归档日 |
+|---|---|---|---|---|
+| Q1 | 发布形态(安装包格式/签名/自动更新) | V1.5 §184 已有初始建议:个人用 NSIS、updater OFF、签名非必需 | Phase 10 | |
+| Q2 | Multi-Repository Workspace(一个 Project 含多个嵌套 repo) | V1.5 §66 明确不做,视为 Non-Git | 真实使用出现该痛点后(V1.5 §187 Future) | |
+
+## 2. 整体拓扑(一张图)
+
+```
+(规划——Phase 1 脚手架落地后核实)
+
+┌───────────────────────────── AI Project Viewer 进程树 ─────────────────────────────┐
+│  Rust 主进程(src-tauri/)                                                          │
+│   ├─ project/ fs/ git/ runner/ external/ security/ state/(模块划分见 V1.5 §157)   │
+│   └─ ↔ IPC(Tauri Commands,清单见 V1.5 §159)                                     │
+│        ↕ WebView2(msedgewebview2.exe ×N:浏览器/GPU/Utility)                        │
+│  Svelte 前端(src/)                                                                 │
+│   ├─ components/ viewers/ stores/ services/(划分见 V1.5 §158)                     │
+│   └─ PDF.js Worker(懒加载,首次打开 PDF 才初始化)                                 │
+│  外部:System git.exe / PowerShell / CMD / 默认浏览器 / Explorer / VS Code / Notepad │
+└────────────────────────────────────────────────────────────────────────────────────┘
+内存统计口径 = 整个进程树(V1.5 §161)
+```
+
+## 3. 代码地图(目录一变就同步;过时的地图比没有还坑人)
+
+> 还没写出来的条目标 **(规划)**;InDev 落地当天把(规划)改实——拖着不改,它就成了过时地图。
+
+```
+ProjectViewer/(仓库根)
+├── AI Project Viewer 产品需求与技术设计文档 V1.5 FINAL.md —— 唯一需求基线(做什么+怎么做+Phase 计划+验收)
+├── AGENTS.md —— agent 第一读物(灵魂+路由)
+├── demand.txt —— owner 原始需求原话
+├── architecture.md —— 本文件(环境跑法+决策表+地图)
+├── docs/
+│   ├── handoff.md —— 交接页(现在在哪、上一段为什么)
+│   ├── lessons.md —— 踩坑账(空账起步)
+│   └── history/INDEX.md —— 历史归档入口(空账起步)
+├── src/(规划) —— Svelte + TypeScript 前端(Phase 1 建立)
+└── src-tauri/(规划) —— Rust 后端(Phase 1 建立;内部结构见 V1.5 §157)
+```
+
+| 改什么功能 | 去哪个文件 |
+|---|---|
+| (待 Phase 1 后填) | |
+
+## 4. 硬规则(代码层面必须守的)
+
+- 一切文件/进程操作遵守 V1.5 §143–§147:路径 canonicalize 后按 Path 语义校验在 Project Root 内;进程一律 Executable + Args Array,禁止 shell 字符串拼接;前端无任意执行命令。
+- git 一律 `git -C <GitRoot>` 执行(输出基准统一,见 §196 附注A)。
+- Viewer 只读:任何情况下不得引入编辑能力(V1.5 §5)。
+- 每个 Phase 必须:编译→运行→测试→benchmark(如需)→报告→停,等 owner 确认(V1.5 §191)。
+- 标识符英文,文档中文;首个密钥引入当天建《密钥总备份》(目前零密钥,不建空账)。
+
+## 12. 修订记录(架构决策变更必记:谁拍的、推翻了什么)
+
+| 日期 | 版本 | 变更 | 触发 |
+|---|---|---|---|
+| 2026-10-01 | — | 建仓:V1.5 FINAL 定稿入库,按 AI-Project-Guide 阶段 0 建立基础文档;D1–D9 从 V1.5 提炼落表 | owner 指令 |

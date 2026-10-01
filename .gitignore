@@ -1,0 +1,30 @@
+# 判据:跑批产物能不能由已入库的东西 + 一条确定性命令重新生成?
+# 能 → ignore;不能(花过钱/唯一物证)→ 入库
+
+# 密钥红线:密钥永不入仓库(新增密钥文件必须先在这里占位)
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# Node / 前端
+node_modules/
+*.local
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# 构建产物(可由构建命令重新生成)
+dist/
+build/
+
+# 日志与临时文件
+*.log
+*.tmp
+
+# 系统与 IDE 垃圾
+.DS_Store
+Thumbs.db
+.idea/
