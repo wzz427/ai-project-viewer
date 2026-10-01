@@ -128,3 +128,10 @@
 - **修法**:**每个文档一个 worker**(加载文档前 `GlobalWorkerOptions.workerPort = new WorkerCtor()`),destroy 只回收自己的线程,生命周期自洽;另在"最后一个 pdf 页签关闭"时 terminate worker+丢弃库引用(owner 2026-10-02 要求的"关页签=引擎归零")。**判据:凡 pdfjs 多文档场景,别共享 workerPort;destroy 的清理范围要按"它拥有什么"核对,不是按"我希望它做什么"**。
 - **验证**:per-document worker 后 PDF 回归 19/19、修复回归 6/6(含关最后页签 worker 线程归零、重开重载)。
 - **出处**:Phase 5 owner 验收轮(spec-005),2026-10-02。
+
+### L16:opener 权限≠opener scope——capability 里放行了,插件白名单仍全拒
+
+- **症状**:右键 "Open with Default App" 对一切文件弹 `Cannot open: Not allowed to open path C:\...`(owner 报障 txt/pdf 全一样);之前自动化只断言过"无关联扩展会报错 toast"——把"动作执行了"当成"功能通了",验证盲区。
+- **根因**:Tauri 2 plugin-opener 有两层门:capability 权限条目(`opener:allow-open-path`)**和插件自身的 scope 白名单**——后者默认为空,任何路径都 "Not allowed"。两层都过才真开。
+- **修法**:capabilities 里用对象形式带 scope:`{"identifier":"opener:allow-open-path","allow":[{"path":"**"}]}`;URL 同理收紧 `https://**`/`http://**`。**判据:凡 Tauri 插件"权限配了还是 Not allowed"→ 查第二层 scope;凡外联功能,验证必须到"真程序真弹出"层**(本次实证:右键 txt → 记事本弹出并打开文件 → 自动关闭)。path:`**` 的安全边界靠调用点自律(只拼树内相对路径),已在调用处注释。
+- **出处**:Phase 5 owner 验收二轮,2026-10-02。
