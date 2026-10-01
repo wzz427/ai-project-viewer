@@ -15,7 +15,7 @@
 | 需求理解变化 | 需求文档走 V1.5 §193 增量修订 + 审计 | 直接改正文不留审计 |
 | 挂账/等 owner 的事 | handoff.md 挂账区(带去处) | 待办散落在会话里 |
 | 文档自身的新规矩 | AGENTS.md 路由表(第二次被忘时) | 规矩只存在脑子里 |
-| Phase 开工/收口 | docs/specs/phase-N-*.md(开工前建,收口时把实现差异回写进"决策表"后冻结) | 代码实现悄悄偏离 Spec 没留痕 |
+| Phase 开工/收口 | 根目录 specs/spec-NNN.md(开工前立项,跃迁按 docs/workflow.md 自检门;收口把实现差异回写决策表)+ **specs/INDEX.md 台账状态同步** | 代码悄悄偏离 Spec 没留痕;INDEX 状态没同步 |
 
 ## Phase 收口动作清单(照抄执行)
 
@@ -31,3 +31,4 @@
 |---|---|
 | 2026-10-01 | 建表(Phase 1 收口) |
 | 2026-10-01 | 加"Phase 开工/收口 → specs/"一行(每 Phase 先写 Spec 的规矩落地) |
+| 2026-10-01 | specs/ 迁到仓库根目录、spec-NNN 编号、接入 docs/workflow.md 状态机(对齐 AI-Project-Guide) |

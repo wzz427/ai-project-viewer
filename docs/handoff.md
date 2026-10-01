@@ -11,11 +11,19 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 2 File System & Favorites,Spec 已写好,等 owner 过目后开工**(Spec 全文:docs/specs/phase-2-file-system-and-favorites.md)。
-Phase 1 已放行(2026-10-01 owner 原话"继续下一个阶段开发",按验收通过处理)。
-下一步从哪接:owner 对 Spec 无异议(或改完 D1–D8 决策表)→ 说"开工"即按 Spec §六 提交切分执行,完成即停等验收(V1.5 §191 纪律不变)。
+主线 = **Phase 2 File System & Favorites:spec-002 已 Ready(owner 免审),直接开工**。
+Phase 1 已放行(2026-10-01 owner 原话"继续下一个阶段开发",按验收通过处理);Spec 免审 + specs 体系已按指南落位(根目录 specs/ 编号台账 + docs/workflow.md 状态机)。
+下一步从哪接:按 specs/spec-002 §四提交切分(六块)逐块开发,InTest 后按 testing.md 自测,完成即停等 owner 验收;**动笔前有疑问/要变化先跟 owner 确认**(workflow §五 A2)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · specs 体系对齐指南;owner 拍板 Spec 免审
+
+> **下一步从哪接** —— 直接按 specs/spec-002 开工(六块提交切分),**不用再等 owner 点头**;动笔前有疑问/要变化先确认(workflow §五 A2)。
+
+- owner 拍板三件:① **Spec 免审**("我就不过目了,你自己能跟原始需求对上就行"),替代门 = agent 自核 R/V 对齐 V1.5 + 疑问先确认;② **specs 体系按指南落**:仓库根目录、spec-NNN 编号、INDEX 台账、workflow 状态机;③ 质疑指南是否有大问题——对证结论:**三件事指南全有明文**(00-doc-map 阶段2 行 11–12、阶段3 行 13、02-dev-workflow §二),错在 agent 立结构时未查指南、自创 docs/specs/phase-N(lessons L9)。
+- 现结构:specs/{INDEX.md, SPEC-template.md, spec-001(Phase 1 追溯建档,Done), spec-002(Ready)};docs/workflow.md 含本项目适配 A1–A5(一段=一个 Phase、免审门、界面确认以 V1.5 为基线、V1.5 兼任 spec/roadmap、R/V 指针化)。
+- 给 owner 的建议(改不改他定):指南可补一小节"项目已有权威需求基线(如本项目 V1.5)时怎么接入 specs/ 体系"——本项目接法可直接参考 docs/workflow.md §五。
 
 ### 2026-10-01 · Phase 1 放行;立"每 Phase 先写 Spec"规矩,Phase 2 Spec 待过目
 
@@ -61,9 +69,11 @@ Phase 1 已放行(2026-10-01 owner 原话"继续下一个阶段开发",按验收
 
 ## 二、为什么这么改(当批关键取舍;只在"后人容易被顺手的改法改回去"处留一句)
 
-- **~~不另建 spec.md / roadmap.md / specs/~~**(2026-10-01 改口,出处:owner"每一段开发都要专门写一个 Spec 文档再开发"):
-  现规矩 = **每个 Phase 开工前先写 `docs/specs/phase-N-*.md`**(实现方案+实现决策+测试验收,需求真值仍只在 V1.5,Spec 只挂指针)。
-  原取舍(V1.5 兼任 spec、待痛点出现再建)低估了"owner 要在动代码前审得到实现方案"这一痛点;roadmap 职能仍由 V1.5 独占,不变。
+- **~~不另建 spec.md / roadmap.md / specs/~~**(2026-10-01 改口,出处:owner"每一段开发都要专门写一个 Spec 文档再开发";
+  同日二次收紧:specs 按指南落仓库根目录、spec-NNN 编号、INDEX 台账、workflow 状态机):
+  现规矩 = **每个 Phase 开工前按 docs/workflow.md 状态机立 SPEC(根目录 `specs/spec-NNN`,编号与 Phase 对齐)**。
+  spec-002 起执行,spec-001 追溯建档。原取舍(V1.5 兼任 spec/roadmap、待痛点出现再建)低估了"动代码前要有可审的实现方案与状态台账"这一痛点;
+  V1.5 仍兼任产品规格与 roadmap(需求真值),specs/ 装实现方案与状态,两层用指针互指不抄正文。
 - **需求变更走增量修订 + 变更审计(V1.5 §193),禁止整篇重写**:V1.2→V1.3→V1.4 三次整篇重写
   每次都丢过已确认规格,V1.5 起改为"只改明确条目+审计清单"后未再发生回归。
 
