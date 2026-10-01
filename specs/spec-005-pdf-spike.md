@@ -1,6 +1,6 @@
 # spec-005 · PDF.js Spike(点一个 PDF 能看到什么:验证 → 首页 → 完整查看器 → Benchmark)
 
-> 状态:Ready —— 真值 = specs/INDEX.md。
+> 状态:InTest —— 真值 = specs/INDEX.md。
 > 创建:2026-10-01;Pre-Draft 结论:owner"可以了,继续spec005"(Phase 4 全闭环同句);免审门适用(workflow §五 A2/A5)。
 > 需求源:V1.5 §179(Phase 5 批次)+ §91–§99;完成判据:§188「PDF」块 19 行 + §192-7。
 
@@ -98,3 +98,4 @@ Phase 5 是 V1.5 §175–182 排期定死的第五批,判:做(PDF 是 READ 的�
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
 | 2026-10-01 | Draft→Ready | R/V 指针化、D1–D7(spike 预填)、覆盖矩阵;开工切分:①spike 实测(pdfjs-dist+Worker 路线+数据路线+CSP,回填 D1–D3)②路由+PdfViewer 骨架(首页渲染)③完整工具栏(§92 十项)④虚拟化+切离释放+pdfState 持久化 ⑤Benchmark(§98)+回归+文档+release |
+| 2026-10-01 | Ready→InDev→InTest | ⑤块全落地(fd8dc19/5acc62c/08596c0+收尾);**spike 实测翻案:必须用 pdfjs 6 legacy build**(modern 对原生 Map 调 getOrInsertComputed,WebView2 143 无此提案 API,渲染全炸;另修 Svelte 连坐两坑:pdfjs 对象不进 $state/effect 早退漏依赖,lessons L14);D1–D3 已回填。自测:cargo 49/49、vitest 19/19、svelte-check 0/0、CDP PDF 回归 19/19(debug+release 双跑)、防退化全绿(P3 PASS/P4 24/24+7/7);§98 Benchmark 四场景数字落 testing.md §2e(判读:多 Tab 不线性吃 RAM ✓);夹具 AIV-TestProject\pdf\(10 页文本/100 页文本/100 页扫描 18.4MB/tab-1..5);release 已重建(2.24MB) |

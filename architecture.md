@@ -93,7 +93,7 @@ ProjectViewer/(仓库根)
 │       ├── components/SidebarHeader/(Files/Git/⚙)
 │       ├── components/FileTree/(FileTree 宿主 / TreeItem 递归行 / NodeContextMenu Pin 右键)
 │       ├── components/ProjectTabs/FileTabs.svelte(主区文件标签条)
-│       ├── components/Viewers/(ActiveViewer 路由 / MarkdownViewer / CodeViewer+codeLanguages+codeSearchRegistry / JsonViewer / ImageViewer / UnsupportedViewer)
+│       ├── components/Viewers/(ActiveViewer 路由 / MarkdownViewer / CodeViewer+codeLanguages+codeSearchRegistry / JsonViewer / ImageViewer / **PdfViewer(Phase 5:pdfjs legacy+工具栏+虚拟化+切离释放)** / UnsupportedViewer)
 │       ├── components/SidebarPanels/(Files=路径框+FileTree / Git / Settings)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案)
 │       ├── components/Toast/(单槽 toast)
@@ -116,7 +116,7 @@ ProjectViewer/(仓库根)
         ├── project/manager.rs(resolve_project:canonicalize+校验,8 个单测)
         ├── state/(Phase 4:mod.rs 两命令+测试态闸门 AIV_STATE_FILE/拒访;persistence.rs 原子写+损坏隔离;migration.rs 版本路由,10 个单测)
         ├── file_tree.rs(list_directory:单层+§29 打标+hidden_count+越界拒;§176 块1)
-        └── file_inspect.rs(inspect_file/read_text_file/read_media_file:§101 流水线+按编码解码+图片 data URL,守卫全在 Rust 侧)
+        └── file_inspect.rs(inspect_file/read_text_file/read_media_file/read_binary_file:§101 流水线+按编码解码+图片 data URL+PDF 原始字节通道(ArrayBuffer,100MB 顶),守卫全在 Rust 侧)
 ```
 
 | 改什么功能 | 去哪个文件 |
@@ -140,6 +140,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-01 | — | Phase 5 落地:PDF.js Spike→完整查看器(specs/spec-005);pdfjs-dist 6.3 **legacy build**(modern 在 WebView2 143 缺 upsert 提案 API,lessons L14)+Vite worker+字节通道 read_binary_file(ArrayBuffer);CSP 加 worker-src 'self' blob:;虚拟化+切离释放+pdfState 持久化;§98 Benchmark 四场景落 testing.md §2e | owner 指令(§179) |
 | 2026-10-01 | — | Phase 4 落地:Session & Settings(specs/spec-004)——AppState.version=1+防抖 800ms 原子写盘+迁移骨架+会话恢复(懒读内容);showSystemFolders 全局化(§22 对齐)、sidebarMode/Width 入 ProjectSession(§17);contentCache 改 SvelteMap(lessons L13);测试态闸门 AIV_STATE_FILE | owner 指令(§178) |
 | 2026-10-01 | — | Phase 3 落地:File Tabs+五查看器+五快捷键真行为(specs/spec-003);新依赖 markdown-it/CodeMirror 6/opener/base64;测试模式 AIV_HIDDEN/AIV_TEST_PROJECT(零前台,testing.md §1) | owner 指令(§177) |
 | 2026-10-01 | — | Phase 2 落地:specs/ 体系(根目录,spec-NNN)+ docs/workflow.md 状态机 + 文件树/收藏/文件识别(specs/spec-002);新依赖 encoding_rs、vitest;文件树默认 UI 偏好 Name+Folders First(§17 未定,取 VS Code 惯例) | owner 指令(§176) |

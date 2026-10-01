@@ -134,6 +134,33 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **owner 验收建议路径**(1.5 分钟,release 已重建):双击桌面 AI Project Viewer → + 加 `Desktop\AIV-TestProject` → 展开一两层目录、右键 Pin 一个文件 → 开两三个文件页签 → ⚙ 改 Theme=Dark、字号 + 两次 → **完全关闭应用** → 再双击打开:项目标签、展开、置顶、页签(含激活页和 Rendered/Source 模式)、主题、字号应全部还原;点开恢复的页签内容正常显示(大文件不弹确认);关掉重开 Settings 确认两个开关还在。
 
+## 2e. Phase 5 功能自测记录(2026-10-01,spec-005;全部通过)
+
+路线(spike 实测回填 spec-005 D1–D3):pdfjs-dist 6.3 **legacy build**(modern build 对原生 Map 调 `getOrInsertComputed`——upsert 提案 API,WebView2 143 没有,渲染全炸,lessons L14);Worker 走 Vite `?worker` 打包(同源,CSP 仅加 `worker-src 'self' blob:`);PDF 字节走 `read_binary_file`→tauri ipc Response→ArrayBuffer(100MB 硬顶),`getDocument({data})`;asset protocol 未启用。夹具=桌面 `AIV-TestProject\pdf\`(生成脚本 `%TEMP%\aiv-p5-make-fixtures.py`:10 页文本/100 页文本/100 页扫描 18.4MB/tab-1..5)。
+
+| 档 | 内容 | 结果 |
+|---|---|---|
+| cargo 49/49 | read_binary +1:字节读回+越界拒 | ✅ |
+| vitest 19/19 | appState +1:pdfState 序列化/自愈(page≥1、zoom 0.1–5、zoomMode 白名单) | ✅ |
+| svelte-check | 0/0 | ✅ |
+| CDP PDF 回归 19/19 | `%TEMP%\aiv-p5-pdf-test.py`(零前台,**debug+release 双跑**):首页渲染/总页数/真 worker(无 fake-worker 回退)/上一页下一页/跳页/缩放/自定义缩放/Fit Page/Fit Width/Ctrl+滚轮/搜索命中跳页/无结果反馈/深滚 canvas≤6(虚拟化)/当前页跟踪/切离释放/切回恢复/18.4MB 扫描件渲染/无页面错误 | ✅ |
+| 防退化 | Phase 3 回归 PASS、Phase 4 持久化 24/24、侧栏拖拽 7/7 | ✅ |
+
+### V1.5 §98 PDF Benchmark(release 构建+CDP 口径,2026-10-01)
+
+| 场景 | before open | after open | deep scroll | switch away | close |
+|---|---|---|---|---|---|
+| A 10 页文本 | 406.2 | 540.6 | 543.3 | 553.9 | 555.2 |
+| B 100 页文本 | 401.1 | 533.4 | 565.8 | 576.0 | 551.3 |
+| C 100 页扫描(18.4MB) | 395.9 | 684.4 | 831.7 | 705.3 | 709.0 |
+| D 5 个 PDF Tab 仅 1 激活 | 388.2 | 727.7 | — | 699.6 | 692.6 |
+
+(单位 MB,进程树 RSS;脚本 `%TEMP%\aiv-p5-bench.py`,psutil 按命令行过滤本应用进程)
+
+**判读**:①"before open"≈400MB 是 **CDP 调试底座**(测试必须开 remote-debugging;Phase 1 无 CDP 基线 179MB),四场景同底座,**看差值**;②开一个文本 PDF ≈ +134MB(pdfjs 模块+worker+首屏渲染),100 页与 10 页几乎同(**§95 虚拟化生效**,文档大小不主导常驻);③扫描件 +288/深滚 +436(大位图,真实代价);④**D:5 个 Tab 仅 +340MB,远低于 5×134,§188"多 PDF Tab 不线性吃 RAM"成立**(非激活 Tab 只有字节缓存+轻量状态);⑤close 后不立即回落是 Chromium GC 归还延迟,switch/close 同量级=无泄漏性增长。
+
+**owner 验收建议路径**(1 分钟,release 已重建):打开应用 → `AIV-TestProject\pdf` → 点 sample-10p-text.pdf(渲染/工具栏)→ 翻页/跳页/缩放/Fit Width/Fit Page/Ctrl+滚轮 → 搜索框输 "Page 8"(跳页+计数,上一处/下一处)→ 滚到深页(只有窗口内的页在渲染)→ 切到别的文件再切回(页码/缩放/滚动还原)→ 点 sample-100p-scan.pdf(18.4MB 扫描件)→ 关掉重开应用,PDF 页签与页码还在(§93 持久化)。
+
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
 | 指标 | 值 | 口径 | 目标(§163–§165) |

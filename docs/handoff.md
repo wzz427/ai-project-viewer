@@ -11,11 +11,20 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 5 PDF.js Spike(V1.5 §179)开发中:spec-005 已立项**(2026-10-01 owner"可以了,继续spec005")。
-Phase 4 完全闭环(owner 原话"通过了"+侧栏拖拽复验"可以了")。
-纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
+主线 = **Phase 5 PDF.js Spike 已交付 InTest,等 owner 验收**(spec-005;1 分钟路径 testing.md §2e 末尾)。
+过则 Done → 下一批 **Phase 6 HANDOFF(V1.5 §180)**,先立 spec-006。
+Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · Phase 5 交付:PDF 查看器全功能,自测全绿等验收
+
+> **下一步从哪接** —— owner 验收(testing.md §2e 末尾:开 PDF/工具栏/搜索/深滚/切回恢复/扫描件/重启还原)→ 过则 Done、立 spec-006(Phase 6 HANDOFF)。
+
+- 交付:PDF.js 查看器全套(§92 十项工具栏+§93 状态恢复+§95 虚拟化+§96 切离释放+§98 Benchmark);字节通道 read_binary_file(ArrayBuffer,100MB 顶);CSP 仅加 worker-src 'self' blob:;pdfState 随 Phase 4 白名单持久化(重启还原页码/缩放/滚动)。
+- **spike 最大发现:pdfjs 6 必须用 legacy build**(modern 对原生 Map 调 getOrInsertComputed——upsert 提案 API,WebView2 143 没有;另修 Svelte 连坐两坑,lessons L14);搜索为页导航级(D5:命中计数+跳页,字符级高亮不做——owner 要再加)。
+- Benchmark 判读(testing.md §2e):开一个文本 PDF ≈ +134MB;100 页≈10 页(虚拟化生效);5 Tab 仅 +340MB(**不线性吃 RAM** ✓);数字含 CDP 底座口径已注明。
+- 自测:cargo 49/49、vitest 19/19、check 0/0、CDP PDF 回归 19/19(debug+release 双跑)、防退化(P3/P4 全绿);夹具 `AIV-TestProject\pdf\`(生成脚本 %TEMP%\aiv-p5-make-fixtures.py);release 已重建。
 
 ### 2026-10-01 · Phase 4 全闭环;spec-005(Phase 5 PDF.js Spike)立项开工
 
