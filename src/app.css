@@ -100,3 +100,9 @@ button {
   cursor: col-resize !important;
   user-select: none !important;
 }
+
+/* Text viewers show the I-beam cursor — selection is a first-class verb
+   here (owner 2026-10-02), the default arrow reads as non-selectable. */
+.viewer-body {
+  cursor: text;
+}

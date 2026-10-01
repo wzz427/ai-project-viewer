@@ -137,7 +137,7 @@
         ondrop={(e) => onDrop(e, t)}
       >
         {#if t.pinned}<span class="pin" title="Kept open">📌</span>{/if}
-        <span class="name">{fileNameOf(t.relativePath)}</span>
+        <span class="name" title={t.relativePath}>{fileNameOf(t.relativePath)}</span>
         <button
           class="close"
           aria-label={`Close ${fileNameOf(t.relativePath)}`}
@@ -187,6 +187,10 @@
     cursor: pointer;
     white-space: nowrap;
     user-select: none;
+    /* Long names clamp (owner 2026-10-02): full name lives in the tab's
+       title tooltip; VS Code-style ellipsis keeps one tab from eating
+       the bar. */
+    max-width: 160px;
     position: relative;
     flex-shrink: 0;
   }
@@ -211,6 +215,12 @@
     top: -1px;
     height: 2px;
     background: var(--accent);
+  }
+
+  .file-tab .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .file-tab.deleted .name {

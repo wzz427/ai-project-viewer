@@ -9,7 +9,13 @@
     "core:default",
     "dialog:default",
     "opener:default",
-    "opener:allow-open-url",
-    "opener:allow-open-path"
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://**" }, { "url": "http://**" }]
+    },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "**" }]
+    }
   ]
 }
