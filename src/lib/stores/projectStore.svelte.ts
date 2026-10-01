@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { resolveProject } from "$lib/services/tauri";
 import { toast } from "$lib/stores/toastStore.svelte";
+import { forgetTree } from "$lib/stores/fileTreeStore.svelte";
 
 export interface ProjectTab {
   id: string;
@@ -70,6 +71,7 @@ export function removeProject(id: string) {
   const idx = projectState.tabs.findIndex((t) => t.id === id);
   if (idx === -1) return;
 
+  forgetTree(projectState.tabs[idx].rootPath);
   projectState.tabs.splice(idx, 1);
   if (projectState.activeId === id) {
     const next = projectState.tabs[Math.min(idx, projectState.tabs.length - 1)];
