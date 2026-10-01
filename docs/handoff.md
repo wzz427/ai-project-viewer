@@ -11,11 +11,19 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 1 Application Shell 已完成,等 owner 验收**(V1.5 §192 完成清单 1–11 全过,§192 第 13 条:停止)。
-下一动作由 owner 决定:验收通过 → 说"进 Phase 2"(File System & Favorites,V1.5 §176);打回 → 从本页 §一 最新条接。
-Baseline 数字与验收建议路径见 docs/testing.md;汇报在 2026-10-01 会话内。
+主线 = **Phase 2 File System & Favorites,Spec 已写好,等 owner 过目后开工**(Spec 全文:docs/specs/phase-2-file-system-and-favorites.md)。
+Phase 1 已放行(2026-10-01 owner 原话"继续下一个阶段开发",按验收通过处理)。
+下一步从哪接:owner 对 Spec 无异议(或改完 D1–D8 决策表)→ 说"开工"即按 Spec §六 提交切分执行,完成即停等验收(V1.5 §191 纪律不变)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · Phase 1 放行;立"每 Phase 先写 Spec"规矩,Phase 2 Spec 待过目
+
+> **下一步从哪接** —— owner 看 docs/specs/phase-2-file-system-and-favorites.md(重点 §四 实现决策 D1–D8)→ 无异议说"开工";有异议改决策表再开工。
+
+- owner 原话"继续下一个阶段开发" = Phase 1 验收放行;同轮立新规矩:每段开发先写 Spec 文档再开发(建仓时"不另建 specs/"的取舍就此推翻,§二 已留痕)。
+- Spec 只装实现方案+决策+测试验收,需求真值仍在 V1.5(防复述漂移);Phase 1 不追溯补写。
+- Playwright 正式化挂账顺延(原定"Phase 1 验收时顺带定",owner 未提,仍挂账区)。
 
 ### 2026-10-01 · Phase 1 Application Shell 交付,等 owner 验收
 
@@ -53,8 +61,9 @@ Baseline 数字与验收建议路径见 docs/testing.md;汇报在 2026-10-01 会
 
 ## 二、为什么这么改(当批关键取舍;只在"后人容易被顺手的改法改回去"处留一句)
 
-- **不另建 spec.md / roadmap.md / specs/**:V1.5 需求文档已兼任三者职能(产品规格 + Phase 1–10 计划),
-  按 AI-Project-Guide 总原则"答别的问题的文档已经存在 → 加指针,不建新档";specs/ 体系待痛点出现再建。
+- **~~不另建 spec.md / roadmap.md / specs/~~**(2026-10-01 改口,出处:owner"每一段开发都要专门写一个 Spec 文档再开发"):
+  现规矩 = **每个 Phase 开工前先写 `docs/specs/phase-N-*.md`**(实现方案+实现决策+测试验收,需求真值仍只在 V1.5,Spec 只挂指针)。
+  原取舍(V1.5 兼任 spec、待痛点出现再建)低估了"owner 要在动代码前审得到实现方案"这一痛点;roadmap 职能仍由 V1.5 独占,不变。
 - **需求变更走增量修订 + 变更审计(V1.5 §193),禁止整篇重写**:V1.2→V1.3→V1.4 三次整篇重写
   每次都丢过已确认规格,V1.5 起改为"只改明确条目+审计清单"后未再发生回归。
 
