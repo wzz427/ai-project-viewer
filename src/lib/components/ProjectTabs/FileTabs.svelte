@@ -9,6 +9,7 @@
     tabsState,
     activateFile,
     closeFile,
+    moveTabToEnd,
     reorderTabs,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
@@ -73,10 +74,44 @@
       reorderTabs(rootPath, from, t.relativePath, at.pos);
     }
   }
+
+  // Empty band after the last tab = "append at end". Without this zone the
+  // owner gesture (throw to the far right) lands on the bar itself and the
+  // drop is swallowed — same dead-zone family as the pinned-area top (L10).
+  let bandDrop = $state(false);
+
+  function overBar(e: DragEvent) {
+    if (dragRel === null) return;
+    if ((e.target as HTMLElement).closest(".file-tab")) return; // tab handles it
+    e.preventDefault(); // dragenter AND dragover both (L10)
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    bandDrop = true;
+  }
+
+  function dropBar(e: DragEvent) {
+    const active = bandDrop;
+    bandDrop = false;
+    if (!active) return;
+    e.preventDefault();
+    const from = dragRel;
+    dragRel = null;
+    if (from) moveTabToEnd(rootPath, from);
+  }
 </script>
 
 {#if tabs.length > 0}
-  <div class="file-tabs" bind:this={bar} role="tablist" aria-label="Open files">
+  <div
+    class="file-tabs"
+    class:band-drop={bandDrop}
+    bind:this={bar}
+    role="tablist"
+    aria-label="Open files"
+    tabindex="-1"
+    ondragenter={overBar}
+    ondragover={overBar}
+    ondragleave={() => (bandDrop = false)}
+    ondrop={dropBar}
+  >
     {#each tabs as t (t.relativePath)}
       <div
         class="file-tab"
@@ -188,6 +223,10 @@
 
   .file-tab.drop-after {
     box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  .file-tabs.band-drop {
+    box-shadow: inset -2px 0 0 var(--accent);
   }
 
   .pin {

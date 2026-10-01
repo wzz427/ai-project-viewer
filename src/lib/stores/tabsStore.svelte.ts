@@ -181,6 +181,16 @@ export function setTabPinned(rootPath: string, rel: string, pinned: boolean) {
   if (tab) tab.pinned = pinned;
 }
 
+/** Drop landed in the empty band after the last tab -> append at end
+ *  (owner gesture "拖到最右侧", 2026-10-01: the band swallowed drops). */
+export function moveTabToEnd(rootPath: string, rel: string) {
+  const st = projectTabs(rootPath);
+  const idx = st.openFiles.findIndex((t) => t.relativePath === rel);
+  if (idx === -1 || idx === st.openFiles.length - 1) return;
+  const [moved] = st.openFiles.splice(idx, 1);
+  st.openFiles.push(moved);
+}
+
 /**
  * Drag-reorder tabs (owner 2026-10-01 item 9). Cursor-half semantics:
  * before/after the target — without "after" the last slot is unreachable

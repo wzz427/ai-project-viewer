@@ -112,7 +112,7 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 ### 2026-10-01 十项验收反馈返工(release 已重建;回归 16/16 PASS,零前台)
 
-① 内容不刷新(txt/html 显示旧文件)=缓存非响应式+同型查看器不重挂载→`{#key 文件}`+`$state(Map)`;② 图片看不了=二进制判定先于图片路由→扩展名优先媒体通道(lessons L12);③ 固定页签模型(当日二次澄清后):默认页签正常累积;右键 Pin Tab 固定后,新文件顶替未固定页签(📌 标记,无斜体预览态——首版 VS Code 式全预览被否);④ 页签右键菜单=模式切换(Markdown/JSON)/Keep Open/Open with Default App/Close,浮动切换窗删除;⑤ 页签可拖拽重排、激活自动滚入、高亮强化(顶部色条);⑥ 视觉:浅色阅读面纯白、字体栈 Segoe UI Variable+Cascadia、Settings→Viewer 可调字号;⑦ GIF 实测渲染;视频等应用外格式走右键"默认程序打开"(opener 直达播放器)。V1.5 §197 审计 4 行(§86/108 细化、§186 提前、§111 泛化)。复验 1 分钟:连点几个文件(页签正常累积)→ 右键某个页签 Pin Tab → 再点其他文件(顶当前未固定者;停在固定页签时顶最右未固定者)→ 把一个页签**拖到最后一个的右半**验证可达末位(2026-10-01 追加修复)→ 右键 README 切 Source/Rendered → 拖动页签换位 → 点 assets\photo.jpg(应显示)→ 右键 icon.gif "Open with Default App"(系统看图打开)。
+① 内容不刷新(txt/html 显示旧文件)=缓存非响应式+同型查看器不重挂载→`{#key 文件}`+`$state(Map)`;② 图片看不了=二进制判定先于图片路由→扩展名优先媒体通道(lessons L12);③ 固定页签模型(当日二次澄清后):默认页签正常累积;右键 Pin Tab 固定后,新文件顶替未固定页签(📌 标记,无斜体预览态——首版 VS Code 式全预览被否);④ 页签右键菜单=模式切换(Markdown/JSON)/Keep Open/Open with Default App/Close,浮动切换窗删除;⑤ 页签可拖拽重排、激活自动滚入、高亮强化(顶部色条);⑥ 视觉:浅色阅读面纯白、字体栈 Segoe UI Variable+Cascadia、Settings→Viewer 可调字号;⑦ GIF 实测渲染;视频等应用外格式走右键"默认程序打开"(opener 直达播放器)。V1.5 §197 审计 4 行(§86/108 细化、§186 提前、§111 泛化)。复验 1 分钟:连点几个文件(页签正常累积)→ 右键某个页签 Pin Tab → 再点其他文件(顶当前未固定者;停在固定页签时顶最右未固定者)→ 把一个页签**甩到页签条最右端空白处**(末位可达;空白带死区已修,2026-10-01 二次追加)→ 右键 README 切 Source/Rendered → 拖动页签换位 → 点 assets\photo.jpg(应显示)→ 右键 icon.gif "Open with Default App"(系统看图打开)。
 
 ## 3. Phase 1 Baseline(V1.5 §162,2026-10-01,release 构建)
 
