@@ -29,7 +29,7 @@
 开发中 R 变了 → 回 SPEC 改,**别只改代码**。
 
 ### (c) 交付 —— 自测 → 测试用例 → 可视化验证 → 交 owner
-① 自己跑通主路径,备好**双击就能跑**的启动物(桌面快捷方式);② V 逐条转测试用例;
+① 自己跑通主路径;**换版给 owner 用 `scripts/publish-experience.ps1` 发布到体验渠道**(他的客户端独立运行,点 Update 更新,SPEC-INFRA-001;2026-10-02 起交付流程改版,详见 testing.md §2f);② V 逐条转测试用例;
 ③ 界面/行为改动**截图自己看过**(方法:docs/testing.md §1 GUI 基建);④ 按 docs/how-to-report.md 汇报,
 owner 验收原话记进 SPEC,状态改 Done。
 

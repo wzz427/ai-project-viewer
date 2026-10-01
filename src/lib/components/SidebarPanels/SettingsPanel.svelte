@@ -7,6 +7,7 @@
     type Theme,
   } from "$lib/stores/settingsStore.svelte";
   import { diagnostics } from "$lib/stores/diagnosticsStore.svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { activeProject } from "$lib/stores/projectStore.svelte";
   import {
     refreshProject,
@@ -21,9 +22,14 @@
   ];
 
   const project = $derived(activeProject());
+  let channel = $state("…");
   // Tree preferences are per-project (V1.5 §17); the section drives the
   // active one. Owner 2026-10-01: the old "⋯" menu content lives here now.
   const tree = $derived(project ? treeState.byRoot[project.rootPath] : undefined);
+
+  $effect(() => {
+    void invoke<string>("channel").then((c) => (channel = c)).catch(() => {});
+  });
 </script>
 
 <div class="settings-panel">
@@ -91,13 +97,17 @@
   <section>
     <h3>Diagnostics</h3>
     <div class="row muted">
+      Channel:
+      <span class="mono">{channel}</span>
+      <span class="hint">(experience=体验版客户端;dev=开发构建)</span>
+    </div>
+    <div class="row muted">
       Build:
       {#if diagnostics.buildTime}
         <span class="mono">{new Date(diagnostics.buildTime * 1000).toLocaleString()}</span>
       {:else}
         …
       {/if}
-      <span class="hint">(exe 时间=实例版本;双击图标只会唤醒已开旧窗,看到旧时间就完全退出重开)</span>
     </div>
     <div class="row muted">
       Startup time:

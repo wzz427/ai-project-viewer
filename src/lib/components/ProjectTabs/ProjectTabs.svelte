@@ -6,6 +6,7 @@
     type ProjectTab,
   } from "$lib/stores/projectStore.svelte";
   import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
+  import UpdateButton from "$lib/components/ProjectTabs/UpdateButton.svelte";
 
   let menuFor = $state<ProjectTab | null>(null);
   let menuX = $state(0);
@@ -34,6 +35,7 @@
   <button class="add" onclick={() => addProjectViaPicker()} title="Add project" aria-label="Add project">
     +
   </button>
+  <UpdateButton />
 </div>
 
 {#if menuFor}

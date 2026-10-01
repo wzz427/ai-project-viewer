@@ -60,6 +60,7 @@
 - **根因**:对话框是主窗口的 **owned popup**,要用 `GetLastActivePopup(主窗口)` 拿;该对话框 UIA 里所有控件 ControlType 都报 Pane,只有 ClassName(Edit/Button)可靠;后台窗口的 ValuePattern.SetValue 会超时,要用 WM_SETTEXT/BM_CLICK。
 - **修法**:组合拳(全部无需前台):GetLastActivePopup → 按 ClassName 定位 → WM_SETTEXT 填路径 → BM_CLICK 确认;确认按钮名带助记符"是(Y)",用 StartsWith 匹配。补充两种弹窗控件形态:文件夹选择器按钮 ClassName='Button';Tauri 消息框(ask)按钮 ClassName='CCPushButton'(不支持 UIA InvokePattern,BM_CLICK 有效);Tauri 消息框要按顶层标题('Remove Project'/'Open Folder')枚举,GetLastActivePopup 可能拿不到。WM_SETTEXT 后必须读回验证——对话框初始化期间会把编辑框重置,曾导致选错目录。脚本:testing.md §1 的 aiv-picker.ps1 / aiv-confirm.ps1。
 - **判据**:驱动 Tauri 原生对话框,直接上这一套,别走 UIA 标准模式。
+- **补记(2026-10-02)**:消息框(ask)已随插件升级为 **TaskDialog**——按钮是内绘的,**没有子 HWND,BM_CLICK/UIA 全失效**(窗口找得到、子控件枚举为空);自动化场景一律走 `test_mode_active` 分支跳过原生确认(AIV_TEST_PROJECT 家族),真机交互留给 owner 复验。
 - **出处**:Phase 1 Add/Remove 自动化,2026-10-01。
 
 ### L8:WebView2 调试端口参数只在干净启动时生效,残留进程会让端口静默打不开

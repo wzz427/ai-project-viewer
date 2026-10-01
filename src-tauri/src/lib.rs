@@ -2,6 +2,7 @@ mod file_inspect;
 mod file_tree;
 mod project;
 mod state;
+mod updater;
 
 use std::sync::OnceLock;
 use std::time::Instant;
@@ -19,6 +20,15 @@ static STARTED_AT: OnceLock<Instant> = OnceLock::new();
 #[tauri::command]
 fn test_project_arg() -> Option<String> {
     std::env::var("AIV_TEST_PROJECT").ok().filter(|s| !s.is_empty())
+}
+
+/// True under a scripted GUI test (AIV_TEST_PROJECT set). Used to skip
+/// NATIVE modal confirmations a script cannot drive — rfd's Windows
+/// dialogs are TaskDialogs (owner-drawn buttons, no child HWNDs, lessons
+/// L7 addendum); an undriven one would hang on the owner's desktop.
+#[tauri::command]
+fn test_mode_active() -> bool {
+    std::env::var("AIV_TEST_PROJECT").map(|v| !v.is_empty()).unwrap_or(false)
 }
 
 #[tauri::command]
@@ -42,6 +52,18 @@ fn build_timestamp() -> u64 {
         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+/// Which channel this binary belongs to (SPEC-INFRA-001): the experience
+/// client runs under a dedicated identifier. Shown in Diagnostics so "am I
+/// on the dev build or the installed client?" is answerable at a glance.
+#[tauri::command]
+fn channel(app: tauri::AppHandle) -> String {
+    if app.config().identifier.ends_with(".exp") {
+        "experience".into()
+    } else {
+        "dev".into()
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -71,12 +93,17 @@ pub fn run() {
                     let _ = window.show();
                 }
             }
+            // Experience channel (SPEC-INFRA-001): remove leftovers from
+            // a previous self-update swap.
+            updater::clean_stale_swap_files();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             startup_elapsed_ms,
             build_timestamp,
+            channel,
             test_project_arg,
+            test_mode_active,
             project::resolve_project,
             file_tree::list_directory,
             file_inspect::inspect_file,
@@ -84,7 +111,10 @@ pub fn run() {
             file_inspect::read_media_file,
             file_inspect::read_binary_file,
             state::load_state,
-            state::save_state
+            state::save_state,
+            updater::check_update,
+            updater::apply_update,
+            updater::relaunch
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

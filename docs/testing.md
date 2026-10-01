@@ -114,6 +114,14 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 ① 内容不刷新(txt/html 显示旧文件)=缓存非响应式+同型查看器不重挂载→`{#key 文件}`+`$state(Map)`;② 图片看不了=二进制判定先于图片路由→扩展名优先媒体通道(lessons L12);③ 固定页签模型(当日二次澄清后):默认页签正常累积;右键 Pin Tab 固定后,新文件顶替未固定页签(📌 标记,无斜体预览态——首版 VS Code 式全预览被否);④ 页签右键菜单=模式切换(Markdown/JSON)/Keep Open/Open with Default App/Close,浮动切换窗删除;⑤ 页签可拖拽重排、激活自动滚入、高亮强化(顶部色条);⑥ 视觉:浅色阅读面纯白、字体栈 Segoe UI Variable+Cascadia、Settings→Viewer 可调字号;⑦ GIF 实测渲染;视频等应用外格式走右键"默认程序打开"(opener 直达播放器)。V1.5 §197 审计 4 行(§86/108 细化、§186 提前、§111 泛化)。复验 1 分钟:连点几个文件(页签正常累积)→ 右键某个页签 Pin Tab → 再点其他文件(顶当前未固定者;停在固定页签时顶最右未固定者)→ 把一个页签**甩到页签条最右端空白处**(末位可达;空白带死区已修,2026-10-01 二次追加)→ 右键 README 切 Source/Rendered → 拖动页签换位 → 点 assets\photo.jpg(应显示)→ 右键 icon.gif "Open with Default App"(系统看图打开)。
 
+## 2f. SPEC-INFRA-001 体验版客户端与更新机制(2026-10-02;回归 8/8)
+
+**交付流程从此改版**:owner 的客户端=%LOCALAPPDATA%\AIProjectViewerpp\(独立 identifier `.exp`,与开发构建彻底隔离,数据/单实例互不可见);桌面快捷方式已重指。**每轮交付**:`powershell -File scripts/publish-experience.ps1 -Note "本轮改了什么"`(构建+放 updates 目录)→ 通知 owner → 他点客户端右上角 Update(置灰=无更新/高亮=有,悬停看说明)→ 一键更新,可选立即重启。开发侧任何构建/测试不再触碰他的进程(并存已断言)。
+
+机制:更新判定=exe 内容 md5(流式);替换=复制→校验→旧文件 rename .old→新文件正名(Windows 允许 rename 运行中 exe),启动时清理残留;原生确认对话框(TaskDialog)在测试态自动选 Later(test_mode_active,TaskDialog 无子 HWND 不可驱动,L7 补记)。首次安装:`scripts/install-experience.ps1`(装机+迁移 state+快捷方式,已完成)。
+
+回归 `%TEMP%iv-infra1-test.py` 8/8:高亮+note/一键更新+toast+按钮回灰/重启后新版(Channel=experience+Build 变化)/无更新置灰/**开发版与体验版并存互不退出**。防退化:P3 PASS+PDF 19/19。体验版测试启动式与开发版相同(AIV_HIDDEN/AIV_TEST_PROJECT 同样生效,无 AIV_STATE_FILE 时不碰它的真实 state)。
+
 ## 2d. Phase 4 功能自测记录(2026-10-01,spec-004;全部通过)
 
 状态文件:`%APPDATA%\com.aiprojectviewer.app\state.json`(JSON,version=1);写盘=800ms 防抖+同目录 tmp→flush→原子替换,退出时前端 pagehide+Rust RunEvent::Exit 双兜底。测试态闸门:`AIV_TEST_PROJECT` 设置且未给 `AIV_STATE_FILE` → 读写均不碰真实 state(owner 状态永不被测试污染);给了则读写该独立文件。

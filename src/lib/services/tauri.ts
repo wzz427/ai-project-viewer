@@ -123,3 +123,23 @@ export function loadState(): Promise<string | null> {
 export function saveState(json: string): Promise<void> {
   return invoke<void>("save_state", { json });
 }
+
+// --- Experience-channel update (SPEC-INFRA-001) ---
+
+export interface UpdateInfo {
+  available: boolean;
+  note: string;
+}
+
+export function checkUpdate(): Promise<UpdateInfo> {
+  return invoke<UpdateInfo>("check_update");
+}
+
+export function applyUpdate(): Promise<void> {
+  return invoke<void>("apply_update");
+}
+
+/** Spawns the updated binary and exits the current process. */
+export function relaunch(): Promise<void> {
+  return invoke<void>("relaunch");
+}

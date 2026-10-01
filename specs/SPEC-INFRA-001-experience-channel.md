@@ -1,6 +1,6 @@
 # SPEC-INFRA-001 · 体验版客户端与更新机制(开发永远不碰 owner 正在用的程序)
 
-> 状态:Ready —— 真值 = specs/INDEX.md。
+> 状态:InTest —— 真值 = specs/INDEX.md。
 > 创建:2026-10-02;Pre-Draft 结论:owner 原话立项"专门起一个需求,根治这个问题……体验版上面有个更新按钮,平时置灰,有更新时高亮,一点更新就同步到最新版本"。
 > 类型:基建(workflow §三,与业务 SPEC 平级,不占 Phase 号);反复的"新旧实例/点了没反应"假 bug 全部源于开发构建与 owner 客户端共用同一 exe,本 SPEC 根治。
 
@@ -87,4 +87,5 @@
 
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
+| 2026-10-02 | Ready→InDev→InTest | 全链落地并装机:隔离构建(experience.conf.json:.exp identifier)+updater.rs(check/apply/relaunch,md5 流式+rename 三步自替换+启动清理)+顶栏 UpdateButton(置灰/高亮/busy+悬停 note+test_mode 自动 Later)+scripts 装机/发布脚本;**owner 侧已完成首次安装**(独立目录+state 迁移+快捷方式重指),updates 已发至 v6。回归 8/8(高亮+note/一键更新+toast+回灰/重启后新版/置灰/开发版与体验版并存互不干扰);防退化 P3 PASS+PDF 19/19;开发中发现并记档两坑:PS 写 json 的 BOM(L2 家族,双端修)、rfd 升级为 TaskDialog 无子 HWND 不可 BM_CLICK(L7 补记,test_mode_active 分支)。**等 owner 首次点更新+重启复验** |
 | 2026-10-02 | Draft→Ready | R/V、D1–D7、覆盖矩阵;开工切分:①隔离构建配置+安装/迁移脚本 ②check/apply 命令+启动清理 ③前端更新按钮+流程 ④发布脚本+全链回归 ⑤文档(交付流程改版)+owner 装机 |

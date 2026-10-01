@@ -17,6 +17,13 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-02 · SPEC-INFRA-001 体验版+更新机制落地,等 owner 首次点更新复验
+
+> **下一步从哪接** —— owner 完全关闭旧客户端 → 双击桌面快捷方式(=体验版,⚠️ 必须关旧的,这是最后一次"完全重启")→ 右上角 Update 高亮 → 点击 → Restart Now → 新版生效(Channel=experience/Build 时间)。之后每轮交付我只 publish+通知,他点按钮即可。**spec-005(PDF)仍挂 InTest 等他在体验版上复验**;PDF 内选字待表态。
+
+- 交付流程改版(testing.md §2f):owner 客户端独立(.exp identifier/目录/数据,已装机+state 已迁移+快捷方式已重指);我每轮 `scripts/publish-experience.ps1 -Note "..."`;updates 当前=v6(与已装相同→首次打开按钮即灰?**不**——已装=v6、updates=v6 → 灰;owner 复验路径:我 publish v7 后他点亮体验)。
+- 更新机制:md5 内容判定+rename 自替换+启动清理;回归 8/8+防退化全绿;TaskDialog 无子 HWND(L7 补记)→ test_mode_active 跳原生确认;PS BOM 坑双端修(L2 家族)。
+
 ### 2026-10-02 · Phase 5 验收二轮:opener scope 真机修通+I-beam+页签宽,等 owner 复验
 
 > **下一步从哪接** —— owner 复验(完全重启应用:右键 txt/PDF → 系统程序真打开;内容区 I-beam 可划选;长名页签封顶)→ 过则 Done、立 spec-006(Phase 6 HANDOFF);**PDF 文本层(画布内选字)待 owner 表态**。

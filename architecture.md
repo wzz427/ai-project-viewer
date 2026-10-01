@@ -46,6 +46,7 @@
 │  Rust 主进程 ai-project-viewer.exe(Private 5.9MB,src-tauri/)                          │
 │   ├─ project/(Phase 1 已建:canonicalize/去重);fs/ git/ runner/ external/ security/   │
 │   │  state/(Phase 4 已建:load/save_state+原子替换+迁移骨架+测试态闸门)               │
+│   │  updater.rs(SPEC-INFRA-001:体验版更新——check/apply/relaunch+md5 流式+rename 自替换) │
 │   ├─ 插件:single-instance(二次启动激活已有窗)/ dialog(文件夹选择、确认框)          │
 │   └─ ↔ IPC(Tauri Commands:resolve_project / startup_elapsed_ms /                   │
 │        list_directory / inspect_file / read_text_file / read_media_file /           │
@@ -84,6 +85,9 @@ ProjectViewer/(仓库根)
 │   └── history/INDEX.md —— 历史归档入口
 ├── .zcode/commands/wrap.md —— /wrap 斜杠命令(压缩前收尾,方法全文)
 ├── index.html / vite.config.ts / tsconfig.json / svelte.config.js / package.json / .npmrc —— 前端工程(纯 Vite+Svelte5,无 SvelteKit)
+├── scripts/install-experience.ps1(体验版一次性装机:独立目录+state 迁移+快捷方式)
+├── scripts/publish-experience.ps1(每轮交付:构建 .exp 配置+放 updates+写 update.json——交付流程见 testing.md §2f)
+├── src-tauri/experience.conf.json(体验版构建片段:identifier .exp,数据/单实例与开发版全隔离)
 ├── public/favicon.png
 ├── src/ —— Svelte + TypeScript 前端
 │   ├── main.ts / App.svelte / app.css(主题 tokens,data-theme 切换)
@@ -141,6 +145,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-02 | — | 基建落地:体验版客户端与更新机制(SPEC-INFRA-001)——owner 客户端独立 identifier/目录/数据,开发构建永不触碰;交付=scripts/publish-experience.ps1+客户端内 Update 按钮(md5 判定+rename 自替换);诊断面板加 Channel/Build 时间 | owner 立规("根治开发/体验共用 exe") |
 | 2026-10-01 | — | Phase 5 落地:PDF.js Spike→完整查看器(specs/spec-005);pdfjs-dist 6.3 **legacy build**(modern 在 WebView2 143 缺 upsert 提案 API,lessons L14)+Vite worker+字节通道 read_binary_file(ArrayBuffer);CSP 加 worker-src 'self' blob:;虚拟化+切离释放+pdfState 持久化;§98 Benchmark 四场景落 testing.md §2e | owner 指令(§179) |
 | 2026-10-01 | — | Phase 4 落地:Session & Settings(specs/spec-004)——AppState.version=1+防抖 800ms 原子写盘+迁移骨架+会话恢复(懒读内容);showSystemFolders 全局化(§22 对齐)、sidebarMode/Width 入 ProjectSession(§17);contentCache 改 SvelteMap(lessons L13);测试态闸门 AIV_STATE_FILE | owner 指令(§178) |
 | 2026-10-01 | — | Phase 3 落地:File Tabs+五查看器+五快捷键真行为(specs/spec-003);新依赖 markdown-it/CodeMirror 6/opener/base64;测试模式 AIV_HIDDEN/AIV_TEST_PROJECT(零前台,testing.md §1) | owner 指令(§177) |
