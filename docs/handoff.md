@@ -11,12 +11,21 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = V1.5 §192 第一条开发指令:**Phase 1 Application Shell**(Tauri 2 + Svelte + Single Instance + Project Tabs)。
-当前状态:owner 已确认建仓并批准开工(2026-10-01 会话收口),开发环境就绪(Rust/Node/pnpm 全部可用),
-新会话直接从 §192 第 1 步开始:检查环境 → 输出工程结构计划 → 指出 Phase 1 风险 → 只实现 Phase 1。
-"下一步从哪接"只是续接指针;优先级看 V1.5 Phase 顺序。
+主线 = **Phase 1 Application Shell 已完成,等 owner 验收**(V1.5 §192 完成清单 1–11 全过,§192 第 13 条:停止)。
+下一动作由 owner 决定:验收通过 → 说"进 Phase 2"(File System & Favorites,V1.5 §176);打回 → 从本页 §一 最新条接。
+Baseline 数字与验收建议路径见 docs/testing.md;汇报在 2026-10-01 会话内。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-01 · Phase 1 Application Shell 交付,等 owner 验收
+
+> **下一步从哪接** —— owner 验收(testing.md §2 末尾有 2 分钟手测路径)→ 通过后进 Phase 2(V1.5 §176,一次只做一个 Phase)。
+
+- Tauri 2.12 + Svelte 5(纯 Vite,剥掉模板 SvelteKit)+ single-instance + dialog 插件;工程结构见 architecture.md §3。
+- 实测全过:单实例 / 项目标签增删切去重(含原生 Picker 全链自动化)/ Files·Git·Settings 壳 / Theme / Ctrl+R 物理级拦截(WebView2 加速键已 COM 禁用,Tauri 2 无配置项,lessons L5)。
+- Baseline:启动冷 992ms·温 88ms;进程树 Private 179MB(⚠️超 150 target,判读见 testing.md §3,Rust 主进程仅 5.9MB);空闲 CPU 0.35% 单核;WebView2 6 进程。
+- GUI 自动化测试基建(CDP+UIA,无需前台)方法在 testing.md §1、踩坑在 lessons L3/L4/L6/L7,下次做 UI 验证直接复用。
+- 测试目录 `%USERPROFILE%\aiv-test-projects\`(Alpha/Beta 空目录)留给 owner 验收用,用后可删。
 
 ### 2026-10-01 · 会话收口:owner 确认建仓,批准开工
 

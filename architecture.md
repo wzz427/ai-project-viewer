@@ -9,11 +9,11 @@
 | 项 | 值 |
 |---|---|
 | 解释器 / 运行时 | 前端 Node v24.14.0(npm 11.9.0 / pnpm 11.1.3);Rust rustc/cargo 1.98.1 stable(x86_64-pc-windows-msvc,rustup 用户级安装于 `%USERPROFILE%\.cargo`;MSVC 链接器由已有 VS 2022 Build Tools 提供,hello-world 编译运行已验证)。⚠️ 安装后仅新终端 PATH 含 cargo,已开着的会话需 `export PATH="$USERPROFILE/.cargo/bin:$PATH"` |
-| 包管理 | pnpm(前端)+ cargo(随 rustup 安装);Windows 11 + WebView2 |
-| 装依赖 | 【Phase 1 脚手架建立后填实:`pnpm install` / `cargo build`】 |
-| 启动(开发) | 【Phase 1 后填实,预计 `pnpm tauri dev`】 |
-| 跑测试 | 【Phase 1 后填实;Benchmark 体系与各档耗时见 V1.5 §162–§173】 |
-| 平台已知坑 | ① 路径含空格/中文必须加引号;② WebView2 浏览器加速键会抢占应用快捷键(Ctrl+F/R/W,V1.5 §147);③ git 输出路径基准不一致:status 相对 cwd、diff/log 相对 Git Root,一律用 `git -C <GitRoot>` 规避(V1.5 §196 附注A);④ Rust `canonicalize` 产生 `\\?\` 前缀,做前缀比较前须 strip(V1.5 §144) |
+| 包管理 | pnpm(前端,**仓库 `.npmrc` 固定 npmmirror 镜像**,npmjs 直连不通)+ cargo(crates.io 直连可通);Windows 11 + WebView2 Runtime 143 |
+| 装依赖 | `pnpm install`(前端);Rust 依赖随首次构建自动拉取,`cd src-tauri && cargo fetch` 可预取 |
+| 启动(开发) | `pnpm tauri dev`(起 Vite:1420 + debug exe);要可独立运行的 debug exe:`pnpm tauri build --debug --no-bundle` → `src-tauri/target/debug/ai-project-viewer.exe` |
+| 跑测试 | 见 docs/testing.md §1(唯一真值):`pnpm check` / `cd src-tauri && cargo test` / 构建;Benchmark 档位见 V1.5 §162–§173 |
+| 平台已知坑 | ① 路径含空格/中文必须加引号;② WebView2 浏览器加速键抢占应用快捷键 → 已在 Rust 侧 COM 禁用(§147,src-tauri/src/lib.rs);③ git 输出路径基准不一致:status 相对 cwd、diff/log 相对 Git Root,一律用 `git -C <GitRoot>` 规避(V1.5 §196 附注A);④ Rust `canonicalize` 产生 `\\?\` 前缀 → 用 dunce crate(V1.5 §144);⑤ 无 BOM UTF-8 的 .ps1 含中文会被 PS5.1 按 GBK 误读导致解析错乱(lessons L2) |
 | 🚫 别碰 | 需求文档是唯一基线,不得未经 owner 修改;密钥文件别读(见 AGENTS.md 红线);不得绕过 V1.5 §143–§147 安全章节"图快" |
 
 ## 1. 核心决策表(D 编号;否决项一栏是灵魂——三个月后有人问"为什么不用 X",答案住这)
@@ -39,22 +39,20 @@
 | Q1 | 发布形态(安装包格式/签名/自动更新) | V1.5 §184 已有初始建议:个人用 NSIS、updater OFF、签名非必需 | Phase 10 | |
 | Q2 | Multi-Repository Workspace(一个 Project 含多个嵌套 repo) | V1.5 §66 明确不做,视为 Non-Git | 真实使用出现该痛点后(V1.5 §187 Future) | |
 
-## 2. 整体拓扑(一张图)
+## 2. 整体拓扑(一张图;Phase 1 实测核实)
 
 ```
-(规划——Phase 1 脚手架落地后核实)
-
-┌───────────────────────────── AI Project Viewer 进程树 ─────────────────────────────┐
-│  Rust 主进程(src-tauri/)                                                          │
-│   ├─ project/ fs/ git/ runner/ external/ security/ state/(模块划分见 V1.5 §157)   │
-│   └─ ↔ IPC(Tauri Commands,清单见 V1.5 §159)                                     │
-│        ↕ WebView2(msedgewebview2.exe ×N:浏览器/GPU/Utility)                        │
-│  Svelte 前端(src/)                                                                 │
-│   ├─ components/ viewers/ stores/ services/(划分见 V1.5 §158)                     │
-│   └─ PDF.js Worker(懒加载,首次打开 PDF 才初始化)                                 │
-│  外部:System git.exe / PowerShell / CMD / 默认浏览器 / Explorer / VS Code / Notepad │
-└────────────────────────────────────────────────────────────────────────────────────┘
-内存统计口径 = 整个进程树(V1.5 §161)
+┌──────────────────────────── AI Project Viewer 进程树(7 进程,Phase 1 实测)────────────┐
+│  Rust 主进程 ai-project-viewer.exe(Private 5.9MB,src-tauri/)                          │
+│   ├─ project/(Phase 1 已建:canonicalize/去重);fs/ git/ runner/ external/ security/   │
+│   │  state/ 待后续 Phase(V1.5 §157)                                                   │
+│   ├─ 插件:single-instance(二次启动激活已有窗)/ dialog(文件夹选择、确认框)          │
+│   └─ ↔ IPC(Tauri Commands:resolve_project / startup_elapsed_ms;清单见 V1.5 §159)    │
+│        ↕ WebView2 ×6(browser/renderer/GPU/network/storage/crashpad,Private 合计~173MB)│
+│  Svelte 5 前端(src/,纯 Vite 无路由,组件/ stores/ services/ 见 §3)                    │
+│  外部(后续 Phase):System git.exe / PowerShell / CMD / 默认浏览器 / Explorer / VS Code │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+内存统计口径 = 整个进程树(V1.5 §161);Baseline 数字见 docs/testing.md §3
 ```
 
 ## 3. 代码地图(目录一变就同步;过时的地图比没有还坑人)
@@ -69,15 +67,42 @@ ProjectViewer/(仓库根)
 ├── architecture.md —— 本文件(环境跑法+决策表+地图)
 ├── docs/
 │   ├── handoff.md —— 交接页(现在在哪、上一段为什么)
-│   ├── lessons.md —— 踩坑账(空账起步)
-│   └── history/INDEX.md —— 历史归档入口(空账起步)
-├── src/(规划) —— Svelte + TypeScript 前端(Phase 1 建立)
-└── src-tauri/(规划) —— Rust 后端(Phase 1 建立;内部结构见 V1.5 §157)
+│   ├── testing.md —— 测试档位+Baseline 真值
+│   ├── how-to-report.md —— 汇报模板
+│   ├── doc-maintenance.md —— 文档同步总表
+│   ├── lessons.md —— 踩坑账
+│   └── history/INDEX.md —— 历史归档入口
+├── index.html / vite.config.ts / tsconfig.json / svelte.config.js / package.json / .npmrc —— 前端工程(纯 Vite+Svelte5,无 SvelteKit)
+├── public/favicon.png
+├── src/ —— Svelte + TypeScript 前端
+│   ├── main.ts / App.svelte / app.css(主题 tokens,data-theme 切换)
+│   └── lib/
+│       ├── components/ProjectTabs/(顶栏项目标签:增/删/右键菜单/active)
+│       ├── components/SidebarHeader/(Files/Git/⚙)
+│       ├── components/SidebarPanels/(Files/Git/Settings 三个面板)
+│       ├── components/EmptyState/(首启空态,V1.5 §151 文案)
+│       ├── components/Toast/(单槽 toast)
+│       ├── stores/projectStore.svelte.ts(内存态项目列表+去重+增删,持久化是 Phase 4)
+│       ├── stores/settingsStore.svelte.ts(Theme,Phase 4 才持久化)
+│       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据)
+│       ├── stores/toastStore.svelte.ts
+│       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)
+└── src-tauri/ —— Rust 后端
+    ├── tauri.conf.json(窗口 1280×800/CSP/NSIS)
+    ├── capabilities/default.json(core:default + dialog:default)
+    └── src/
+        ├── main.rs / lib.rs(插件装配+启动耗时命令+WebView2 加速键 COM 禁用)
+        └── project/manager.rs(resolve_project:canonicalize+校验,8 个单测)
 ```
 
 | 改什么功能 | 去哪个文件 |
 |---|---|
-| (待 Phase 1 后填) | |
+| 项目增/删/去重逻辑 | src/lib/stores/projectStore.svelte.ts + src-tauri/src/project/manager.rs |
+| 顶栏标签 UI / 右键菜单 | src/lib/components/ProjectTabs/ProjectTabs.svelte |
+| 侧栏 Files/Git/Settings | src/lib/components/SidebarHeader + SidebarPanels |
+| 主题/外观 tokens | src/app.css + stores/settingsStore.svelte.ts |
+| 快捷键拦截/新组合注册 | src/lib/services/shortcuts.ts(禁用浏览器加速键在 src-tauri/src/lib.rs) |
+| 窗口/安全策略 | src-tauri/tauri.conf.json |
 
 ## 4. 硬规则(代码层面必须守的)
 
@@ -91,4 +116,5 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-01 | — | Phase 1 落地:Tauri 2.12 + Svelte 5.57 纯 Vite 工程建立(剥掉模板 SvelteKit);WebView2 浏览器加速键改 COM 禁用(Tauri 2 无配置项);Phase 1 Baseline 落 testing.md | owner 指令(§192) |
 | 2026-10-01 | — | 建仓:V1.5 FINAL 定稿入库,按 AI-Project-Guide 阶段 0 建立基础文档;D1–D9 从 V1.5 提炼落表 | owner 指令 |
