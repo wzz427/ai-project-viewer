@@ -1,0 +1,166 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildAppState,
+  parseAppState,
+  STATE_VERSION,
+  type BuildInput,
+} from "$lib/services/appState";
+
+function sampleInput(): BuildInput {
+  return {
+    projects: [
+      {
+        id: "p1",
+        name: "Alpha",
+        rootPath: "D:\\proj\\alpha",
+        sidebarMode: "git",
+        sidebarWidth: 260,
+      },
+    ],
+    activeProjectId: "p1",
+    trees: {
+      "D:\\proj\\alpha": {
+        expandedFolders: ["src", "src/components"],
+        pinnedItems: { ".": ["README.md", "src"] },
+        foldersFirst: false,
+      },
+    },
+    tabs: {
+      "D:\\proj\\alpha": {
+        openFiles: [
+          {
+            relativePath: "README.md",
+            viewerType: "markdown",
+            markdownMode: "source",
+            scrollPosition: 420,
+          },
+          {
+            relativePath: "src/main.ts",
+            viewerType: "code",
+            pinned: true,
+            deleted: true,
+          },
+        ],
+        activeFileRelativePath: "README.md",
+      },
+    },
+    settings: {
+      theme: "dark",
+      viewer: { fontSize: 15 },
+      fileTree: { showSystemGeneratedFolders: true },
+    },
+  };
+}
+
+describe("buildAppState", () => {
+  it("keeps project-relative identities (V1.5 §18/§19)", () => {
+    const state = buildAppState(sampleInput());
+    const p = state.projects[0];
+    expect(p.expandedFolders).toEqual(["src", "src/components"]);
+    expect(Object.keys(p.fileTreePreferences.pinnedItems)).toEqual(["."]);
+    expect(p.fileTreePreferences.pinnedItems["."]).toEqual(["README.md", "src"]);
+    // The only absolute path is the project identity itself.
+    const json = JSON.stringify(state);
+    expect(json).toContain("D:\\\\proj\\\\alpha");
+    expect(json).not.toContain("D:\\\\proj\\\\alpha\\\\src");
+  });
+
+  it("whitelists FileTabState — runtime fields never persist", () => {
+    const state = buildAppState(sampleInput());
+    const tabJsons = state.projects[0].openFiles.map((t) => JSON.stringify(t));
+    for (const j of tabJsons) {
+      expect(j).not.toContain("deleted");
+      expect(j).not.toContain("encoding");
+      expect(j).not.toContain("sizeBytes");
+      expect(j).not.toContain("unsupportedReason");
+    }
+    expect(state.projects[0].openFiles[0].markdownMode).toBe("source");
+    expect(state.projects[0].openFiles[1].pinned).toBe(true);
+  });
+
+  it("copies containers so later store mutations cannot leak in", () => {
+    const input = sampleInput();
+    const state = buildAppState(input);
+    input.trees["D:\\proj\\alpha"].expandedFolders.push("docs");
+    input.trees["D:\\proj\\alpha"].pinnedItems["."].push("leak.md");
+    expect(state.projects[0].expandedFolders).toEqual(["src", "src/components"]);
+    expect(state.projects[0].fileTreePreferences.pinnedItems["."]).toEqual([
+      "README.md",
+      "src",
+    ]);
+  });
+
+  it("omits activeProjectId when none is active", () => {
+    const input = sampleInput();
+    input.activeProjectId = null;
+    expect(buildAppState(input).activeProjectId).toBeUndefined();
+  });
+});
+
+describe("parseAppState", () => {
+  it("round-trips a built state", () => {
+    const state = buildAppState(sampleInput());
+    const parsed = parseAppState(JSON.stringify(state));
+    expect(parsed).toEqual(state);
+  });
+
+  it("rejects non-JSON and wrong versions", () => {
+    expect(parseAppState("{nope")).toBeNull();
+    expect(parseAppState('{"version":99}')).toBeNull();
+    expect(parseAppState('{"projects":[]}')).toBeNull();
+  });
+
+  it("heals malformed pieces instead of failing the whole load", () => {
+    const parsed = parseAppState(
+      JSON.stringify({
+        version: STATE_VERSION,
+        projects: [
+          {
+            id: "p1",
+            rootPath: "D:\\x",
+            sidebarMode: "bogus",
+            sidebarWidth: 99999,
+            expandedFolders: ["src", 42, null],
+            openFiles: [
+              { relativePath: "a.md", viewerType: "markdown" },
+              { relativePath: "b.md", viewerType: "hologram" },
+              { viewerType: "markdown" },
+            ],
+            fileTreePreferences: {
+              foldersFirst: "yes please",
+              pinnedItems: { ".": ["ok.md", 7] },
+            },
+          },
+          { id: "", rootPath: "" },
+        ],
+        settings: {},
+      }),
+    );
+    expect(parsed).not.toBeNull();
+    expect(parsed!.projects).toHaveLength(1);
+    const p = parsed!.projects[0];
+    expect(p.sidebarMode).toBe("files");
+    expect(p.sidebarWidth).toBe(600);
+    expect(p.expandedFolders).toEqual(["src"]);
+    expect(p.openFiles).toHaveLength(1);
+    expect(p.openFiles[0].relativePath).toBe("a.md");
+    expect(p.fileTreePreferences.foldersFirst).toBe(true);
+    expect(p.fileTreePreferences.pinnedItems["."]).toEqual(["ok.md"]);
+    expect(parsed!.settings).toEqual({
+      theme: "system",
+      viewer: { fontSize: 13 },
+      fileTree: { showSystemGeneratedFolders: false },
+    });
+  });
+
+  it("clamps viewer font size into the UI range", () => {
+    const parsed = parseAppState(
+      JSON.stringify({
+        version: STATE_VERSION,
+        projects: [],
+        settings: { viewer: { fontSize: 99 } },
+      }),
+    );
+    expect(parsed!.settings.viewer.fontSize).toBe(20);
+  });
+});

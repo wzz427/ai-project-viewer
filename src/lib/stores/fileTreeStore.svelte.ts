@@ -1,10 +1,11 @@
 /**
- * Per-project file-tree state (V1.5 §17/§18/§19, in-memory until Phase 4).
+ * Per-project file-tree state (V1.5 §17/§18/§19).
  *
  * Every path identity is PROJECT-RELATIVE with "." as the root key (§18/§19)
- * so persistence (Phase 4) can adopt this state with zero migration
- * (spec-002 D8). Children are cached per directory and loaded one level on
- * expand only (§27 lazy tree).
+ * so persistence adopts this state with zero migration (spec-002 D8).
+ * Children are cached per directory and loaded one level on expand only
+ * (§27 lazy tree). System-folder visibility is app-wide — see
+ * settingsStore (§22 AppSettings.fileTree, spec-004 D5).
  */
 
 import { listDirectory, type TreeEntry } from "$lib/services/tauri";
@@ -23,8 +24,6 @@ export interface ProjectTreeState {
   /** Rel parent → pinned child names in manual order ("." = root, §19). */
   pinnedItems: Record<string, string[]>;
   foldersFirst: boolean;
-  /** V1.5 §30: default OFF. */
-  showSystemFolders: boolean;
   selectedRelPath: string | null;
 }
 
@@ -37,7 +36,6 @@ function newState(): ProjectTreeState {
     loadErrors: {},
     pinnedItems: {},
     foldersFirst: true,
-    showSystemFolders: false,
     selectedRelPath: null,
   };
 }
@@ -231,10 +229,6 @@ export function movePinnedToTop(rootPath: string, parentRel: string, name: strin
 
 export function setFoldersFirst(rootPath: string, value: boolean) {
   treeFor(rootPath).foldersFirst = value;
-}
-
-export function setShowSystemFolders(rootPath: string, value: boolean) {
-  treeFor(rootPath).showSystemFolders = value;
 }
 
 export function selectNode(rootPath: string, relPath: string | null) {

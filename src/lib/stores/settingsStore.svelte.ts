@@ -1,13 +1,18 @@
 export type Theme = "system" | "light" | "dark";
 
 /**
- * Theme + viewer font size (V1.5 §24; font size added 2026-10-01 owner
- * feedback). Not persisted yet — AppSettings persistence is Phase 4 scope.
+ * AppSettings (V1.5 §22) — application-wide, persisted with AppState since
+ * Phase 4. The file-tree visibility toggle lives HERE, not per project
+ * (§22 puts showSystemGeneratedFolders under AppSettings.fileTree; §17's
+ * ProjectSession carries only foldersFirst + pinnedItems).
  */
 export const settings = $state({
   theme: "system" as Theme,
-  /** Viewer/editor font size in px (code, text, json source, markdown). */
+  /** Viewer/editor font size in px (§197 revision, D8 in spec-004). */
   fontSize: 13,
+  fileTree: {
+    showSystemGeneratedFolders: false,
+  },
 });
 
 let media: MediaQueryList | null = null;
@@ -38,6 +43,10 @@ function applyFontSize() {
 export function setFontSize(px: number) {
   settings.fontSize = Math.min(20, Math.max(11, px));
   applyFontSize();
+}
+
+export function setShowSystemFolders(value: boolean) {
+  settings.fileTree.showSystemGeneratedFolders = value;
 }
 
 export function initTheme() {

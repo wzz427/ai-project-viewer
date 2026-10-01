@@ -5,6 +5,7 @@
     treeState,
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
+  import { settings } from "$lib/stores/settingsStore.svelte";
   import TreeItem from "$lib/components/FileTree/TreeItem.svelte";
 
   let { rootPath }: { rootPath: string } = $props();
@@ -23,7 +24,7 @@
   const sorted = $derived(
     visibleSorted(rootEntries, {
       foldersFirst: st?.foldersFirst ?? true,
-      showSystemFolders: st?.showSystemFolders ?? false,
+      showSystemFolders: settings.fileTree.showSystemGeneratedFolders,
       pinned: st?.pinnedItems[TREE_ROOT],
     }),
   );
@@ -43,7 +44,7 @@
       <TreeItem {rootPath} parentRel={TREE_ROOT} {entry} depth={0} />
     {/each}
   {/if}
-  {#if hiddenCount > 0 && !st.showSystemFolders}
+  {#if hiddenCount > 0 && !settings.fileTree.showSystemGeneratedFolders}
     <div class="hint">
       {hiddenCount} system folder{hiddenCount > 1 ? "s" : ""} hidden
     </div>

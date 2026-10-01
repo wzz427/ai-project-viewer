@@ -4,16 +4,25 @@ import { toast } from "$lib/stores/toastStore.svelte";
 import { forgetTree } from "$lib/stores/fileTreeStore.svelte";
 import { forgetTabs } from "$lib/stores/tabsStore.svelte";
 
+/** §17: "files" | "git"; "settings" is the third state since the §30
+ *  revision made ⚙ a sidebar entry (spec-004 D6). */
+export type SidebarMode = "files" | "git" | "settings";
+
 export interface ProjectTab {
   id: string;
   name: string;
   /** Canonical absolute path — the project identity for dedup (V1.5 §14). */
   rootPath: string;
+  /** §17 ProjectSession.sidebarMode — restored per project. */
+  sidebarMode: SidebarMode;
+  /** §17 ProjectSession.sidebarWidth — persisted; no drag UI yet (D6). */
+  sidebarWidth: number;
 }
 
 /**
- * Phase 1 keeps projects in memory only; persistence (AppState, session
- * restore) is Phase 4 scope (V1.5 §178).
+ * Projects live in projectState; session persistence (AppState) lands with
+ * Phase 4 in services/appState.ts + services/sessionRestore — this store
+ * keeps only the tab identities and per-project shell fields.
  */
 export const projectState = $state({
   tabs: [] as ProjectTab[],
@@ -28,6 +37,11 @@ export function activateProject(id: string) {
   if (projectState.tabs.some((t) => t.id === id)) {
     projectState.activeId = id;
   }
+}
+
+export function setSidebarMode(rootPath: string, mode: SidebarMode) {
+  const tab = projectState.tabs.find((t) => t.rootPath === rootPath);
+  if (tab) tab.sidebarMode = mode;
 }
 
 /** Add (or switch to) a project by raw path — shared by picker and test hook. */
@@ -46,6 +60,8 @@ export async function addProjectFromPath(rawPath: string) {
       id: crypto.randomUUID(),
       name: resolved.name,
       rootPath: resolved.rootPath,
+      sidebarMode: "files",
+      sidebarWidth: 260,
     };
     projectState.tabs.push(tab);
     projectState.activeId = tab.id;

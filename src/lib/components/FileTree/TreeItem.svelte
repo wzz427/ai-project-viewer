@@ -12,6 +12,7 @@
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
   import { openFile } from "$lib/stores/tabsStore.svelte";
+  import { settings } from "$lib/stores/settingsStore.svelte";
   import NodeContextMenu from "$lib/components/FileTree/NodeContextMenu.svelte";
   // Self-import is the Svelte 5 way to recurse (`<svelte:self>` is legacy).
   import Self from "$lib/components/FileTree/TreeItem.svelte";
@@ -42,7 +43,7 @@
   const sortedChildren = $derived(
     visibleSorted(children, {
       foldersFirst: st.foldersFirst,
-      showSystemFolders: st.showSystemFolders,
+      showSystemFolders: settings.fileTree.showSystemGeneratedFolders,
       pinned: st.pinnedItems[rel],
     }),
   );
@@ -161,7 +162,7 @@
       {#each sortedChildren as child (child.name)}
         <Self rootPath={rootPath} parentRel={rel} entry={child} depth={depth + 1} />
       {/each}
-      {#if hiddenCount > 0 && !st.showSystemFolders}
+      {#if hiddenCount > 0 && !settings.fileTree.showSystemGeneratedFolders}
         <div class="hint" style="padding-left: {22 + depth * 14}px">
           {hiddenCount} system folder{hiddenCount > 1 ? "s" : ""} hidden
         </div>
