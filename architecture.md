@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |---|---|
-| 解释器 / 运行时 | 前端 Node v24.14.0(npm 11.9.0 / pnpm 11.1.3);Rust rustc/cargo 1.98.1 stable(x86_64-pc-windows-msvc,rustup 用户级安装于 `%USERPROFILE%\.cargo`;MSVC 链接器由已有 VS 2022 Build Tools 提供,hello-world 编译运行已验证)。⚠️ 安装后仅新终端 PATH 含 cargo,已开着的会话需 `export PATH="$USERPROFILE/.cargo/bin:$PATH"` |
+| 解释器 / 运行时 | 前端 Node v24.14.0(npm 11.9.0 / pnpm 11.1.3);Rust rustc/cargo 1.98.1 stable(x86_64-pc-windows-msvc,rustup 用户级安装于 `%USERPROFILE%\.cargo`;MSVC 链接器由已有 VS 2022 Build Tools 提供,hello-world 编译运行已验证)。⚠️ 安装后仅新终端 PATH 含 cargo,已开着的会话需 `export PATH="$USERPROFILE/.cargo/bin:$PATH"`。**测试/脚本用 Python:conda 环境 pywork**(`C:\Users\wzzpk\.conda\envs\pywork\python.exe`,Python 3.12.13,Playwright 已装;conda 本体 `C:\ProgramData\miniconda3` 不在 PATH,直接用全路径调 python.exe 即可)——owner 指定,别用系统 Python |
 | 包管理 | pnpm(前端,**仓库 `.npmrc` 固定 npmmirror 镜像**,npmjs 直连不通)+ cargo(crates.io 直连可通);Windows 11 + WebView2 Runtime 143 |
 | 装依赖 | `pnpm install`(前端);Rust 依赖随首次构建自动拉取,`cd src-tauri && cargo fetch` 可预取 |
 | 启动(开发) | `pnpm tauri dev`(起 Vite:1420 + debug exe);要可独立运行的 debug exe:`pnpm tauri build --debug --no-bundle` → `src-tauri/target/debug/ai-project-viewer.exe` |

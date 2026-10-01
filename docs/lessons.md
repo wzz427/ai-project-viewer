@@ -61,3 +61,11 @@
 - **修法**:组合拳(全部无需前台):GetLastActivePopup → 按 ClassName 定位 → WM_SETTEXT 填路径 → BM_CLICK 确认;确认按钮名带助记符"是(Y)",用 StartsWith 匹配。脚本:testing.md §1 的 aiv-picker.ps1 / aiv-confirm.ps1。
 - **判据**:驱动 Tauri 原生对话框,直接上这一套,别走 UIA 标准模式。
 - **出处**:Phase 1 Add/Remove 自动化,2026-10-01。
+
+### L8:WebView2 调试端口参数只在干净启动时生效,残留进程会让端口静默打不开
+
+- **症状**:`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"` 启动,进程活着但 9222 不监听,CDP/Playwright 连接 ECONNREFUSED。
+- **根因**:上次退出的 msedgewebview2 残留进程占着 WebView2 user data 目录,新进程初始化 WebView2 环境时拿不到干净状态,浏览器参数未生效(无任何报错)。
+- **修法**:启动前先清残留:`Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -match 'aiprojectviewer' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`,再带环境变量启动,用 `netstat -ano | findstr 9222` 确认后才跑测试。
+- **判据**:CDP 连不上但应用进程在 → 先查残留 msedgewebview2,再怀疑别的。
+- **出处**:Phase 1 Playwright 接入验证,2026-10-01。
