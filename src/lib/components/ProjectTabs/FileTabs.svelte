@@ -1,9 +1,9 @@
 <script lang="ts">
   /**
    * File tab bar (V1.5 §46 layer 3 / §158): title = file name, click to
-   * activate, × to close. Preview model (owner 2026-10-01): unpinned tabs
-   * are replaced by the next opened file; right-click → Keep Open. Tabs
-   * drag-reorder and the active tab scrolls into view (items 1/2/8/9).
+   * activate, × to close. Pin model (owner 2026-10-01, clarified): tabs
+   * accumulate normally until one is pinned; from then on new files recycle
+   * an unpinned slot. Tabs drag-reorder; the active tab scrolls into view.
    */
   import {
     tabsState,
@@ -73,7 +73,6 @@
       <div
         class="file-tab"
         class:active={t.relativePath === active}
-        class:preview={!t.pinned}
         class:deleted={t.deleted}
         class:drop-before={dropTarget === t.relativePath}
         role="tab"
@@ -168,11 +167,6 @@
     top: -1px;
     height: 2px;
     background: var(--accent);
-  }
-
-  /* Preview tabs render italic (VS Code convention). */
-  .file-tab.preview .name {
-    font-style: italic;
   }
 
   .file-tab.deleted .name {

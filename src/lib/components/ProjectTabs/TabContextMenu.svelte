@@ -91,7 +91,7 @@
     <div class="sep"></div>
   {/if}
   <button class="menu-item" onclick={() => act(() => setTabPinned(rootPath, tab.relativePath, !tab.pinned))}>
-    {tab.pinned ? "Unpin Tab" : "Keep Tab Open"}
+    {tab.pinned ? "Unpin Tab" : "Pin Tab"}
   </button>
   <button class="menu-item" onclick={() => act(openDefault)}>
     Open with Default App

@@ -37,8 +37,8 @@ export interface RuntimeTab {
   encoding?: FileEncoding;
   /** runtime-only: file vanished from disk (§83). */
   deleted?: boolean;
-  /** runtime-only: pinned ("Keep Open") vs preview — a new file replaces
-   *  the active PREVIEW tab (VS Code model, owner 2026-10-01 item 8). */
+  /** runtime-only: pinned tabs are never replaced; while any tab is pinned,
+   *  new files recycle an unpinned slot (owner 2026-10-01 item 8). */
   pinned?: boolean;
   /** runtime-only: why "unsupported" (binary guard verdict etc.). */
   unsupportedReason?: "binary" | "huge";
@@ -104,16 +104,32 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
     st.activeFileRelativePath = tab.relativePath;
     return;
   }
-  // Preview model (owner 2026-10-01): unless the active tab is pinned, the
-  // new file REPLACES it in place — tab accumulation needs an explicit
-  // "Keep Open". New tabs are preview (not pinned) by default.
+  // Pin model (owner 2026-10-01, clarified same day): with NOTHING pinned,
+  // tabs accumulate normally — no preview concept, no surprise replacement.
+  // Once at least one tab is pinned, new files RECYCLE an unpinned slot:
+  // the active tab if unpinned, else the last unpinned one; only when every
+  // tab is pinned does a new tab open.
   const activeIdx = st.openFiles.findIndex(
     (t) => t.relativePath === st.activeFileRelativePath,
   );
   const active = activeIdx === -1 ? undefined : st.openFiles[activeIdx];
-  if (active && !active.pinned) {
-    contentCache.delete(cacheKey(rootPath, active.relativePath));
-    st.openFiles.splice(activeIdx, 1, tab);
+  const anyPinned = st.openFiles.some((t) => t.pinned);
+  let target = -1;
+  if (anyPinned) {
+    if (active && !active.pinned) {
+      target = activeIdx;
+    } else {
+      for (let i = st.openFiles.length - 1; i >= 0; i--) {
+        if (!st.openFiles[i].pinned) {
+          target = i;
+          break;
+        }
+      }
+    }
+  }
+  if (target !== -1) {
+    contentCache.delete(cacheKey(rootPath, st.openFiles[target].relativePath));
+    st.openFiles.splice(target, 1, tab);
   } else {
     st.openFiles.push(tab);
   }
