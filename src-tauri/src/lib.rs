@@ -1,6 +1,7 @@
 mod file_inspect;
 mod file_tree;
 mod project;
+mod state;
 
 use std::sync::OnceLock;
 use std::time::Instant;
@@ -44,6 +45,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .manage(state::LastState::default())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 disable_browser_accelerators(&window);
@@ -63,10 +65,20 @@ pub fn run() {
             file_tree::list_directory,
             file_inspect::inspect_file,
             file_inspect::read_text_file,
-            file_inspect::read_media_file
+            file_inspect::read_media_file,
+            state::load_state,
+            state::save_state
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // V1.5 §26 final write on normal exit: the frontend flushes on
+            // pagehide too, but async invokes are unreliable while the
+            // WebView tears down — this is the safety net.
+            if let tauri::RunEvent::Exit = event {
+                state::flush_on_exit(app);
+            }
+        });
 }
 
 /// Application shortcuts must take priority over WebView2 browser
