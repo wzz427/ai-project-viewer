@@ -31,7 +31,9 @@
   });
 
   let menu = $state<{ x: number; y: number; tab: RuntimeTab } | null>(null);
-  let dropTarget = $state<string | null>(null);
+  // Cursor-half drop: "before" draws the line above the tab, "after" below —
+  // without "after" the rightmost slot can never be reached.
+  let dropAt = $state<{ rel: string; pos: "before" | "after" } | null>(null);
   let dragRel = $state<string | null>(null);
 
   function openMenu(e: MouseEvent, tab: RuntimeTab) {
@@ -53,16 +55,22 @@
     // Both enter and over must be cancelled or WebView2 never fires drop (L10).
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    dropTarget = t.relativePath;
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    dropAt = {
+      rel: t.relativePath,
+      pos: e.clientX < rect.left + rect.width / 2 ? "before" : "after",
+    };
   }
 
   function onDrop(e: DragEvent, t: RuntimeTab) {
     e.preventDefault();
     const from = dragRel;
-    dropTarget = null;
+    const at = dropAt;
+    dropAt = null;
     dragRel = null;
-    if (from && from !== t.relativePath) {
-      reorderTabs(rootPath, from, t.relativePath);
+    if (from && from !== t.relativePath && at) {
+      reorderTabs(rootPath, from, t.relativePath, at.pos);
     }
   }
 </script>
@@ -74,7 +82,8 @@
         class="file-tab"
         class:active={t.relativePath === active}
         class:deleted={t.deleted}
-        class:drop-before={dropTarget === t.relativePath}
+        class:drop-before={dropAt?.rel === t.relativePath && dropAt.pos === "before"}
+        class:drop-after={dropAt?.rel === t.relativePath && dropAt.pos === "after"}
         role="tab"
         aria-selected={t.relativePath === active}
         tabindex="-1"
@@ -89,7 +98,7 @@
         ondragstart={(e) => onDragStart(e, t)}
         ondragenter={(e) => onDragOver(e, t)}
         ondragover={(e) => onDragOver(e, t)}
-        ondragleave={() => (dropTarget = null)}
+        ondragleave={() => (dropAt = null)}
         ondrop={(e) => onDrop(e, t)}
       >
         {#if t.pinned}<span class="pin" title="Kept open">📌</span>{/if}
@@ -175,6 +184,10 @@
 
   .file-tab.drop-before {
     box-shadow: inset 0 2px 0 var(--accent);
+  }
+
+  .file-tab.drop-after {
+    box-shadow: inset 0 -2px 0 var(--accent);
   }
 
   .pin {

@@ -85,7 +85,7 @@
 - **修法**:`tauri.conf.json` 窗口加 `"dragDropEnabled": false`(V1 无"从资源管理器拖文件进应用"需求,关闭无副作用);拖拽类交互必须用**真实输入**验证——PS `mouse_event`(LEFTDOWN→分步 MOVE→LEFTUP),窗口用 Chrome_RenderWidgetHostHWND 子窗口定位视口原点,前台锁用"先 keybd_event Alt 再 SetForegroundWindow"绕过。
 - **判据**:凡 HTML5 DnD,合成事件测试只能证明 handler 逻辑;发布前必须过一次真输入。CDP 连不上/前台锁见 L8/L3。
 - **出处**:Phase 2 owner 验收反馈"pin 之间无法拖拽",2026-10-01。脚本:`%TEMP%iv-drag.ps1`(已废弃,见补记)。
-- **补记(同日二轮)**:① **dragenter 也必须 preventDefault**,否则 WebView2 里 drop 事件根本不触发(dragover 拦了也没用;实测 enter:7→drop:1)——行与面板的接受逻辑要同时挂 dragenter+dragover;② 拖拽落点语义补全:行上/下半=插前/插后,置顶区上方空白(路径框一带)= 插到最顶,否则"甩到顶"落进死区;③ **测试脚本禁止抢 owner 前台**(SetForegroundWindow/Alt 技巧/SW_RESTORE 全部禁止——owner 明确抱怨被打断);拖拽验证改用 **Playwright connect_over_cdp(pywork)**,输入走 CDP 管道零前台,窗口用 SW_SHOWMINNOACTIVE 起最小化不激活。脚本:`%TEMP%iv-p2-drag-test.py`。
+- **补记(同日二轮)**:① **dragenter 也必须 preventDefault**,否则 WebView2 里 drop 事件根本不触发(dragover 拦了也没用;实测 enter:7→drop:1)——行与面板的接受逻辑要同时挂 dragenter+dragover;② 拖拽落点语义补全:行上/下半=插前/插后,置顶区上方空白(路径框一带)= 插到最顶,否则"甩到顶"落进死区;文件页签同族同修(拖不到最右,2026-10-01 三次反馈)——**凡拖拽排序,永远带 before/after 双语义**,只有 before 的实现必然够不着末位;③ **测试脚本禁止抢 owner 前台**(SetForegroundWindow/Alt 技巧/SW_RESTORE 全部禁止——owner 明确抱怨被打断);拖拽验证改用 **Playwright connect_over_cdp(pywork)**,输入走 CDP 管道零前台,窗口用 SW_SHOWMINNOACTIVE 起最小化不激活。脚本:`%TEMP%iv-p2-drag-test.py`。
 
 ### L11:隐藏窗口测 GUI:窗口 show 闪现与可信输入两层坑
 

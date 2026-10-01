@@ -181,18 +181,24 @@ export function setTabPinned(rootPath: string, rel: string, pinned: boolean) {
   if (tab) tab.pinned = pinned;
 }
 
-/** Drag-reorder tabs (owner 2026-10-01 item 9). */
+/**
+ * Drag-reorder tabs (owner 2026-10-01 item 9). Cursor-half semantics:
+ * before/after the target — without "after" the last slot is unreachable
+ * (same bug family as the pinned-row drag, lessons L10 addendum).
+ */
 export function reorderTabs(
   rootPath: string,
   fromRel: string,
   toRel: string,
+  position: "before" | "after" = "before",
 ) {
   const st = projectTabs(rootPath);
   const from = st.openFiles.findIndex((t) => t.relativePath === fromRel);
   const to = st.openFiles.findIndex((t) => t.relativePath === toRel);
   if (from === -1 || to === -1 || from === to) return;
   const [moved] = st.openFiles.splice(from, 1);
-  st.openFiles.splice(to, 0, moved);
+  const anchor = st.openFiles.findIndex((t) => t.relativePath === toRel);
+  st.openFiles.splice(position === "before" ? anchor : anchor + 1, 0, moved);
 }
 
 export function activateFile(rootPath: string, rel: string) {
