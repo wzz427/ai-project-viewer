@@ -152,3 +152,11 @@
 - **附带**(同日):WebView2 Evergreen **per-machine 更新必须管理员权限**——引导器/winget 静默装都报 `0x80040828 已为系统安装`(不弹 UAC 直接放弃);离线包 `Start-Process -Verb RunAs /silent /install` 才真更新。本机 EdgeUpdate 自动更新停摆(Edge 停在 140),内核问题先手动升级运行时再说。
 - **验证**:修正后官方对照页与 app 同电池 8 手势逐项打平全绿(testing.md §4)。
 - **出处**:owner 拍板 A(升级 Runtime)当天的升级+复验,2026-10-09。
+
+### L19:移植官方 css 别信"源顺序",scoped 选择器会翻转特异性;选区焦点跟"user-select 的祖先链"走
+
+- **症状**(升级 155 后 owner 二轮报障):①选行时页面左上角亮出色块;②拖选进入空白=整页蔓选。修①补 `br::selection{background:transparent}`(pdf.js 行间 br 静态流全叠层左上角,官方本来就有这条);修②页面空白 `user-select:none`+span 自带 text+官方 endOfContent 盾片。
+- **根因(移植坑)**:官方 css 里"endOfContent 压在 span 之下"靠**等特异性+源顺序**;搬进 Svelte scoped + `:global()` 后 span 规则(`.pdf-text-layer > :not(.markedContent)`)比特异性质反超,盾片 z-index 变 1 盖住一切命中,**选择 0 字符死在锚点**。**判据:移植第三方 css 后交互变死,先查选择器特异性是否等价,再查 z-index 实算值(elementFromPoint+computedStyle 一测便知)。**
+- **选区机理(记档)**:拖选中指针落在不可选元素上时,Chromium 找**最近可选祖先**当焦点——容器可选就整页蔓选;容器不可选+span 可选,焦点弹回最近文本(=官方结构)。另:拖选出窗口边界会触发**选区自动滚动**,测试落点必须限窗口内;pdfjs 的 span 无类名,`focus.parentElement.className=='pdf-text-layer'` 很可能是 span 而非容器,**诊断以矩形几何为准别以类名为准**。
+- **验证**:行内→边距拖=单行单矩形;8 手势电池/r3 8/8/PDF 19/19 全绿;v12 已发布。
+- **出处**:owner 155 后复验二轮报障,2026-10-09。

@@ -102,7 +102,18 @@
 
   // ---------- release on unmount (§96) ----------
   onMount(() => {
+    // Selection-shield state (see renderPage) must drop wherever the
+    // gesture ends — including a release outside this window.
+    const clearSelecting = () => {
+      document
+        .querySelectorAll(".pdf-text-layer.selecting")
+        .forEach((el) => el.classList.remove("selecting"));
+    };
+    window.addEventListener("pointerup", clearSelecting);
+    window.addEventListener("blur", clearSelecting);
     return () => {
+      window.removeEventListener("pointerup", clearSelecting);
+      window.removeEventListener("blur", clearSelecting);
       observer?.disconnect();
       observer = null;
       slots.clear();
@@ -244,6 +255,19 @@
         host.replaceChildren();
         return;
       }
+      // Official viewer's endOfContent (pdf_viewer.mjs #bindMouse): a
+      // user-select:none slab pinned at the layer bottom that covers the
+      // layer (below the spans, z-index 0) while a selection drag is
+      // active. Without it, a drag into blank page area lands its focus on
+      // the container itself and the selection wraps around everything.
+      // Chromium >= 148 skips the official endOfContent repositioning
+      // dance, so class toggle + CSS is the faithful port on WebView2 155.
+      const endOfContent = document.createElement("div");
+      endOfContent.className = "pdf-end-of-content";
+      textLayer.append(endOfContent);
+      textLayer.addEventListener("mousedown", () => {
+        textLayer.classList.add("selecting");
+      });
       renderedScale.set(pageNo, scale);
     } catch (e) {
       console.info("[aiv-pdf] STACK", pageNo, e instanceof Error && e.stack ? e.stack.split("\n").slice(0, 6).join(" | ") : String(e));
@@ -550,6 +574,13 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    /* Official viewer structure: page blank area is NOT selectable — only
+       the text-layer spans re-enable user-select on themselves. With the
+       container selectable (inherited .viewer-body text), a drag into blank
+       area resolves its focus to the nearest selectable ANCESTOR = the
+       container, and the selection wraps around everything (owner
+       2026-10-09: "dragging past the text selects all the lines"). */
+    user-select: none;
   }
 
   .page-slot {
@@ -610,6 +641,32 @@
   .page-slot :global(.pdf-text-layer span[role="img"]) {
     user-select: none;
     cursor: default;
+  }
+
+  /* Official endOfContent geometry: zero-height strip at the layer bottom,
+     inert (user-select:none); .selecting expands it to cover the layer so
+     blank-area drags stop at the last text span. z-index 0 keeps it below
+     the spans — the > .pdf-end-of-content compound is load-bearing: the
+     span rule ("> :not(.markedContent)", z-index 1) must not outrank it,
+     or the shield swallows every hit and selection dies at the anchor. */
+  .page-slot :global(.pdf-text-layer > .pdf-end-of-content) {
+    display: block;
+    position: absolute;
+    inset: 100% 0 0;
+    z-index: 0;
+    cursor: default;
+    user-select: none;
+  }
+
+  .page-slot :global(.pdf-text-layer.selecting .pdf-end-of-content) {
+    top: 0;
+  }
+
+  /* Official rule: br elements sit at the layer's static-flow origin (all
+     spans are absolute), so their selection highlight would paint a phantom
+     box at the top-left corner whenever a selection crosses a line break. */
+  .page-slot :global(.pdf-text-layer br::selection) {
+    background: transparent;
   }
 
   .page-slot :global(.pdf-text-layer ::selection) {
