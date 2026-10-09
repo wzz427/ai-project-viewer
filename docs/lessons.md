@@ -136,3 +136,10 @@
 - **根因**:Tauri 2 plugin-opener 有两层门:capability 权限条目(`opener:allow-open-path`)**和插件自身的 scope 白名单**——后者默认为空,任何路径都 "Not allowed"。两层都过才真开。
 - **修法**:capabilities 里用对象形式带 scope:`{"identifier":"opener:allow-open-path","allow":[{"path":"**"}]}`;URL 同理收紧 `https://**`/`http://**`。**判据:凡 Tauri 插件"权限配了还是 Not allowed"→ 查第二层 scope;凡外联功能,验证必须到"真程序真弹出"层**(本次实证:右键 txt → 记事本弹出并打开文件 → 自动关闭)。path:`**` 的安全边界靠调用点自律(只拼树内相对路径),已在调用处注释。
 - **出处**:Phase 5 owner 验收二轮,2026-10-02。
+
+### L17:CDP 合成鼠标 ≠ 真实鼠标的文本选择——交互类验证必须过真实输入层
+
+- **症状**:PDF 划词两轮修复,合成(CDP mouse)回归全绿,owner 真机"点一下选半页"。同代码同页面:Chrome/新版 Chromium 完美,WebView2(140)蔓延——**WebView2 的原生选择实现路径与合成事件路径行为不同**(对 absolute+transform 透明文本层)。
+- **根因**:验证层失真。合成事件不触发浏览器原生选择算法的完整路径(且 AIV_HIDDEN 隐藏窗口的 dpr=1,owner 屏 1.25,双重失真)。
+- **修法**:验证体系 v2(testing.md §4):合成层只测逻辑;**布局/几何断言过 dpr override(1.25);选择/拖拽/命中类交付前过真实输入层(Win32 SetCursorPos+mouse_event,屏幕坐标=ClientToScreen 原点+CSS×dpr)**;疑上游问题用官方对照页并排。**判据:凡"我验证通过但 owner 说不行"的交互类问题,先怀疑验证层失真,不要先改代码。**
+- **出处**:Phase 5 PDF 划词两轮返工,owner 质疑"你现在到底是怎么验证的",2026-10-09。

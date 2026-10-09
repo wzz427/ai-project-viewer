@@ -169,6 +169,21 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **owner 验收建议路径**(1 分钟,release 已重建):打开应用 → `AIV-TestProject\pdf` → 点 sample-10p-text.pdf(渲染/工具栏)→ 翻页/跳页/缩放/Fit Width/Fit Page/Ctrl+滚轮 → 搜索框输 "Page 8"(跳页+计数,上一处/下一处)→ 滚到深页(只有窗口内的页在渲染)→ 切到别的文件再切回(页码/缩放/滚动还原)→ 点 sample-100p-scan.pdf(18.4MB 扫描件)→ 关掉重开应用,PDF 页签与页码还在(§93 持久化)。
 
+## 4. 验证体系 v2:真实输入层 + 官方对照层(2026-10-09 立;owner 质疑"验证完还这样"后建)
+
+**教训**:CDP 合成鼠标事件与真实鼠标在浏览器里**不走同一条选择代码路径**——PDF 划词 bug 两轮"合成验证通过、真机失败"后立的规矩:**凡 UI 交互类验证(选择/拖拽/命中),合成事件只能证明 handler 逻辑,交付前必须过真实输入层**。
+
+| 层 | 方法 | 何时用 |
+|---|---|---|
+| 合成层(快) | Playwright connect_over_cdp 的 mouse/keyboard | 逻辑回归、大批量 |
+| dpr 保真 | CDP `Emulation.setDeviceMetricsOverride`(deviceScaleFactor=1.25=owner 实测 AppliedDPI 120) | 一切涉及布局/几何的断言 |
+| **真实输入层** | 真实窗口+Win32 `SetCursorPos`/`mouse_event`;坐标换算 **屏幕=客户区原点+页面CSS×dpr**(ClientToScreen 拿原点;漏乘 dpr 会偏 1.25 倍) | 选择/拖拽/命中类交付前必过 |
+| 官方对照层 | mintest.html(~30 行:引 pdfjs-dist/web/pdf_viewer.css 原文+TextLayer API,`python -m http.server 8899 --directory node_modules/pdfjs-dist` 后浏览器开) | 怀疑"是我们的集成还是上游/内核"时,并排对比 |
+
+### PDF 划词调查结论(2026-10-09,证据链闭合;阻塞在 WebView2 内核)
+
+同页面(官方对照页)同手势(0.62→0.75 行内真实拖)三环境:**Chrome 154=12 字 1 行 ✓;独立新版 Chromium ✓;本机 WebView2=185 字 2 行 ✗(=owner 症状,我们的 app 同)**。几何取证(应用内 dpr1.25):span left/字号(--font-height×--total-scale-factor)/scaleX 链全部对齐,elementFromPoint 正常,起点在行中后段(≥0.6)才触发、路径无关。**结论:WebView2 Runtime 文本选择实现对"绝对定位+transform 的透明文本层"有缺陷;v11 代码本身无罪(Chrome 下完美)。** 本机 WebView2 目录 140/143 共存,生效版本未确证(症状与 140 一致)。**等 owner 拍板:A=升级 WebView2 Evergreen Runtime(推荐,零代码)/B=自实现选择层(约 1 天)**。回归脚本 `%TEMP%iv-real-input-test.py`(真实输入层,坐标换算已修正版)。
+
 ### 2026-10-09 关窗行为修正:系统托盘(V1.5 §16 修正;WM_CLOSE 实证)
 
 ✕=隐藏到系统托盘(主任务栏不占位);托盘单击恢复;托盘右键菜单 Show/Exit(Exit=唯一真退出,app.exit→RunEvent::Exit→状态兜底)。实证:WM_CLOSE→窗口隐藏+进程存活 ✓;隐藏后二次启动恢复 ✓;退出状态落盘 ✓。托盘菜单 Exit 为纯 UI 入口(自动化不驱动,owner 复验;同源逻辑 show_main_window/app.exit 均已测)。
