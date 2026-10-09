@@ -100,6 +100,9 @@
     };
   });
 
+  // svelte-ignore non_reactive_update
+  let activeDriver: (() => void) | null = null;
+
   // ---------- release on unmount (§96) ----------
   onMount(() => {
     // Selection-shield state (see renderPage) must drop wherever the
@@ -114,6 +117,7 @@
     return () => {
       window.removeEventListener("pointerup", clearSelecting);
       window.removeEventListener("blur", clearSelecting);
+      activeDriver?.();
       observer?.disconnect();
       observer = null;
       slots.clear();
@@ -265,8 +269,114 @@
       const endOfContent = document.createElement("div");
       endOfContent.className = "pdf-end-of-content";
       textLayer.append(endOfContent);
-      textLayer.addEventListener("mousedown", () => {
+      textLayer.addEventListener("mousedown", (e) => {
         textLayer.classList.add("selecting");
+        const el = e.target;
+        if (!(el instanceof HTMLElement) || el.tagName !== "SPAN") {
+          return;
+        }
+        const caretAt = (x: number, y: number): Range | null => {
+          const doc = document as Document & {
+            caretRangeFromPoint?: (x: number, y: number) => Range | null;
+          };
+          return doc.caretRangeFromPoint?.(x, y) ?? null;
+        };
+        // The hit-padding strips carry no text nodes, so Chromium never
+        // STARTS a selection there ("must aim exactly at the first
+        // character"), and a native drag that runs off the text sideways
+        // lands its extent on the document start — "everything above the
+        // line suddenly selected" (owner 2026-10-09, maximized window).
+        // Drive those two cases ourselves; presses and moves over actual
+        // text keep the native behavior untouched.
+        const r = el.getBoundingClientRect();
+        const padStarted =
+          e.clientX < r.left + 18 || e.clientX > r.right - 18;
+        let anchor: { node: Node; offset: number } | null = null;
+        if (padStarted) {
+          const a = caretAt(
+            Math.min(Math.max(e.clientX, r.left + 22), r.right - 22),
+            e.clientY);
+          if (a) {
+            anchor = { node: a.startContainer, offset: a.startOffset };
+            document.getSelection()?.setBaseAndExtent(
+              anchor.node, anchor.offset, anchor.node, anchor.offset);
+          }
+        }
+        // Clamp driver: while a selection drag is active, re-assert the
+        // selection every animation frame. The native extent update for a
+        // pointer in text-free blank lands on the document start (the
+        // "everything above" wrap) and runs after the pointermove handler,
+        // so a one-shot correction loses — the frame loop wins.
+        let dragging = true;
+        let lastEv: { x: number; y: number } | null = null;
+        const clampAt = (evX: number, evY: number) => {
+          const sel = document.getSelection();
+          if (!sel) return;
+          const base = anchor ?? (sel.anchorNode
+            ? { node: sel.anchorNode, offset: sel.anchorOffset }
+            : null);
+          if (!base) return;
+          // row band under the pointer (span boxes include the pads).
+          // Covers blank INSIDE the page and the maximized-window blank
+          // beside a fit-width-undersized page alike; above/below all
+          // rows keeps the native select-to-page-edge semantics.
+          let rowL = Infinity, rowR = -Infinity, inRow = false;
+          for (const s of textLayer.querySelectorAll("span")) {
+            const sr = s.getBoundingClientRect();
+            if (evY >= sr.top && evY <= sr.bottom) {
+              inRow = true;
+              rowL = Math.min(rowL, sr.left);
+              rowR = Math.max(rowR, sr.right);
+            }
+          }
+          if (!inRow) return; // between rows: native
+          if (!anchor && evX >= rowL + 22 && evX <= rowR - 22) {
+            return; // native drag over text: leave it alone
+          }
+          const cx = Math.min(Math.max(evX, rowL + 22), rowR - 22);
+          const caret = caretAt(cx, evY);
+          if (caret) {
+            sel.setBaseAndExtent(base.node, base.offset,
+                                 caret.startContainer, caret.startOffset);
+          }
+        };
+        const onMove = (ev: PointerEvent) => {
+          lastEv = { x: ev.clientX, y: ev.clientY };
+          clampAt(ev.clientX, ev.clientY);
+        };
+        const tick = () => {
+          if (!dragging) return;
+          if (lastEv) clampAt(lastEv.x, lastEv.y);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        // One live driver at a time. A zombie loop from an earlier drag
+        // keeps writing selections with the NEXT gesture's pointer — the
+        // wrap-after-pad-drag repro (owner 2026-10-09). Kill any survivor
+        // before arming; the timeout is the belt-and-braces in case the
+        // up/cancel events never arrive.
+        let guard = 0;
+        let kill: () => void;
+        let done = false;
+        const stop = (settle: boolean) => {
+          if (done) return;
+          done = true;
+          dragging = false;
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          window.removeEventListener("pointercancel", onUp);
+          clearTimeout(guard);
+          if (activeDriver === kill) activeDriver = null;
+          if (settle && lastEv) clampAt(lastEv.x, lastEv.y); // settle after mouseup
+        };
+        const onUp = () => stop(true);
+        kill = () => stop(false);
+        guard = window.setTimeout(kill, 8000);
+        activeDriver?.();
+        activeDriver = kill;
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
       });
       renderedScale.set(pageNo, scale);
     } catch (e) {
@@ -621,6 +731,17 @@
     cursor: text;
     transform-origin: 0% 0%;
     user-select: text;
+    /* Hit padding (beyond official css): pdf.js spans carry no line box,
+       so the blank columns beside the text contain NO selection quads —
+       a drag into them extends straight to the page's start/end (owner
+       2026-10-09: "dragging past the text selects all the lines"; the
+       official viewer does the same — verified against it). Adobe/Chrome
+       viewers give each line a full-width hit area instead. The padding
+       extends each span's selectable box sideways; the negative margin
+       cancels the layout shift, so glyphs and ::selection stay put. Also
+       fixes "must click pixel-perfect at the first character". */
+    padding: 0 20px;
+    margin: 0 -20px;
   }
 
   .page-slot :global(.pdf-text-layer > :not(.markedContent)),
