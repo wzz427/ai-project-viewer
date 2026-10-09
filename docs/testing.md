@@ -177,12 +177,16 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 |---|---|---|
 | 合成层(快) | Playwright connect_over_cdp 的 mouse/keyboard | 逻辑回归、大批量 |
 | dpr 保真 | CDP `Emulation.setDeviceMetricsOverride`(deviceScaleFactor=1.25=owner 实测 AppliedDPI 120) | 一切涉及布局/几何的断言 |
-| **真实输入层** | 真实窗口+Win32 `SetCursorPos`/`mouse_event`;坐标换算 **屏幕=客户区原点+页面CSS×dpr**(ClientToScreen 拿原点;漏乘 dpr 会偏 1.25 倍) | 选择/拖拽/命中类交付前必过 |
+| **真实输入层** | 真实窗口+Win32 `SetCursorPos`/`mouse_event`;坐标换算**自校准:屏幕=客户区原点+页面CSS×(客户区宽/innerWidth)**,每页现算比例(2026-10-09 修正:×dpr 公式在 DPI 虚拟化下错 1.25 倍——python 与 app 的 DPI 感知上下文不同,虚拟坐标≠物理坐标);**手势前必查前台**(`GetForegroundWindow`),丢了就真实点击自家标题栏带回(禁用 SetForegroundWindow,owner 立规) | 选择/拖拽/命中类交付前必过 |
 | 官方对照层 | mintest.html(~30 行:引 pdfjs-dist/web/pdf_viewer.css 原文+TextLayer API,`python -m http.server 8899 --directory node_modules/pdfjs-dist` 后浏览器开) | 怀疑"是我们的集成还是上游/内核"时,并排对比 |
 
-### PDF 划词调查结论(2026-10-09,证据链闭合;阻塞在 WebView2 内核)
+### PDF 划词调查:已解决(2026-10-09 owner 选 A,升级+实证当天闭环)
 
-同页面(官方对照页)同手势(0.62→0.75 行内真实拖)三环境:**Chrome 154=12 字 1 行 ✓;独立新版 Chromium ✓;本机 WebView2=185 字 2 行 ✗(=owner 症状,我们的 app 同)**。几何取证(应用内 dpr1.25):span left/字号(--font-height×--total-scale-factor)/scaleX 链全部对齐,elementFromPoint 正常,起点在行中后段(≥0.6)才触发、路径无关。**结论:WebView2 Runtime 文本选择实现对"绝对定位+transform 的透明文本层"有缺陷;v11 代码本身无罪(Chrome 下完美)。** 本机 WebView2 目录 140/143 共存,生效版本未确证(症状与 140 一致)。**等 owner 拍板:A=升级 WebView2 Evergreen Runtime(推荐,零代码)/B=自实现选择层(约 1 天)**。回归脚本 `%TEMP%iv-real-input-test.py`(真实输入层,坐标换算已修正版)。
+**前情(143 时代,证据链)**:同页面(官方对照页)同手势三环境——Chrome 154=12 字 1 行 ✓;本机 WebView2 143=185 字 2 行 ✗。当时结论"WebView2 文本选择内核对'绝对定位+transform 透明文本层'有缺陷,v11 代码无罪"。
+
+**A 方案执行**:Evergreen Runtime 143→**155.0.4283.45**。坑:官方引导器/winget 静默装都报 `0x80040828 已为系统安装`(per-machine 安装无管理员权限时直接放弃,连 UAC 都不弹);**唯一可行=离线包以管理员运行**(`Start-Process -Verb RunAs MicrosoftEdgeWebView2RuntimeInstallerX64.exe /silent /install`,winget 下载源直链+验签)。本机 EdgeUpdate 自动更新通道疑似停摆(Edge 也停在 140),以后再遇内核问题照此手动升级。
+
+**升级后判决(真实输入层,自校准坐标+前台守卫)**:同电池 8 手势,官方对照页与 app **逐项打平全绿**——单击 0 字符 ✓;长拖 0.25→0.75=47~48 字符**1 行** ✓(对照页同);0.3→0.5/0.3→0.6 ✓;**右往左拖 ✓**;小拖 0.12 行宽=11 字符 ✓;**双击选词='brown' 5 字符 ✓**。中途两次假象勿重蹈:①"残余蔓选 461/569 字符"=我脚本坐标落进行间隙(DPI 虚拟化错 1.25 倍);②"手势突然全死"=owner 点回聊天窗口抢走前台,真实鼠标打到了别的窗口(selectionchange=0 是特征)。回归脚本 `%TEMP%iv-battery-replica.py`(mintest/app 双模式+前台守卫)。**owner 复验前提:把 app 完全退出重开**(运行中的实例仍挂着旧内核进程,重启才加载 155)。
 
 ### 2026-10-09 关窗行为修正:系统托盘(V1.5 §16 修正;WM_CLOSE 实证)
 

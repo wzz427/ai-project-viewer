@@ -17,7 +17,16 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-09 · 主线现状:PDF 划词阻塞在 WebView2 内核,等 owner 选 A/B(wrap 落盘)
+### 2026-10-09 · 划词问题闭环:owner 选 A,Runtime 升 155,app 实测全绿
+
+> **下一步从哪接** —— **等 owner 复验(把 app 完全退出再重开,运行中的旧实例还挂着旧内核)**:PDF 划一行只选一行(左右方向都试)、双击选词、右键 Copy;连 v8/v10 待复验项一起过则 spec-005+INFRA-001 收口进 Phase 6。
+
+- **A 已执行**:Evergreen Runtime 143→155.0.4283.45(离线包+管理员;引导器/winget 静默装因 per-machine 无提权报 0x80040828,坑记 lessons L18)。app 无需发新版,重启即吃到新内核。
+- **实测判决**(真实输入层,testing.md §4):官方对照页与 app 同电池 8 手势**逐项打平全绿**——长拖 1 行不蔓延、右往左拖 ✓、小拖 ✓、双击选词 'brown' ✓。
+- 调查途中揪出**验证层自己的两个坑**(L18):DPI 虚拟化坐标错 1.25 倍(假"蔓选")+ 前台被聊天窗口抢走(假"全死")——都进了公式修正与前台守卫,`%TEMP%\aiv-battery-replica.py` 可复跑。
+- 本机 EdgeUpdate 自动更新停摆(Edge 停 140):再遇内核问题手动升级运行时(方法在 testing.md §4)。
+
+### 2026-10-09 · 主线现状:PDF 划词阻塞在 WebView2 内核,等 owner 选 A/B(wrap 落盘)【已解决,见上条】
 
 > **下一步从哪接** —— **owner 拍板 A/B**:A=升级 WebView2 Evergreen Runtime(推荐,零代码,微软官方装完即好)/ B=自实现选择层(约 1 天)。定 A 则装完让 owner 在 v11 直接复验;定 B 则按 testing.md §4 的真实输入层为验收标准开工。**另:spec-005 与 INFRA-001 的 owner 复验一直累积未做(v8 四项/v10 托盘/v11 划词),下次对话先催复验再开新活。**
 
@@ -231,5 +240,5 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 |---|---|---|
 | 建异地备份 remote(私有库,SSH 认证),建好当天首推+核 0;建立之前仓库只有本地一份 | owner 亲手(方法:仓内 docs/AI-Project-Guide/07-backup-secrets.md)·**V1 全部完成后、owner 验收时**(2026-10-01 owner 拍板改期,不着急) | 2026-10-01 |
 | V1.5 §196 附注 A(git -C 统一执行基准)合入 §65 正文 | agent·Phase 7 前 | 2026-10-01 |
-| **WebView2 划词阻塞:owner 选 A(升级 Runtime,推荐)/B(自实现选择层)** | owner 拍板 · ASAP(阻塞 PDF 划词收口) | 2026-10-09 |
+| ~~**WebView2 划词阻塞:owner 选 A(升级 Runtime,推荐)/B(自实现选择层)**~~ 已闭环(2026-10-09 选 A,Runtime 143→155,实测全绿,见"现在在哪"首条;余 owner 复验) | owner 复验(重启 app 后划词)· ASAP | 2026-10-09 |
 | Playwright 回归脚本正式化入库(pywork 环境跑,替代 %TEMP% 手搓脚本;方案已口头验证可行) | agent·**等 owner 点头**(Phase 1 验收时顺带定;点头后约 30 分钟) | 2026-10-01 |

@@ -143,3 +143,12 @@
 - **根因**:验证层失真。合成事件不触发浏览器原生选择算法的完整路径(且 AIV_HIDDEN 隐藏窗口的 dpr=1,owner 屏 1.25,双重失真)。
 - **修法**:验证体系 v2(testing.md §4):合成层只测逻辑;**布局/几何断言过 dpr override(1.25);选择/拖拽/命中类交付前过真实输入层(Win32 SetCursorPos+mouse_event,屏幕坐标=ClientToScreen 原点+CSS×dpr)**;疑上游问题用官方对照页并排。**判据:凡"我验证通过但 owner 说不行"的交互类问题,先怀疑验证层失真,不要先改代码。**
 - **出处**:Phase 5 PDF 划词两轮返工,owner 质疑"你现在到底是怎么验证的",2026-10-09。
+
+### L18:真实输入层的两个陷阱——DPI 虚拟化坐标错 1.25 倍 + 前台被抢的"假死"
+
+- **症状**(L17 后续,升级 WebView2 143→155 验证期):①同 app 同手势,一轮测出"蔓选 461/569 字符 5-6 行",下一轮同手势又干净,结果漂移;②一轮里前几个手势正常、后面**全部选 0 字符且 selectionchange=0**。
+- **根因(两个独立陷阱)**:①**DPI 虚拟化**:测试进程(python/ctypes)与 app 的 DPI 感知上下文不同,`GetClientRect`/`ClientToScreen` 拿到的是**虚拟化坐标**,"CSS×dpr"公式把它当物理坐标用,落点整体偏 1.25 倍——偏进 PDF 行间隙时 Chromium 按整行粒度选择,看起来像"蔓选 bug";②**前台被抢**:owner 点回聊天窗口后,真实鼠标(mousedown)全打到前台窗口,目标页一个事件都收不到(特征:`selectionchange=0`),像"功能突然全死"。
+- **修法**:真实输入层坐标**自校准,不猜 dpr**——`比例=客户区宽(虚拟)/innerWidth(CSS)`,每页现算,`屏幕=客户区原点+CSS×比例`;**每个手势前查 `GetForegroundWindow`**,不是目标窗口就真实点击自家标题栏带回前台(等效用户行为;SetForegroundWindow 仍是禁用的抢前台手段)。**判据:真实输入测试结果漂移/忽好忽坏 → 先查坐标自校准比例与前台归属,再怀疑被测代码。**
+- **附带**(同日):WebView2 Evergreen **per-machine 更新必须管理员权限**——引导器/winget 静默装都报 `0x80040828 已为系统安装`(不弹 UAC 直接放弃);离线包 `Start-Process -Verb RunAs /silent /install` 才真更新。本机 EdgeUpdate 自动更新停摆(Edge 停在 140),内核问题先手动升级运行时再说。
+- **验证**:修正后官方对照页与 app 同电池 8 手势逐项打平全绿(testing.md §4)。
+- **出处**:owner 拍板 A(升级 Runtime)当天的升级+复验,2026-10-09。
