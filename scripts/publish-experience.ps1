@@ -9,6 +9,14 @@ param([Parameter(Mandatory = $true)][string]$Note)
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 
+# Version tag comes from tauri.conf.json — bump it there before publishing
+# (owner 2026-10-09 scheme: one requirement owns a 0.x0 decade, e.g. all
+# builds of the PDF requirement are 0.4x; the next requirement starts at
+# 0.50; 1.0.0 when everything is done).
+$conf = Get-Content (Join-Path $root "src-tauri\tauri.conf.json") -Raw | ConvertFrom-Json
+$version = $conf.version
+if (-not $version) { throw "no version in tauri.conf.json" }
+
 Push-Location $root
 pnpm tauri build --config src-tauri/experience.conf.json --no-bundle
 if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
@@ -20,7 +28,7 @@ Copy-Item (Join-Path $root "src-tauri\target\release\ai-project-viewer.exe") `
           (Join-Path $updates "ai-project-viewer.exe") -Force
 
 $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
-$json = @{ note = "[$stamp] $Note" } | ConvertTo-Json
+$json = @{ note = "[$version | $stamp] $Note" } | ConvertTo-Json
 # UTF-8 WITHOUT BOM: the client's JSON parser chokes on a BOM (lessons L2).
 [System.IO.File]::WriteAllText((Join-Path $updates "update.json"), $json, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "PUBLISHED. Tell the owner: click the Update button in the client."

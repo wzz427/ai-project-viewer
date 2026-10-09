@@ -89,3 +89,4 @@
 |---|---|---|
 | 2026-10-02 | Ready→InDev→InTest | 全链落地并装机:隔离构建(experience.conf.json:.exp identifier)+updater.rs(check/apply/relaunch,md5 流式+rename 三步自替换+启动清理)+顶栏 UpdateButton(置灰/高亮/busy+悬停 note+test_mode 自动 Later)+scripts 装机/发布脚本;**owner 侧已完成首次安装**(独立目录+state 迁移+快捷方式重指),updates 已发至 v6。回归 8/8(高亮+note/一键更新+toast+回灰/重启后新版/置灰/开发版与体验版并存互不干扰);防退化 P3 PASS+PDF 19/19;开发中发现并记档两坑:PS 写 json 的 BOM(L2 家族,双端修)、rfd 升级为 TaskDialog 无子 HWND 不可 BM_CLICK(L7 补记,test_mode_active 分支)。**等 owner 首次点更新+重启复验** |
 | 2026-10-02 | Draft→Ready | R/V、D1–D7、覆盖矩阵;开工切分:①隔离构建配置+安装/迁移脚本 ②check/apply 命令+启动清理 ③前端更新按钮+流程 ④发布脚本+全链回归 ⑤文档(交付流程改版)+owner 装机 |
+| 2026-10-09 | **版本号规则(owner 拍板)**:0.xx 制——一个需求占一个 0.x0 段(本 PDF 需求=0.4x,每发一版末位+1);下一需求从 0.50 起;全部完成升 1.0.0。版本号住 tauri.conf.json(发布前手动 bump;package.json/Cargo.toml 同步),publish-experience.ps1 自动读出并前缀到 update.json 的 note(`[0.4.0 | 时间] 说明`,更新按钮悬停可见)。此前 v8~v14 为旧随手编号,仅存于历史记录,不再使用 |
