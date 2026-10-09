@@ -20,6 +20,7 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 ### 2026-10-09 · 版本号改制 0.xx(0.4.0 已发布,内容同划词终版)
 
 > **owner 拒绝 vN 递增编号**(一天 v14 太荒唐),拍板 0.xx 制:一个需求一段(本需求 0.4x,下个需求 0.50,全齐升 1.0.0)。已落地:tauri.conf/package.json/Cargo.toml=0.4.0;publish-experience.ps1 自动读版本前缀到 note;update.json 现为 `[0.4.0 | 2026-10-09 22:07] 划词终版…`。规则全文在 SPEC-INFRA-001。
+> **0.4.1 已跟进**:owner 反馈悬停看不到版本——note 原本只在"有更新"时显示;现构建期从 package.json 注入,悬停**常显** `Version 0.4.x — you are on the latest build`(有更新时附说明)。r3 8/8。
 
 ### 2026-10-09 · 划词终版(=0.4.0;owner 复验 v13 报"空白区上下移动反选";重写自驱)
 
