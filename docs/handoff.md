@@ -17,6 +17,13 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-02 · 验收三轮四修:按钮位置/PDF 文本层/列表光标/右键复制,已发布 v8
+
+> **下一步从哪接** —— owner 在体验版点 Update 升到 v8 → 复验四项(顶栏最右按钮/PDF 划词复制/任务列表光标/右键 Copy)→ 过则 spec-005+INFRA-001 一并 Done,进 Phase 6。
+
+- 四修全部自动化实证(8/8):Update 按钮顶栏最右(+ 按钮留在标签旁);**PDF 文本层**(owner 报"PDF 划词无效"=确认要选字,D5 原判被翻,透明 span 对齐字形,选择/高亮/右键复制全通);任务列表 label/checkbox 光标修复(form 控件不继承 cursor 是根因);查看器右键 Copy(有选区才弹;菜单冒泡关闭竞态已修)。
+- 防退化:PDF 19/19+P3 PASS;v8 已发布(publish-experience.ps1,note 含本轮改动)。
+
 ### 2026-10-02 · SPEC-INFRA-001 体验版+更新机制落地,等 owner 首次点更新复验
 
 > **下一步从哪接** —— owner 完全关闭旧客户端 → 双击桌面快捷方式(=体验版,⚠️ 必须关旧的,这是最后一次"完全重启")→ 右上角 Update 高亮 → 点击 → Restart Now → 新版生效(Channel=experience/Build 时间)。之后每轮交付我只 publish+通知,他点按钮即可。**spec-005(PDF)仍挂 InTest 等他在体验版上复验**;PDF 内选字待表态。
