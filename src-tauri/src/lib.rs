@@ -82,6 +82,23 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Owner 2026-10-02: closing the window minimizes it to the taskbar;
+        // actually exiting = right-click the taskbar icon -> "Close window"
+        // (V1.5 §16 revision). Both paths deliver the same close request, so
+        // the distinguishing rule is visibility: a close request while the
+        // window is ALREADY minimized is the taskbar menu and is honored;
+        // any close request while visible is the X button and minimizes.
+        // Preventing it outright would make the taskbar's "Close window"
+        // impossible and the app unkillable without Task Manager.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let minimized = window.is_minimized().unwrap_or(false);
+                if !minimized {
+                    api.prevent_close();
+                    let _ = window.minimize();
+                }
+            }
+        })
         .manage(state::LastState::default())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

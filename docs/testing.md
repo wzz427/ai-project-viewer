@@ -169,6 +169,10 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **owner 验收建议路径**(1 分钟,release 已重建):打开应用 → `AIV-TestProject\pdf` → 点 sample-10p-text.pdf(渲染/工具栏)→ 翻页/跳页/缩放/Fit Width/Fit Page/Ctrl+滚轮 → 搜索框输 "Page 8"(跳页+计数,上一处/下一处)→ 滚到深页(只有窗口内的页在渲染)→ 切到别的文件再切回(页码/缩放/滚动还原)→ 点 sample-100p-scan.pdf(18.4MB 扫描件)→ 关掉重开应用,PDF 页签与页码还在(§93 持久化)。
 
+### 2026-10-02 关窗行为(V1.5 §16 修订;WM_CLOSE 真路径双验)
+
+点 ✕=最小化到任务栏不退出;任务栏图标右键"关闭窗口"=真退出。区分规则=窗口是否已最小化(两种关闭请求系统层面同形)。实证:最小化+WM_CLOSE→退出+exit state 落盘 ✓;可见+WM_CLOSE→最小化+存活 ✓。已知差异:JS window.close() 在最小化窗口上不触发退出(Tauri 内部时序),用户路径(任务栏菜单=WM_CLOSE)不受影响。
+
 ### 2026-10-02 验收二轮(opener scope/I-beam/页签宽;PDF 19/19+P3 PASS)
 
 ① 右键 "Open with Default App" 一切文件报 `Not allowed to open path`——opener 双层门:capability 权限之外还有**插件 scope 白名单,默认空全拒**(lessons L16);修复=capabilities 带 scope(path:** ,URL 收紧 https/http)。**验证升级到真程序层:右键 notes.txt → 记事本弹出并打开文件(自动关闭)**;此前"无关联 .bin 报错 toast"只证 handler 执行,是盲区。② 查看器内容区 I-beam 光标(cursor:text)。③ 长文件名页签 160px 封顶+省略号,悬停 title 全名。
