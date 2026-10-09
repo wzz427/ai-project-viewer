@@ -210,20 +210,30 @@
       // outlived its own release must not re-attach a stale canvas.
       if (doc !== d || !renderedPages.has(pageNo)) return;
       const vp = page.getViewport({ scale });
+      // Hi-DPI: canvas backing store = viewport × devicePixelRatio with an
+      // explicit CSS size, the official viewer recipe. The text layer's
+      // --total-scale-factor must equal the SAME CSS scale or every span
+      // box misaligns with the painted glyphs and a one-line drag selects
+      // half the page (owner 2026-10-09).
+      const dpr = window.devicePixelRatio || 1;
       const canvas = document.createElement("canvas");
-      canvas.width = Math.floor(vp.width);
-      canvas.height = Math.floor(vp.height);
+      canvas.width = Math.floor(vp.width * dpr);
+      canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = `${Math.floor(vp.width)}px`;
+      canvas.style.height = `${Math.floor(vp.height)}px`;
       canvas.className = "pdf-canvas";
       // Text layer (owner 2026-10-02: canvas text must be selectable):
       // invisible spans exactly aligned with the painted glyphs; the
       // browser selection + ::selection highlight then work on the page.
       const textLayer = document.createElement("div");
       textLayer.className = "pdf-text-layer";
+      textLayer.style.setProperty("--total-scale-factor", String(scale));
       host.replaceChildren(canvas, textLayer);
       await page.render({
         canvas,
         canvasContext: canvas.getContext("2d") ?? undefined,
         viewport: vp,
+        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
       }).promise;
       await new pdfjs.TextLayer({
         textContentSource: page.streamTextContent(),
@@ -551,24 +561,55 @@
     position: relative;
   }
 
-  /* Invisible selectable text exactly over the painted glyphs (pdfjs
-     TextLayer writes absolutely-positioned spans with inline styles). */
+  /* Official pdf.js textLayer rules (web/pdf_viewer.css) — the span
+     font-size calc chain and transform variables are what make each span
+     box match the painted glyph run; without them selection rectangles
+     land on the wrong lines. */
   .page-slot :global(.pdf-text-layer) {
     position: absolute;
     inset: 0;
-    overflow: hidden;
+    overflow: clip;
+    text-align: initial;
     line-height: 1;
+    letter-spacing: normal;
+    word-spacing: normal;
     text-size-adjust: none;
     forced-color-adjust: none;
-    cursor: text;
+    transform-origin: 0 0;
+    caret-color: CanvasText;
+    z-index: 0;
+    --min-font-size: 1;
+    --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+    --min-font-size-inv: calc(1 / var(--min-font-size));
   }
 
-  .page-slot :global(.pdf-text-layer span) {
+  .page-slot :global(.pdf-text-layer :is(span, br)) {
     color: transparent;
-    cursor: text;
     position: absolute;
     white-space: pre;
-    transform-origin: 0 0;
+    cursor: text;
+    transform-origin: 0% 0%;
+    user-select: text;
+  }
+
+  .page-slot :global(.pdf-text-layer > :not(.markedContent)),
+  .page-slot :global(.pdf-text-layer .markedContent span:not(.markedContent)) {
+    z-index: 1;
+    --font-height: 0;
+    font-size: calc(var(--text-scale-factor) * var(--font-height));
+    --scale-x: 1;
+    --rotate: 0deg;
+    transform: rotate(var(--rotate)) scaleX(var(--scale-x))
+      scale(var(--min-font-size-inv));
+  }
+
+  .page-slot :global(.pdf-text-layer .markedContent) {
+    display: contents;
+  }
+
+  .page-slot :global(.pdf-text-layer span[role="img"]) {
+    user-select: none;
+    cursor: default;
   }
 
   .page-slot :global(.pdf-text-layer ::selection) {

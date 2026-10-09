@@ -17,6 +17,13 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-09 · PDF 划词蔓延修复(textLayer 官方对齐),已发布 v11
+
+> **下一步从哪接** —— owner 更新 v11 复验:PDF 里划一行只选一行、右键 Copy;连 v8/v10 待复验项一起过则 spec-005+INFRA-001 收口进 Phase 6。
+
+- 根因:textLayer span 的字号/定位依赖官方 CSS 变量链(--total-scale-factor、font-size calc、transform rotate/scaleX)——首版只抄了一半,span 盒子与字形完全脱节,选择矩形落错行。修:容器设 --total-scale-factor=scale、span 官方规则全量、canvas 升级高清渲染(dpr,官方配方)。
+- 实证:单行拖选 54 字符 1 行;回归 r3 8/8(拖选改从真实 span 盒出发,比例坐标会落行间隙)+PDF 19/19;v11 已发布。
+
 ### 2026-10-09 · 关窗行为修正:隐藏到系统托盘(owner 澄清),已发布 v10
 
 > **下一步从哪接** —— owner 更新到 v10 复验:✕ → 窗口消失、图标在系统托盘(时钟旁);托盘单击恢复;托盘右键 Exit 真退出。连 v8/v9 待复验项一起过了则 spec-005+INFRA-001 收口进 Phase 6。
