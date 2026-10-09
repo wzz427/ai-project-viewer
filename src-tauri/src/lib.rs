@@ -9,6 +9,16 @@ use std::time::Instant;
 
 use tauri::Manager;
 
+/// Restore + focus the main window from the tray (shared by the tray
+/// click and menu handlers).
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 /// Process start timestamp, set once in `run()`. Baseline for startup-time
 /// measurement (V1.5 §164): the frontend reports readiness via
 /// `startup_elapsed_ms` on mount.
@@ -82,21 +92,14 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        // Owner 2026-10-02: closing the window minimizes it to the taskbar;
-        // actually exiting = right-click the taskbar icon -> "Close window"
-        // (V1.5 §16 revision). Both paths deliver the same close request, so
-        // the distinguishing rule is visibility: a close request while the
-        // window is ALREADY minimized is the taskbar menu and is honored;
-        // any close request while visible is the X button and minimizes.
-        // Preventing it outright would make the taskbar's "Close window"
-        // impossible and the app unkillable without Task Manager.
+        // Owner 2026-10-02 + 2026-10-09 clarification: closing the window
+        // hides it into the SYSTEM TRAY (taskbar corner, next to the clock
+        // — not the main taskbar row). The tray icon is how you get back:
+        // single-click restores, right-click menu has the only real Exit.
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let minimized = window.is_minimized().unwrap_or(false);
-                if !minimized {
-                    api.prevent_close();
-                    let _ = window.minimize();
-                }
+                api.prevent_close();
+                let _ = window.hide();
             }
         })
         .manage(state::LastState::default())
@@ -113,6 +116,36 @@ pub fn run() {
             // Experience channel (SPEC-INFRA-001): remove leftovers from
             // a previous self-update swap.
             updater::clean_stale_swap_files();
+
+            // System tray (owner 2026-10-09): single-click restores the
+            // window; right-click menu carries Show + the only real Exit.
+            // Exit goes through app.exit -> RunEvent::Exit -> the state
+            // flush already wired there.
+            use tauri::menu::{Menu, MenuItem};
+            use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+            let show = MenuItem::with_id(app, "tray-show", "Show AI Project Viewer", true, None::<&str>)?;
+            let exit = MenuItem::with_id(app, "tray-exit", "Exit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show, &exit])?;
+            TrayIconBuilder::with_id("main-tray")
+                .tooltip("AI Project Viewer")
+                .icon(app.default_window_icon().cloned().ok_or("no app icon")?)
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "tray-exit" => app.exit(0),
+                    _ => show_main_window(app),
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_main_window(tray.app_handle());
+                    }
+                })
+                .build(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
