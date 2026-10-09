@@ -71,7 +71,9 @@
   class:available={status === "available"}
   class:busy={status === "busy"}
   onclick={onClick}
-  title={status === "available" && note ? `Update available — ${note}` : "Check for updates"}
+  title={status === "available" && note
+    ? `Version ${__APP_VERSION__} — update available: ${note}`
+    : `Version ${__APP_VERSION__} — you are on the latest build`}
   aria-label="Update"
 >
   {#if status === "available"}⬆ Update{:else if status === "busy"}Updating…{:else}Up to date{/if}
