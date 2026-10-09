@@ -72,6 +72,35 @@
     document.documentElement.classList.add("col-resizing");
   }
 
+  // Right-click copy (owner 2026-10-02: a selection without a copy path
+  // is useless). Only fires when text is actually selected inside the
+  // viewer; the menu swallows mousedown so the selection survives.
+  let copyMenu = $state<{ x: number; y: number } | null>(null);
+
+  function onViewerContextMenu(e: MouseEvent) {
+    const sel = window.getSelection()?.toString() ?? "";
+    if (!sel.trim()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    copyMenu = { x: e.clientX, y: e.clientY };
+  }
+
+  function closeCopyMenu(e?: MouseEvent) {
+    // The menu's own mousedown must not reach here before its click fires.
+    const el = document.querySelector(".copy-menu");
+    if (e && el && e.target instanceof Node && el.contains(e.target)) return;
+    copyMenu = null;
+  }
+
+  function doCopy(e: Event) {
+    e.stopPropagation();
+    const n = (window.getSelection()?.toString() ?? "").length;
+    if (document.execCommand("copy")) {
+      toast(`✓ Copied ${n} characters`);
+    }
+    copyMenu = null;
+  }
+
   // Keyboard resize: ←/→ nudges by 16px (a11y for the separator handle).
   function resizeViaKeyboard(e: KeyboardEvent) {
     const proj = project;
@@ -169,7 +198,13 @@
         <div class="viewer-stack">
           <FileTabs rootPath={project.rootPath} />
           {#if tabsOf(project.rootPath).length > 0}
-            <div class="viewer-body">
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="viewer-body"
+              role="region"
+              aria-label="File content"
+              oncontextmenu={onViewerContextMenu}
+            >
               <ActiveViewer rootPath={project.rootPath} />
             </div>
           {:else}
@@ -185,8 +220,22 @@
       {/if}
     </main>
   </div>
+  {#if copyMenu}
+    <button
+      class="copy-menu"
+      style="left: {copyMenu.x}px; top: {copyMenu.y}px"
+      onmousedown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onclick={doCopy}
+      oncontextmenu={(e) => e.preventDefault()}
+    >Copy</button>
+  {/if}
   <ToastHost />
 </div>
+
+<svelte:window onmousedown={closeCopyMenu} />
 
 <style>
   .shell {
@@ -259,6 +308,22 @@
     padding: 24px 32px;
     border: 1px dashed var(--border);
     border-radius: var(--radius);
+  }
+
+  .copy-menu {
+    position: fixed;
+    z-index: 200;
+    padding: 5px 14px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .copy-menu:hover {
+    background: var(--bg-hover);
   }
 
   .placeholder-card h2 {

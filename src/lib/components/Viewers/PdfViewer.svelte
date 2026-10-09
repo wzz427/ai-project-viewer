@@ -26,11 +26,12 @@
   const cached = $derived(cachedContent(rootPath, tab.relativePath));
   const data = $derived(cached?.kind === "pdf" ? cached.data : null);
 
+  type PdfLib = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
   type PdfDoc = import("pdfjs-dist").PDFDocumentProxy;
   type PdfPage = import("pdfjs-dist").PDFPageProxy;
   type PdfTask = import("pdfjs-dist").PDFDocumentLoadingTask;
 
-  // Plain let on purpose: pdf.js objects must never enter the reactive
+  // Plain lets on purpose: pdf.js objects must never enter the reactive
   // system — Svelte's deep proxy wraps their internals (private fields,
   // Maps) and pdf.js then dies with "getOrInsertComputed is not a
   // function". UI re-renders are driven by the $state fields below
@@ -38,6 +39,8 @@
   // svelte-ignore non_reactive_update
   let doc: PdfDoc | null = null;
   let task: PdfTask | null = null;
+  // svelte-ignore non_reactive_update
+  let lib: PdfLib | null = null;
   let loadError = $state("");
   let totalPages = $state(0);
   /** Base page size from page 1 — placeholder geometry for all slots. */
@@ -71,6 +74,7 @@
     void (async () => {
       try {
         const pdfjs = await acquireLib();
+        lib = pdfjs;
         // getDocument transfers/detaches its input — hand it a copy so the
         // cache copy stays reusable across tab switches.
         const t = pdfjs.getDocument({ data: buf.slice(0) });
@@ -196,7 +200,8 @@
   async function renderPage(pageNo: number) {
     const d = doc;
     const host = slots.get(pageNo);
-    if (!d || !host) return;
+    if (!d || !host || !lib) return;
+    const pdfjs = lib;
     renderedPages.add(pageNo);
     try {
       const page: PdfPage = await d.getPage(pageNo);
@@ -209,12 +214,22 @@
       canvas.width = Math.floor(vp.width);
       canvas.height = Math.floor(vp.height);
       canvas.className = "pdf-canvas";
-      host.replaceChildren(canvas);
+      // Text layer (owner 2026-10-02: canvas text must be selectable):
+      // invisible spans exactly aligned with the painted glyphs; the
+      // browser selection + ::selection highlight then work on the page.
+      const textLayer = document.createElement("div");
+      textLayer.className = "pdf-text-layer";
+      host.replaceChildren(canvas, textLayer);
       await page.render({
         canvas,
         canvasContext: canvas.getContext("2d") ?? undefined,
         viewport: vp,
       }).promise;
+      await new pdfjs.TextLayer({
+        textContentSource: page.streamTextContent(),
+        container: textLayer,
+        viewport: vp,
+      }).render();
       if (doc !== d || !renderedPages.has(pageNo)) {
         host.replaceChildren();
         return;
@@ -533,6 +548,31 @@
     overflow: hidden;
     display: flex;
     justify-content: center;
+    position: relative;
+  }
+
+  /* Invisible selectable text exactly over the painted glyphs (pdfjs
+     TextLayer writes absolutely-positioned spans with inline styles). */
+  .page-slot :global(.pdf-text-layer) {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    line-height: 1;
+    text-size-adjust: none;
+    forced-color-adjust: none;
+    cursor: text;
+  }
+
+  .page-slot :global(.pdf-text-layer span) {
+    color: transparent;
+    cursor: text;
+    position: absolute;
+    white-space: pre;
+    transform-origin: 0 0;
+  }
+
+  .page-slot :global(.pdf-text-layer ::selection) {
+    background: rgba(76, 139, 245, 0.35);
   }
 
   .pages :global(.pdf-canvas) {

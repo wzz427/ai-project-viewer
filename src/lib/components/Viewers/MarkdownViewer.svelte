@@ -157,6 +157,17 @@
   .rendered :global(th),
   .rendered :global(td) { border: 1px solid var(--border); padding: 4px 10px; font-size: 0.95em; }
   .rendered :global(th) { background: var(--bg); }
+  /* Task lists (owner 2026-10-02): label/input are form controls — the
+     browser gives them a default arrow cursor that does NOT inherit, and
+     pressing a label focuses the checkbox and kills the selection. */
+  .rendered :global(label) {
+    cursor: text;
+  }
+
+  .rendered :global(input[type="checkbox"]) {
+    pointer-events: none;
+  }
+
   .rendered :global(blockquote) {
     margin: 0.6em 0;
     padding: 2px 12px;

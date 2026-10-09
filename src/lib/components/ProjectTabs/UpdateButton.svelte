@@ -80,7 +80,10 @@
 <style>
   .update-btn {
     padding: 3px 10px;
-    margin-left: 6px;
+    /* Far right of the whole top bar (owner 2026-10-02): the + button
+       stays next to the project tabs; auto margin pushes this to the end. */
+    margin-left: auto;
+    align-self: center;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 11px;
