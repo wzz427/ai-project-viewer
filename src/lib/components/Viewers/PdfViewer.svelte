@@ -269,77 +269,80 @@
       const endOfContent = document.createElement("div");
       endOfContent.className = "pdf-end-of-content";
       textLayer.append(endOfContent);
+      // Selection driver (owner 2026-10-09, fourth round): the native drag
+      // wraps its extent — and even its ANCHOR — to the document edges
+      // whenever the pointer crosses text-free blank (pdf.js spans carry no
+      // line boxes; the official viewer exhibits the same wrap). So the
+      // drag is ours end to end: the anchor is pinned at the press point
+      // and every frame the extent is set to the caret of the nearest text
+      // row, clamped into that row. Double/triple clicks and shift-extend
+      // stay native.
       textLayer.addEventListener("mousedown", (e) => {
-        textLayer.classList.add("selecting");
+        if (e.button !== 0 || e.shiftKey || e.detail >= 2) return;
         const el = e.target;
-        if (!(el instanceof HTMLElement) || el.tagName !== "SPAN") {
-          return;
-        }
+        if (!(el instanceof HTMLElement) || el.tagName !== "SPAN") return;
+        textLayer.classList.add("selecting");
         const caretAt = (x: number, y: number): Range | null => {
-          const doc = document as Document & {
+          const d = document as Document & {
             caretRangeFromPoint?: (x: number, y: number) => Range | null;
           };
-          return doc.caretRangeFromPoint?.(x, y) ?? null;
+          return d.caretRangeFromPoint?.(x, y) ?? null;
         };
-        // The hit-padding strips carry no text nodes, so Chromium never
-        // STARTS a selection there ("must aim exactly at the first
-        // character"), and a native drag that runs off the text sideways
-        // lands its extent on the document start — "everything above the
-        // line suddenly selected" (owner 2026-10-09, maximized window).
-        // Drive those two cases ourselves; presses and moves over actual
-        // text keep the native behavior untouched.
-        const r = el.getBoundingClientRect();
-        const padStarted =
-          e.clientX < r.left + 18 || e.clientX > r.right - 18;
-        let anchor: { node: Node; offset: number } | null = null;
-        if (padStarted) {
-          const a = caretAt(
-            Math.min(Math.max(e.clientX, r.left + 22), r.right - 22),
-            e.clientY);
-          if (a) {
-            anchor = { node: a.startContainer, offset: a.startOffset };
-            document.getSelection()?.setBaseAndExtent(
-              anchor.node, anchor.offset, anchor.node, anchor.offset);
-          }
+        // Pin the anchor: clamp the press point into the pressed span's
+        // text zone (the hit-padding strips carry no text nodes, so a
+        // press beside the line must snap onto the line).
+        const pr = el.getBoundingClientRect();
+        const a = caretAt(
+          Math.min(Math.max(e.clientX, pr.left + 22), pr.right - 22),
+          Math.min(Math.max(e.clientY, pr.top + 1), pr.bottom - 1));
+        if (!a) return;
+        const anchorNode = a.startContainer;
+        const anchorOffset = a.startOffset;
+        // Rows across ALL rendered pages (span boxes include the pads), so
+        // a drag that crosses a page boundary keeps extending.
+        interface Row {
+          top: number; bottom: number; left: number; right: number; cy: number;
         }
-        // Clamp driver: while a selection drag is active, re-assert the
-        // selection every animation frame. The native extent update for a
-        // pointer in text-free blank lands on the document start (the
-        // "everything above" wrap) and runs after the pointermove handler,
-        // so a one-shot correction loses — the frame loop wins.
-        let dragging = true;
-        let lastEv: { x: number; y: number } | null = null;
-        const clampAt = (evX: number, evY: number) => {
-          const sel = document.getSelection();
-          if (!sel) return;
-          const base = anchor ?? (sel.anchorNode
-            ? { node: sel.anchorNode, offset: sel.anchorOffset }
-            : null);
-          if (!base) return;
-          // row band under the pointer (span boxes include the pads).
-          // Covers blank INSIDE the page and the maximized-window blank
-          // beside a fit-width-undersized page alike; above/below all
-          // rows keeps the native select-to-page-edge semantics.
-          let rowL = Infinity, rowR = -Infinity, inRow = false;
-          for (const s of textLayer.querySelectorAll("span")) {
-            const sr = s.getBoundingClientRect();
-            if (evY >= sr.top && evY <= sr.bottom) {
-              inRow = true;
-              rowL = Math.min(rowL, sr.left);
-              rowR = Math.max(rowR, sr.right);
+        const rowsNow = (): Row[] => {
+          const rows: Row[] = [];
+          for (const s of document.querySelectorAll<HTMLElement>(
+            ".pdf-text-layer span")) {
+            const r = s.getBoundingClientRect();
+            if (r.width === 0) continue;
+            const cy = r.top + r.height / 2;
+            const row = rows.find((w) => Math.abs(w.cy - cy) < r.height * 0.6);
+            if (row) {
+              row.left = Math.min(row.left, r.left);
+              row.right = Math.max(row.right, r.right);
+              row.top = Math.min(row.top, r.top);
+              row.bottom = Math.max(row.bottom, r.bottom);
+            } else {
+              rows.push({
+                top: r.top, bottom: r.bottom,
+                left: r.left, right: r.right, cy,
+              });
             }
           }
-          if (!inRow) return; // between rows: native
-          if (!anchor && evX >= rowL + 22 && evX <= rowR - 22) {
-            return; // native drag over text: leave it alone
+          return rows;
+        };
+        const clampAt = (x: number, y: number) => {
+          const sel = document.getSelection();
+          const rows = rowsNow();
+          if (!sel || rows.length === 0) return;
+          let row = rows[0];
+          for (const w of rows) {
+            if (Math.abs(w.cy - y) < Math.abs(row.cy - y)) row = w;
           }
-          const cx = Math.min(Math.max(evX, rowL + 22), rowR - 22);
-          const caret = caretAt(cx, evY);
+          const cx = Math.min(Math.max(x, row.left + 22), row.right - 22);
+          const cy = Math.min(Math.max(y, row.top + 1), row.bottom - 1);
+          const caret = caretAt(cx, cy);
           if (caret) {
-            sel.setBaseAndExtent(base.node, base.offset,
-                                 caret.startContainer, caret.startOffset);
+            sel.setBaseAndExtent(anchorNode, anchorOffset,
+              caret.startContainer, caret.startOffset);
           }
         };
+        let dragging = true;
+        let lastEv: { x: number; y: number } | null = null;
         const onMove = (ev: PointerEvent) => {
           lastEv = { x: ev.clientX, y: ev.clientY };
           clampAt(ev.clientX, ev.clientY);
