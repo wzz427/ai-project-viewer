@@ -482,18 +482,38 @@ with sync_playwright() as p:
     probe = os.path.join(PROJECT, "data", "zz-probe-late.txt")
     try:
         before = page.eval_on_selector_all(
-            ".file-tree .row", "els => els.map(e => e.title).filter(t => t.startsWith('data/'))")
+            ".file-tree .row", "els => els.map(e => e.getAttribute('title') || '').filter(t => t.startsWith('data/'))")
         open(probe, "w").write("late")
         tree_row("data").click()   # collapse
         time.sleep(0.3)
         tree_row("data").click()   # re-expand — must re-list from disk
         time.sleep(1.0)
         after = page.eval_on_selector_all(
-            ".file-tree .row", "els => els.map(e => e.title).filter(t => t.startsWith('data/'))")
+            ".file-tree .row", "els => els.map(e => e.getAttribute('title') || '').filter(t => t.startsWith('data/'))")
         check("reexpand_relisa_after_disk_add",
               "data/zz-probe-late.txt" not in before
               and "data/zz-probe-late.txt" in after,
               f"before={before} after={after}")
+
+        # --- 0.6.5: header refresh icon (owner: "Refresh 放到 Settings 的
+        # 左侧,不显示单词") — icon-only, LEFT of ⚙, one click re-lists. ---
+        geo = page.evaluate("""() => {
+          const r = document.querySelector('.sidebar-header .refresh');
+          const s = document.querySelector('.sidebar-header .settings');
+          if (!r || !s) return { ok: false, why: 'button(s) missing' };
+          const a = r.getBoundingClientRect(), b = s.getBoundingClientRect();
+          return { ok: a.right <= b.left + 1 && r.textContent.trim().length <= 2,
+                   x: Math.round(a.right), sx: Math.round(b.left),
+                   glyph: r.textContent.trim() };
+        }""")
+        os.remove(probe)   # disk change WITHOUT touching the folder
+        page.locator('.sidebar-header .refresh').click()
+        time.sleep(1.2)
+        gone = page.eval_on_selector_all(
+            ".file-tree .row", "els => els.map(e => e.getAttribute('title') || '').filter(t => t.startsWith('data/'))")
+        check("header_refresh_icon",
+              bool(geo.get("ok")) and "data/zz-probe-late.txt" not in gone,
+              f"geo={geo} after={gone}")
     finally:
         if os.path.exists(probe):
             os.remove(probe)

@@ -2,9 +2,12 @@
   let {
     mode,
     onModeChange,
+    onRefresh,
   }: {
     mode: "files" | "git" | "settings";
     onModeChange: (mode: "files" | "git" | "settings") => void;
+    /** Active-project tree reload; undefined = no project (button hidden). */
+    onRefresh?: () => void;
   } = $props();
 
   // Owner 2026-10-01: one entry button only. Clicking ⚙ opens Settings;
@@ -14,7 +17,10 @@
   }
 </script>
 
-<!-- V1.5 §8: Files / Git as sidebar header tabs; Settings is an entry, not a tab. -->
+<!-- V1.5 §8: Files / Git as sidebar header tabs; Settings is an entry, not a tab.
+     The refresh icon (owner 2026-10-10) sits LEFT of ⚙, icon-only — the
+     old text button lived buried inside Settings, unreachable when the
+     tree was showing. -->
 <div class="sidebar-header">
   <button
     class="header-tab"
@@ -31,6 +37,16 @@
     Git
   </button>
   <div class="spacer"></div>
+  {#if onRefresh}
+    <button
+      class="header-icon refresh"
+      onclick={onRefresh}
+      title="Refresh"
+      aria-label="Refresh"
+    >
+      ↻
+    </button>
+  {/if}
   <button
     class="header-icon settings"
     class:active={mode === "settings"}

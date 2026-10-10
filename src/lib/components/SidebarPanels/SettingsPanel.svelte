@@ -11,7 +11,6 @@
   import { invoke } from "@tauri-apps/api/core";
   import { activeProject } from "$lib/stores/projectStore.svelte";
   import {
-    refreshProject,
     setFoldersFirst,
     treeState,
   } from "$lib/stores/fileTreeStore.svelte";
@@ -46,12 +45,7 @@
         />
         Folders First
       </label>
-      <div class="row">
-        <button class="refresh" onclick={() => void refreshProject(project.rootPath)}>
-          Refresh
-        </button>
-        <span class="muted hint">Re-read the folders shown in the tree</span>
-      </div>
+      <p class="muted hint">Refresh lives in the sidebar header (↻, next to ⚙).</p>
     </section>
   {/if}
 
@@ -179,17 +173,6 @@
     gap: 6px;
     padding: 2px 0;
     font-size: 12px;
-  }
-
-  .refresh {
-    padding: 3px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 12px;
-  }
-
-  .refresh:hover {
-    background: var(--bg-hover);
   }
 
   .spacer {

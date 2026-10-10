@@ -15,4 +15,4 @@
 | SPEC-INFRA-001 | 体验版客户端与更新机制:开发永远不碰 owner 正在用的程序(更新按钮置灰/高亮/一点更新) | Done | owner 验收通过(2026-10-10;v6→0.4.1 十余轮更新按钮实走,原话"0.4.1 已经过了");冷却后搬 specs/archive/ |
 | SPEC-INFRA-002 | 应用图标:换掉 Tauri 默认 logo(「项目检视」:白文件夹+放大镜) | Done | owner 验收通过(2026-10-10 原话"收口吧";桌面/任务栏显示缓存问题当日已现场修复);冷却后搬 specs/archive/ |
 | SPEC-INFRA-003 | 文本查看器统一操作栏(字号+Find)+ MD 文本铺满 | Done | owner 验收通过(2026-10-10 原话"收口吧");两轮返工全记录在本 SPEC(上限删除翻案/工具栏同高/断言对齐原话);冷却后搬 specs/archive/ |
-| spec-006 | Phase 6 Handoff:右键移交外部工具(记事本/VS Code/资源管理器/浏览器/复制路径) | InTest | **0.6.4 已发等 owner 复验**(两轮返修:0.6.3 高亮/定位/菜单钳制+隔离红线;0.6.4 树重展开重读+publish 基建事故 L27;清单 spec §六);过则 Done→Phase 7(Git Review,§181) |
+| spec-006 | Phase 6 Handoff:右键移交外部工具(记事本/VS Code/资源管理器/浏览器/复制路径) | InTest | **0.6.5 已发等 owner 复验**(三轮返修:0.6.3 高亮/定位/菜单钳制+隔离红线;0.6.4 树重展开重读+publish 基建 L27;0.6.5 Refresh 图标入侧栏头部;清单 spec §六);过则 Done→Phase 7(Git Review,§181) |
