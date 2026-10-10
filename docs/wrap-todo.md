@@ -6,9 +6,8 @@
 > 三选一没有第四种——**清单是个没有去处的箱子,东西过夜 = 埋坑**。
 > owner 一开口给新活 → 先干新活,清单往后排(但给去处不能省)。
 
-## 当前清单(2026-10-01 · Phase 1 wrap)
+## 当前清单
 
 | 执行项 | 状态 |
 |---|---|
-| 1. handoff 整批蒸馏(451 行超阈值):把 §一 里 **0.6.2–0.6.8 已完结各轮**(spec-006 系列+spec-007 两轮,验收原话保留在各自 SPEC §六)压缩成一段进 `docs/history/progress-2026-10.md`(新建,登记进 history/INDEX.md);handoff 留 0.6.9 起条目+〇/二/三区不动 | 待执行 |
-| 2. 清掉 e2e 残留:`%APPDATA%\com.aiprojectviewer.app\diagnostics\` 下 e2e 产生的 aiv-diagnostics-*.txt 两个文件(开发侧产物,留着无害但属测试垃圾) | 待执行 |
+| (空——2026-10-11 两项已执行完:handoff 整批蒸馏进 docs/history/progress/progress-2026-10.md;e2e 残留诊断文件 4 个已清) | — |
