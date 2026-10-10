@@ -79,9 +79,25 @@ def park_offscreen(hwnd):
     _USER32.ShowWindow(hwnd, 4)  # SW_SHOWNOACTIVATE
 
 
+def _assert_dev_binary(exe):
+    """Refuse to launch an EXPERIENCE build (identifier .exp): publishing
+    used to overwrite target\\release with the exp binary, which then
+    single-instance handed off to the owner's RUNNING client and died in
+    ~100ms (2026-10-10). A quick byte-scan makes that class impossible to
+    miss again."""
+    with open(exe, "rb") as f:
+        blob = f.read()
+    if b"com.aiprojectviewer.app.exp" in blob:
+        raise RuntimeError(
+            f"{exe} is an EXPERIENCE build (exp identifier embedded) — "
+            "rebuild the dev binary (pnpm tauri build --no-bundle); "
+            "publishing now outputs to src-tauri/target-exp.")
+
+
 def launch(exe, project, state, cdp, hidden=True, stdout=None):
     """Standard test launch: straggler sweep (repo tree only), fresh state
     file, env for zero-foreground + CDP. Returns the Popen handle."""
+    _assert_dev_binary(exe)
     kill_strays()
     if os.path.exists(state):
         os.remove(state)

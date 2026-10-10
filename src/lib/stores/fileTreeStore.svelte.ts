@@ -140,9 +140,16 @@ async function loadDir(rootPath: string, relDir: string, force: boolean) {
   }
 }
 
-/** Initial load of the project root (the only automatic listing, §27). */
+/**
+ * Load/reload the project root. Forced: this runs on first mount AND on
+ * every project-tab switch — a cached root would keep new top-level
+ * files/folders invisible for the whole session (same bug class as the
+ * re-expand staleness, owner 2026-10-10 "folder still empty"). Live
+ * watching stays Phase 9; forcing on natural "look again" moments is the
+ * V1-priced fix.
+ */
 export async function loadRoot(rootPath: string) {
-  await loadDir(rootPath, TREE_ROOT, false);
+  await loadDir(rootPath, TREE_ROOT, true);
 }
 
 /**
@@ -183,7 +190,12 @@ export async function toggleExpand(rootPath: string, relDir: string) {
     st.expandedFolders.splice(idx, 1);
     return;
   }
-  await loadDir(rootPath, relDir, false);
+  // FORCED re-list on every expand (owner 2026-10-10 "folder still empty"):
+  // the cache short-circuit made collapse+re-expand serve a stale listing
+  // forever — an empty folder could never recover within a session. One
+  // IPC per expand is the same price as the first expand; the Phase 9
+  // watcher will replace these "look again" reloads with push updates.
+  await loadDir(rootPath, relDir, true);
   if (!st.loadErrors[relDir]) {
     st.expandedFolders.push(relDir);
   }

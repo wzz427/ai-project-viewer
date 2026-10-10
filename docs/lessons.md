@@ -217,3 +217,12 @@
 - **判据(全部 e2e 脚本硬规矩,已抽 `scripts/e2e/aivlaunch.py` 单一真源)**:①杀进程只按 PID(taskkill /T /PID),清扫残留只匹配 **ExecutablePath 在本仓库 target 树内**的进程;②找窗口只按 **EnumWindows+GetWindowThreadProcessId==自己 PID**;③测试态 AIV_STATE_FILE 独立文件(已有);④发布只写 updates 目录(已有)。
 - **附带发现**:测试期间 owner 客户端被杀过(0.6.2 复验轮前后),当时未察觉——**"零打扰"不光指不抢前台,还包括不动 owner 的进程与窗口**;零打扰的定义扩入 testing.md §1.2。
 - **出处**:owner 复验 0.6.2 三件反馈之第三件,2026-10-10。
+
+### L27:发版产物绝不可落进开发/e2e 的二进制路径;测试启动器要识别"错误渠道的二进制"
+
+- **症状**(2026-10-10 晚):owner 报"文件夹新增文件仍显示为空",复现脚本里测试实例 **111ms 秒退(exit 0)**;排查发现 publish-experience 把 experience 构建直接产到 `target\release\ai-project-viewer.exe`——发版后该文件是 **.exp 标识**二进制,与 owner 正在运行的客户端同标识 → single-instance 移交给他的客户端后自退;他的客户端没开时更糟:e2e **静默测错渠道**。
+- **判据①**:一个目录只装一个渠道的二进制——publish 改走独立 `src-tauri\target-exp\`(CARGO_TARGET_DIR),`target\release` 永远是 dev 构建。
+- **判据②**:测试启动器(aivlaunch)启动前**字节扫标识**,发现 exp 二进制立即拒绝并指路重建——"秒退/起不来"这类症状先怀疑二进制本身不对。
+- **判据③**:发布流程改完必须当场反向验证(发版后 target\release 仍为 dev 标识),不能等下次撞上。
+- **连带修复**(本次报障的真因):`loadDir` 缓存短路使**折叠再展开永远读旧缓存**,空文件夹整场会话翻不了身(owner"仍然是空的")→ toggleExpand/loadRoot 改强制重读;新顶层目录仍需 Refresh/切项目(实时监听=Phase 9,Phase 7 加切换/聚焦刷新)。phase3 增 `reexpand_relisa_after_disk_add`。
+- **出处**:owner 复验 0.6.3 时报"文件夹里增加了文件,仍然是空的",2026-10-10。

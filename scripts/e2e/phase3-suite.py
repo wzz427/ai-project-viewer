@@ -474,5 +474,29 @@ with sync_playwright() as p:
     }""")
     check("menu_clamped_to_viewport", bool(clamped.get("ok")), str(clamped))
 
+    # --- 0.6.4: re-expand re-lists (owner: "文件夹里增加了文件,仍然是空的") ---
+    # The old cache short-circuit made collapse+re-expand serve the stale
+    # listing forever. Uses the EXISTING data/ folder (expanded earlier in
+    # this run) — a folder created mid-session wouldn't be in the root
+    # listing at all (that's Refresh/Phase-9-watcher territory).
+    probe = os.path.join(PROJECT, "data", "zz-probe-late.txt")
+    try:
+        before = page.eval_on_selector_all(
+            ".file-tree .row", "els => els.map(e => e.title).filter(t => t.startsWith('data/'))")
+        open(probe, "w").write("late")
+        tree_row("data").click()   # collapse
+        time.sleep(0.3)
+        tree_row("data").click()   # re-expand — must re-list from disk
+        time.sleep(1.0)
+        after = page.eval_on_selector_all(
+            ".file-tree .row", "els => els.map(e => e.title).filter(t => t.startsWith('data/'))")
+        check("reexpand_relisa_after_disk_add",
+              "data/zz-probe-late.txt" not in before
+              and "data/zz-probe-late.txt" in after,
+              f"before={before} after={after}")
+    finally:
+        if os.path.exists(probe):
+            os.remove(probe)
+
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

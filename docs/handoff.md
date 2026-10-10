@@ -11,10 +11,19 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-006(Phase 6 HANDOFF)InTest 等 owner 复验(0.6.3)**:0.6.2 三件反馈已返修再发(树高亮跟随激活页签+自动展开定位/右键菜单钳制/测试隔离红线),owner 点 Update 后验 0.6.3 三修 + 上轮移交条目(清单 spec §六)。**过则 spec-006 转 Done → 下一需求 = Phase 7 Git Review(V1.5 §181)立 spec-007;发版固定 0.6.x 递增(下一发 0.6.4),不跳段。**
+主线 = **spec-006 InTest 等 owner 复验(0.6.4)**:0.6.3 三修 + 0.6.4 树不刷新修复(重展开即重读;新顶层目录仍需 Refresh/切项目,实时监听 Phase 9)都已发;owner 点 Update 后一并验。**过则 spec-006 转 Done → Phase 7 Git Review(§181)立 spec-007;下一发 0.6.5。**另有发版基建修复(publish 独立 target-exp,aivlaunch 拒 exp 二进制,lessons L27)。
 遗留小披露(见下条):owner 记事本里留了一个 AIV-TestProject 的 README.md 标签(真机轮所开,手动关即可);教训 L25 已入档(真机轮价值/单实例应用验证法/全局按键红线/phase3 STATE 路径 BEL 事故)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 晚 · 0.6.4:树不刷新真因(重展开吃缓存)+ 发版覆盖 dev 二进制的基建事故
+
+> **下一步从哪接** —— owner 点 Update(0.6.4)验:往文件夹里加文件 → 收起该文件夹再展开 → 新文件出现(空文件夹同法自救);连同 0.6.3 三修与移交条目一起过 → spec-006 Done → Phase 7。**边界要说明**:新建的顶层文件夹仍需 Settings→Refresh 或切项目后才出现(实时监听=Phase 9;§181 的切换/聚焦刷新随 Phase 7)。
+
+- 根因:`loadDir` 的 `!force && children[dir]` 短路使**折叠再展开永远不读盘**,空文件夹整场会话翻不了身;修=toggleExpand 展开路径与 loadRoot 全部强制重读(每次展开一次 IPC,与首次同价);phase3 增 `reexpand_relisa_after_disk_add` 42/42。
+- **基建事故(lessons L27)**:publish 把 exp 二进制产到 targetelease → 复现时测试实例 111ms 秒退(single-instance 移交给 owner 正在用的客户端);owner 客户端没开时 e2e 会静默测错渠道。修=publish 走独立 `target-exp`,aivlaunch 启动前字节扫标识拒发 exp,发版后当场反向验证(dev 标识完好 ✓)。
+- 全档:phase3 42/42、r3 8/8、pdf 19/19、vitest 19/19、check 0/0;0.6.4 已发(新 publish 路径首跑)。
+
 
 ### 2026-10-10 · 0.6.3 返修:树高亮跟随激活页签+自动展开定位;菜单钳制;测试隔离红线
 

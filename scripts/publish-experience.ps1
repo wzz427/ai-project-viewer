@@ -17,15 +17,23 @@ $conf = Get-Content (Join-Path $root "src-tauri\tauri.conf.json") -Raw | Convert
 $version = $conf.version
 if (-not $version) { throw "no version in tauri.conf.json" }
 
+# Owner isolation (2026-10-10 lesson): the experience build MUST NOT land
+# in target\release — that file is the dev/e2e binary. An exp-identifier
+# exe there single-instance hands off to the owner's RUNNING client (the
+# test instance dies in ~100ms), or worse: e2e silently tests the wrong
+# channel. A separate cargo target dir keeps both trees honest.
+$env:CARGO_TARGET_DIR = Join-Path $root "src-tauri\target-exp"
 Push-Location $root
 pnpm tauri build --config src-tauri/experience.conf.json --no-bundle
 if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
 Pop-Location
+Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
 
 $updates = Join-Path $env:LOCALAPPDATA "AIProjectViewer\updates"
 New-Item -ItemType Directory -Force -Path $updates | Out-Null
-Copy-Item (Join-Path $root "src-tauri\target\release\ai-project-viewer.exe") `
-          (Join-Path $updates "ai-project-viewer.exe") -Force
+$expExe = Join-Path $root "src-tauri\target-exp\release\ai-project-viewer.exe"
+if (-not (Test-Path $expExe)) { throw "experience exe not found at $expExe" }
+Copy-Item $expExe (Join-Path $updates "ai-project-viewer.exe") -Force
 
 $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
 $json = @{ note = "[$version | $stamp] $Note" } | ConvertTo-Json
