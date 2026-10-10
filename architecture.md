@@ -97,16 +97,17 @@ ProjectViewer/(仓库根)
 │       ├── components/SidebarHeader/(Files/Git[徽标 §9]/⚙/↻)
 │       ├── components/FileTree/(FileTree 宿主 / TreeItem 递归行 / NodeContextMenu Pin 右键)
 │       ├── components/ProjectTabs/FileTabs.svelte(主区文件标签条)
-│       ├── components/Viewers/(ActiveViewer 路由 / MarkdownViewer / CodeViewer+codeLanguages+codeSearchRegistry / JsonViewer / ImageViewer / **PdfViewer(Phase 5:pdfjs legacy+工具栏+虚拟化+切离释放)** / **DiffViewer(Phase 7:side-by-side 并排 diff 单槽视图,0.6.8 返修:双栏行号+路径列头+红绿对置+空侧斜纹+折叠计数条,parseUnifiedDiff 纯解析(D16);§72 超限 Open in VS Code,Esc/× 关)** / **CommitDetailView(0.6.8 返修:提交详情单槽——Message/作者/日期/Hash/文件列表,文件点入提交视角 diff)** / UnsupportedViewer / **ViewerToolbar+activeFind(0.6:文本类统一操作栏=全局字号+Find;Ctrl+F 注册表)** / **ExecutableInfoViewer(Phase 8:§122 exe 信息卡=stat 纯字段,无内容缓冲)**)
+│       ├── components/Viewers/(ActiveViewer 路由 / MarkdownViewer / CodeViewer+codeLanguages+codeSearchRegistry / JsonViewer / ImageViewer / **PdfViewer(Phase 5:pdfjs legacy+工具栏+虚拟化+切离释放)** / **DiffViewer(Phase 7:side-by-side 并排 diff 单槽视图,0.6.8 返修:双栏行号+路径列头+红绿对置+空侧斜纹+折叠计数条,parseUnifiedDiff 纯解析(D16);§72 超限 Open in VS Code,Esc/× 关)** / **CommitDetailView(0.6.8 返修:提交详情单槽——Message/作者/日期/Hash/文件列表,文件点入提交视角 diff)** / UnsupportedViewer / **ViewerToolbar+activeFind(0.6:文本类统一操作栏=全局字号+Find;Ctrl+F 注册表)** / **ExecutableInfoViewer(Phase 8:§122 exe 信息卡=stat 纯字段,无内容缓冲)** / **ErrorDialog(0.6.13:窗口正中单槽错误弹窗=Run 失败醒目反馈,§119 修订;Esc/OK/背板关)**)
 │       ├── components/SidebarPanels/(Files=路径框+FileTree / **Git=Phase 7 面板(§50 分支行↑↓/子目录 Repository+Scope 盒/CHANGES+STAGED+RECENT COMMITS/§152/§153 三空态)** / Settings)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案)
 │       ├── components/Toast/(单槽 toast)
 │       ├── stores/projectStore.svelte.ts(项目列表+去重+增删+每项目 sidebarMode/Width;会话字段,持久化走 appState)
 │       ├── stores/settingsStore.svelte.ts(AppSettings:theme/fontSize/全局 showSystemFolders;Phase 4 起持久化)
-│       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据)
+│       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据;0.6.12 增 600 条运行日志环——全局 error/rejection+boot/tab/viewer/project/git-view 事件,Settings Export Diagnostics 经 Rust write_diagnostics 落盘 app_config_dir/diagnostics;0.6.13 §164 增量:面板只留导出按钮,读数进报告)
 │       ├── stores/toastStore.svelte.ts
 │       ├── stores/fileTreeStore.svelte.ts(每项目树态:expanded/pinned/foldersFirst,相对路径身份;恢复入口 restoreTreeState/restoreExpandedFolders;0.6.4+:展开/重展开/根一律强制重读,revealInTree 自动展开祖先链)
 │       ├── stores/tabsStore.svelte.ts(每项目 FileTabState+内容缓存(SvelteMap——$state 深代理不包 Map,lessons L13);恢复入口 restoreTabs/ensureContentLoaded;激活/切换文件时 closeDiff 让位 diff 视图)
+│       ├── stores/errorDialogStore.svelte.ts(0.6.13:居中错误弹窗单槽)/
 │       ├── stores/gitStore.svelte.ts(Phase 7 运行时 git 态,§20 零持久化:每项目快照+marks 缓存;refreshGit 400ms 防抖/refreshGitNow 启动直取(隐藏窗口 timer 冻结,lessons L28);单槽 gitViewSlot(diff/commit 两态,0.6.8 返修;Git 视图接管主区时 App 隐藏 FileTabs);forgetGit 随项目移除)
 │       ├── services/appState.ts(持久化纯函数:白名单序列化+自愈解析)+ sessionRestore.svelte.ts(启动恢复编排:resolve 校验,失效项目跳过)+ stateSync.svelte.ts($effect.root 防抖 800ms 保存+pagehide flush)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
@@ -134,7 +135,7 @@ ProjectViewer/(仓库根)
 | 顶栏标签 UI / 右键菜单 | src/lib/components/ProjectTabs/ProjectTabs.svelte |
 | 右键移交条目(树/页签/项目,§135–141 分型唯一真源) | src/lib/services/handoffMenu.ts(菜单构建+剪贴板)+ src-tauri/src/handoff.rs(命令) |
 | 侧栏 Files/Git/Settings(含头部 ↻ Refresh 图标,0.6.5/0.6.6) | src/lib/components/SidebarHeader + SidebarPanels |
-| 运行脚本/程序+项目信任(Phase 8) | src-tauri/src/run.rs(运行层) + projectStore.trustedForExecution(§129 门,前端 UX 门+Rust 扩展名/路径围栏) + handoffMenu.runWithTrust(§128 确认框+§119 toast) + ExecutableInfoViewer |
+| 运行脚本/程序+项目信任(Phase 8) | src-tauri/src/run.rs(运行层) + projectStore.trustedForExecution(§129 门,前端 UX 门+Rust 扩展名/路径围栏) + handoffMenu.runWithTrust(§128 确认框+§119:成功静默/失败居中弹窗) + ExecutableInfoViewer + ErrorDialog |
 | Git 只读检视(徽标/页签 ✓●/树标记/Git 面板/并排 diff/提交详情/刷新触发,Phase 7+0.6.8 返修) | src-tauri/src/git.rs(命令+解析) + src/lib/stores/gitStore.svelte.ts(态+防抖) + gitFormat.ts/diffSideBySide.ts(纯函数) + GitPanel(0.6.8 照 VS Code 重排:分段文件名/计数徽章/提交图形列)/DiffViewer/CommitDetailView 组件 |
 | 主题/外观 tokens | src/app.css + stores/settingsStore.svelte.ts |
 | 快捷键拦截/新组合注册 | src/lib/services/shortcuts.ts(禁用浏览器加速键在 src-tauri/src/lib.rs) |

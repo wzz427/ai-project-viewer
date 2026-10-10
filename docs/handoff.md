@@ -11,7 +11,7 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-008 InTest 返修已发 0.6.13,等 owner 复验**;**未结大案:内容区冻结 bug(owner 报"切换任何页签内容都不变",本机三路复刻未现)——已装诊断导出等 owner 触发时取证**:项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
+主线 = **spec-008 InTest 返修已发 0.6.13,等 owner 复验**;**未结大案:内容区冻结 bug(owner 报"切换任何页签内容都不变",本机三路复刻未现)——已装诊断导出等 owner 触发时取证(导出文件:%APPDATA% 下各标识符目录的 diagnosticsiv-diagnostics-<ts>.txt,owner 侧=com.aiprojectviewer.app.exp)**:项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
 复验要点:右键项目标签 → Trust Project for Execution → 右键 hello.ps1(hello.bat)→ Run Script → 弹**可见控制台**(Win11=Windows Terminal 窗口),输出可读、跑完窗口留着;右键 demo.exe → Run;左键 demo.exe → 信息卡;右键项目标签 → Untrust 还原。过 → spec-008 Done → Phase 9(Watcher,§183,发版 0.6.10 起)。
 遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L30 在档。
 
