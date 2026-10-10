@@ -17,6 +17,10 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-10 · 桌面版 AI-Project-Guide 补测试章(owner 指令;仓库副本未动)
+
+> owner 要求评估指南测试篇充分性→结论"骨架对、操作层缺"→ 经点头写入**桌面主本**(C:/Users/wzzpk/Desktop/AI-Project-Guide):03-testing.md 新增 **§三 交互类验证与测试装置**(输入分层 L1–L4/升权规则"第二次验证过但 owner 说不行→先修装置"/装置排查清单四条/oracle 上游分诊/资产纪律+零打扰铁律),原三四五顺延四五六;templates/testing.md 加 §0b 镜像占位;00-doc-map §五引用改 §六;README 描述更新。仓库 docs/AI-Project-Guide/ 归另一会话,零改动。
+
 ### 2026-10-10 · testing.md 整体重写 + 脚本全量入库(owner 指令"不能用临时的")
 
 > 在昨日正典化基础上做彻底:testing.md **全文重写**为"手册区 §0–§3(档位/环境/零打扰规程/脚本清单)+ 历史账本 §4(按 Phase 重组,旧 %TEMP% 脚本名全部标注'现行对应/未存档规格')";脚本侧新增 **phase3-suite**(自启动外壳补齐后 17 项全过)、**make-fixtures.py**(夹具生成器重建,扫描件 14MB 达标)、real-input-battery 换前台守卫双模式版;pdf-suite/acceptance-r3 从仓库路径复跑 19/19、8/8 验证。四个已蒸发的历史基建工具(cdp 注入/picker/confirm/shot)在 testing.md §3 记录能力去向与重建配方。
