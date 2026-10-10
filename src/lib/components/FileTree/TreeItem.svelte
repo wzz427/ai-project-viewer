@@ -143,6 +143,12 @@
   ondrop={onDrop}
   title={rel}
 >
+  <!-- VS Code-style indent guides: one vertical line per ancestor level,
+       aligned with that level's chevron — without them file depth is
+       only guessable by eye (owner 2026-10-10). -->
+  {#each Array(depth) as _, i (i)}
+    <span class="indent-guide" style="left: {8 + i * 14 + 6}px"></span>
+  {/each}
   {#if entry.isDir}
     <span class="chevron" class:faded={emptyDir} class:open={expanded}>▸</span>
   {:else}
@@ -194,6 +200,16 @@
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
+    position: relative;
+  }
+
+  .indent-guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+    pointer-events: none;
   }
 
   .row:hover {

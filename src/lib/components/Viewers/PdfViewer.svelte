@@ -165,6 +165,19 @@
     refit();
   });
 
+  // Window resizes must re-run fit-width/fit-page. The DOM 'resize' event
+  // never fires on elements, so an onresize attribute on the scroller is
+  // dead code — watch the scroller box instead (owner 2026-10-10: PDF
+  // opened in a smaller window kept its stale fit after maximizing,
+  // leaving a wide blank beside the page).
+  $effect(() => {
+    const el = scroller;
+    if (!el) return;
+    const obs = new ResizeObserver(() => refit());
+    obs.observe(el);
+    return () => obs.disconnect();
+  });
+
   function setZoomMode(mode: "fit-width" | "fit-page") {
     zoomMode = mode;
     keepPageAnchored(() => refit());
@@ -577,7 +590,6 @@
     bind:this={scroller}
     onscroll={onScroll}
     onwheel={onWheel}
-    onresize={() => refit()}
   >
     {#if loadError}
       <div class="message error">Cannot render PDF: {loadError}</div>
