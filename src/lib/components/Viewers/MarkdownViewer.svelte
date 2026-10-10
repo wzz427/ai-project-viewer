@@ -163,7 +163,6 @@
   .source-host {
     flex: 1;
     min-height: 0;
-    padding-top: 8px;
   }
 
   .rendered {
@@ -171,11 +170,10 @@
     min-height: 0;
     overflow-y: auto;
     padding: 16px 24px 48px 24px;
-    max-width: 860px;
-    /* Center the reading column: an 860px cap flush against the left edge
-       reads as a layout bug on a maximized window (owner 2026-10-10) —
-       the cap stays (readability), the leftover space splits evenly. */
-    margin: 0 auto;
+    /* No max-width cap (owner 2026-10-10 round 2): an 860px column leaves
+       an obviously blank band beside the text on a wide window — centered
+       or not. The text area fills the viewer; readability is the reader's
+       call via the toolbar font size. */
     line-height: 1.65;
     font-size: var(--viewer-font-size);
   }

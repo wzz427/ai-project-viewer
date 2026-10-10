@@ -29,3 +29,10 @@
 ## 三、测试
 
 phase3-suite 增 4 项(R1×2/R4/R5 之外的 resize 守卫):工具栏字号、MD Find、代码 Find、MD 居中;另加**"视口拉宽后跨类型切页签"守卫用例**(本轮 owner 报障的教训,防同类回归)。跑:vitest + svelte-check + phase3-suite + acceptance-r3;Rust 未动(cargo 随构建)。
+
+## 四、复验返工记录(2026-10-10 15:10,owner 二轮反馈)
+
+- **R4 判定翻案**:860px 上限+居中(owner 原话"空白还是很明显")→ **上限删除,文本铺满文本区**;断言同步改为对着 owner 原话:`md_text_fills_area`(无 max-width 且最宽文本块 ≥ 文本区宽-80)。
+- **新增 R6(工具栏对齐)**:code-host/.host/.source-host 的 8px 垫高删除,所有查看器操作栏同一 y、同一高;断言 `toolbar_aligned_md_vs_code`(MD 与代码工具栏 y/高差 ≤1px)。
+- **D7(版本规则修订,owner 2026-10-10 立规)**:**版本固定 0.6.x 递增(0.6.1 起),不随需求跳段**,直到 owner 另有指令——修订 SPEC-INFRA-001 的"一需求一段"规则;本 SPEC 因此未占用新段号。
+- 回归:phase3 26/26(新增 2 断言)、r3 8/8;0.6.1 已发。

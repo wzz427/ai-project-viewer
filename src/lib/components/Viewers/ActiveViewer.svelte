@@ -67,7 +67,6 @@
 <style>
   .code-host {
     height: 100%;
-    padding: 8px 0;
   }
 
   .loading {

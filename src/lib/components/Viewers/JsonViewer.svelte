@@ -53,7 +53,6 @@
   .host {
     flex: 1;
     min-height: 0;
-    padding-top: 8px;
   }
 
   .note {

@@ -258,8 +258,28 @@ with sync_playwright() as p:
           any("/" in t for t in md_find["labels"]) and md_find["sel"] == word,
           f"word={word!r} labels={md_find['labels']} sel={md_find['sel']!r}")
 
+    # owner 2026-10-10: toolbars must sit at the SAME height in every viewer
+    # (the old .code-host/.host/.source-host 8px paddings pushed code/json
+    # toolbars down — MD's was flush). Measure MD's BEFORE switching away
+    # (inactive viewers unmount), then compare against the code viewer's.
+    md_tb = page.evaluate(r"""() => {
+      const el = document.querySelector('.markdown-viewer .vtb');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { y: Math.round(r.y), h: Math.round(r.height) };
+    }""")
     open_file("main.py")
     check("code_toolbar_present", page.locator(".code-viewer .vtb").count() == 1)
+    code_tb = page.evaluate(r"""() => {
+      const el = document.querySelector('.code-viewer .vtb');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { y: Math.round(r.y), h: Math.round(r.height) };
+    }""")
+    check("toolbar_aligned_md_vs_code",
+          md_tb and code_tb and abs(md_tb["y"] - code_tb["y"]) <= 1
+          and abs(md_tb["h"] - code_tb["h"]) <= 1,
+          f"md={md_tb} code={code_tb}")
     code_find = page.evaluate(r"""async () => {
       const inp = document.querySelector('.code-viewer .vtb .search');
       const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -278,14 +298,25 @@ with sync_playwright() as p:
     cdp.send("Emulation.setDeviceMetricsOverride",
              {"width": 1600, "height": 900, "deviceScaleFactor": 1, "mobile": False})
     time.sleep(0.8)
-    centered = page.evaluate(r"""() => {
+    # owner 2026-10-10 round 2: "MD 右侧空白还是很明显" — assert against the
+    # OWNER's words (no big blank band), not against a fix's own invention:
+    # the reading column must have no max-width cap and a long paragraph
+    # must reach across the text area.
+    fills = page.evaluate(r"""() => {
       const el = document.querySelector('.markdown-viewer .rendered');
-      if (!el) return false;
-      const p = el.parentElement.getBoundingClientRect();
-      const r = el.getBoundingClientRect();
-      return Math.abs((r.left - p.left) - (p.right - r.right)) <= 2;
+      if (!el) return { ok: false, why: 'no .rendered' };
+      const cap = getComputedStyle(el).maxWidth;
+      const parentW = el.parentElement.getBoundingClientRect().width;
+      const blocks = [...el.querySelectorAll('p, li, h1, h2, h3, h4, pre')]
+        .filter(x => (x.innerText || '').trim().length > 30);
+      const pw = blocks.length
+        ? Math.round(Math.max(...blocks.map(b => b.getBoundingClientRect().width)))
+        : -1;
+      return { cap, pw, parentW: Math.round(parentW),
+               ok: cap === 'none' && pw >= parentW - 80 };
     }""")
-    check("md_reading_column_centered", bool(centered))
+    check("md_text_fills_area", bool(fills["ok"]),
+          f"cap={fills['cap']} paraW={fills['pw']} parentW={fills['parentW']}")
     open_file("metrics.json")
     ok_json = page.locator(".code-viewer").count() == 1
     open_file("README.md")
