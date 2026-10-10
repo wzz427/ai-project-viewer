@@ -95,3 +95,4 @@
 | 2026-10-10 | InTest 复验返修一轮(0.6.3 已发):①树高亮唯一真源=激活页签(旧 selectedRelPath 点击态与页签走岔,owner 报"两处高亮不一致"——删除该状态,TreeItem 派生 activeRelOf);②activateFile/addOrActivate/cycleTab 挂 revealInTree(VS Code:展开祖先+FileTree 滚动定位,revealTarget 一次性);③三右键菜单 clampMenu 视口钳制(底部裁切);④e2e 隔离红线落地 aivlaunch.py(L26:绝不按名杀进程/绝不按标题找窗)。phase3 41/41(新增 3 断言对 owner 原话)+r3 8/8+pdf 19/19+cargo 63/63+vitest 19/19+check 0/0 |
 | 2026-10-10 | InTest 返修二轮(0.6.4):真因=loadDir 缓存短路(重展开永不读盘,空文件夹整场会话无法自救)→ toggleExpand/loadRoot 强制重读;排查途中揪出发版基建事故(publish 覆盖 target\release 为 exp 二进制→测试实例单实例移交秒退/静默测错渠道,lessons L27)→ publish 独立 target-exp + aivlaunch 拒 exp 守卫;phase3 42/42(reexpand_relisa_after_disk_add 对 owner 原话);边界:新顶层目录仍需 Refresh/切项目(Phase 7/9) |
 | 2026-10-10 | InTest 返修三轮(0.6.5):Refresh 迁侧栏头部 ⚙ 左侧图标按钮(无文字,owner 指令),Settings 文字版撤销;phase3 43/43(header_refresh_icon) |
+| 2026-10-10 | InTest 返修四轮(0.6.6):Refresh 点击必有可见反馈——图标旋转≥600ms+aria-busy+忙碌防连点(owner'点击时应有明显效果');phase3 44/44(refresh_click_feedback) |

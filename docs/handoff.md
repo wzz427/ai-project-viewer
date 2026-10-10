@@ -11,17 +11,26 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-006 InTest 等 owner 复验(0.6.5)**:0.6.3 三修+0.6.4 树重展开重读+0.6.5 Refresh 图标(侧栏 ⚙ 左侧 ↻,无文字)都已发;owner 点 Update 后一并验。**过则 spec-006 转 Done → Phase 7 Git Review(§181)立 spec-007;下一发 0.6.6。**发版基建已修(publish 独立 target-exp,aivlaunch 拒 exp 二进制,L27)。
+主线 = **spec-006 InTest 等 owner 复验(0.6.6)**:0.6.3 三修+0.6.4 树重展开重读+0.6.5 Refresh 图标+0.6.6 点击反馈(图标旋转≥600ms)都已发;owner 点 Update 后一并验。**过则 spec-006 转 Done → Phase 7 Git Review(§181)立 spec-007;下一发 0.6.7。**发版基建已修(publish 独立 target-exp,aivlaunch 拒 exp 二进制,L27)。
 遗留小披露(见下条):owner 记事本里留了一个 AIV-TestProject 的 README.md 标签(真机轮所开,手动关即可);教训 L25 已入档(真机轮价值/单实例应用验证法/全局按键红线/phase3 STATE 路径 BEL 事故)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 晚 · 0.6.6:Refresh 点击反馈(图标旋转)
+
+> **下一步从哪接** —— owner 点 Update(0.6.6)验:点 ↻ 图标立即旋转约一秒后停(树已最新时也有反馈);连同 0.6.3–0.6.5 各修一并过 → spec-006 Done → Phase 7。
+
+- owner 原话"就算是目前文件数已最新,点击时也应有明显效果"→ SidebarHeader 刷新按钮加旋转动画(SidebarHeader.svelte:spinning 态+600ms 保底+aria-busy,忙碌期忽略连点);App 传 Promise 版 onRefresh。
+- phase3 44/44(refresh_click_feedback:点击中 animationName≠none+aria-busy=true,~1.2s 后归零);r3 8/8+pdf 19/19+vitest 19/19+check 0/0;发版后核 dev 二进制完好 ✓。
+
 
 ### 2026-10-10 晚 · 0.6.5:Refresh 图标迁至侧栏头部(⚙ 左侧,无文字)
 
 > **下一步从哪接** —— owner 点 Update(0.6.5)验:侧栏 Files/Git 行最右、⚙ 左边有 ↻ 图标,点一下树即重读(加文件后不用收起展开);Settings 里原文字按钮已撤。连同 0.6.3/0.6.4 各修一并过 → spec-006 Done → Phase 7。
 
 - owner 指令原话"把这个 Refresh 放到 Settings 的左侧,但不用显示这个单词,做一个 Refresh 的符号"→ SidebarHeader 增图标按钮(onRefresh 可选,无项目时隐藏),SettingsPanel 撤文字版留指路提示。
-- phase3 43/43(header_refresh_icon:几何断言图标在 ⚙ 左+一次点击即刷新出/消失探针文件);r3 8/8+pdf 19/19+vitest 19/19+check 0/0;发版后核 targetelease 仍为 dev 标识 ✓。
+- phase3 43/43(header_refresh_icon:几何断言图标在 ⚙ 左+一次点击即刷新出/消失探针文件);r3 8/8+pdf 19/19+vitest 19/19+check 0/0;发版后核 target
+elease 仍为 dev 标识 ✓。
 - 插曲:本轮 suite 排查被自己手误拖累(补丁把 startsWith 写成小写 startswith,grep 大小写敏感没发现,错误信息里 lowercase 其实是原文)——小教训:报错原文逐字符读,别脑补大小写。
 
 

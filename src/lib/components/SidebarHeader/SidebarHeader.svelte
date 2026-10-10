@@ -6,14 +6,32 @@
   }: {
     mode: "files" | "git" | "settings";
     onModeChange: (mode: "files" | "git" | "settings") => void;
-    /** Active-project tree reload; undefined = no project (button hidden). */
-    onRefresh?: () => void;
+    /** Active-project tree reload; undefined = no project (button hidden).
+     *  Returns the in-flight promise so the button can spin until done. */
+    onRefresh?: () => Promise<void>;
   } = $props();
 
   // Owner 2026-10-01: one entry button only. Clicking ⚙ opens Settings;
   // clicking it again returns to the Files tree.
   function toggleSettings() {
     onModeChange(mode === "settings" ? "files" : "settings");
+  }
+
+  // Owner 2026-10-10: a refresh click must ALWAYS be visible, even when
+  // the tree is already current — the icon spins for at least 600ms.
+  // Rapid clicks while busy are ignored.
+  let spinning = $state(false);
+  async function refresh() {
+    if (spinning || !onRefresh) return;
+    spinning = true;
+    try {
+      await Promise.all([
+        onRefresh(),
+        new Promise((r) => setTimeout(r, 600)),
+      ]);
+    } finally {
+      spinning = false;
+    }
   }
 </script>
 
@@ -40,11 +58,13 @@
   {#if onRefresh}
     <button
       class="header-icon refresh"
-      onclick={onRefresh}
+      class:spinning
+      onclick={refresh}
       title="Refresh"
       aria-label="Refresh"
+      aria-busy={spinning}
     >
-      ↻
+      <span class="glyph">↻</span>
     </button>
   {/if}
   <button
@@ -106,5 +126,19 @@
   .settings.active {
     background: var(--bg-active);
     color: var(--text);
+  }
+
+  .refresh .glyph {
+    display: inline-block;
+  }
+
+  .refresh.spinning .glyph {
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

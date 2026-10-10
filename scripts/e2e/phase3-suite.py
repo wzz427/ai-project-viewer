@@ -514,6 +514,30 @@ with sync_playwright() as p:
         check("header_refresh_icon",
               bool(geo.get("ok")) and "data/zz-probe-late.txt" not in gone,
               f"geo={geo} after={gone}")
+
+        # --- 0.6.6: clicking refresh must be VISIBLY acknowledged (owner:
+        # "点击的时候应该有一个明显的效果") — icon spins, then settles. ---
+        page.locator('.sidebar-header .refresh').click()
+        spin = page.evaluate("""() => {
+          const b = document.querySelector('.sidebar-header .refresh');
+          const g = b && b.querySelector('.glyph');
+          if (!b || !g) return { ok: false, why: 'missing' };
+          const anim = getComputedStyle(g).animationName !== 'none';
+          const dur = getComputedStyle(g).animationDuration;
+          return { ok: anim && b.getAttribute('aria-busy') === 'true',
+                   anim, dur, busy: b.getAttribute('aria-busy') };
+        }""")
+        time.sleep(1.2)
+        settled = page.evaluate("""() => {
+          const b = document.querySelector('.sidebar-header .refresh');
+          const g = b.querySelector('.glyph');
+          return { anim: getComputedStyle(g).animationName !== 'none',
+                   busy: b.getAttribute('aria-busy') };
+        }""")
+        check("refresh_click_feedback",
+              bool(spin.get("ok")) and not settled["anim"]
+              and settled["busy"] != "true",
+              f"during={spin} after={settled}")
     finally:
         if os.path.exists(probe):
             os.remove(probe)

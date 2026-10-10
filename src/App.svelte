@@ -169,7 +169,7 @@
       <SidebarHeader
         mode={sidebarMode}
         onModeChange={(m) => project && setSidebarMode(project.rootPath, m)}
-        onRefresh={project ? () => void refreshProject(project.rootPath) : undefined}
+        onRefresh={project ? () => refreshProject(project.rootPath) : undefined}
       />
       <div class="sidebar-panel">
         {#if sidebarMode === "files"}
