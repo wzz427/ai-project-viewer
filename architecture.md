@@ -111,7 +111,7 @@ ProjectViewer/(仓库根)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家,功能 Phase 9)/
-│           viewerType.ts(扩展名→查看器路由)
+│           viewerType.ts(扩展名→查看器路由)/ handoffMenu.ts(Phase 6:右键移交分型菜单构建,树/页签同源+剪贴板 toast)
 └── src-tauri/ —— Rust 后端
     ├── tauri.conf.json(窗口 1280×800/CSP/NSIS/dragDropEnabled:false——HTML5 拖拽必需,lessons L10)
     ├── capabilities/default.json(core:default + dialog:default)
@@ -120,13 +120,15 @@ ProjectViewer/(仓库根)
         ├── project/manager.rs(resolve_project:canonicalize+校验,8 个单测)
         ├── state/(Phase 4:mod.rs 两命令+测试态闸门 AIV_STATE_FILE/拒访;persistence.rs 原子写+损坏隔离;migration.rs 版本路由,10 个单测)
         ├── file_tree.rs(list_directory:单层+§29 打标+hidden_count+越界拒;§176 块1)
-        └── file_inspect.rs(inspect_file/read_text_file/read_media_file/read_binary_file:§101 流水线+按编码解码+图片 data URL+PDF 原始字节通道(ArrayBuffer,100MB 顶),守卫全在 Rust 侧)
+        ├── file_inspect.rs(inspect_file/read_text_file/read_media_file/read_binary_file:§101 流水线+按编码解码+图片 data URL+PDF 原始字节通道(ArrayBuffer,100MB 顶),守卫全在 Rust 侧)
+        └── handoff.rs(Phase 6 §132 ExternalEditor 抽象=NotepadEditor/VSCodeEditor+§133 语义命令 edit_in_quick_editor/open_in_code_editor/reveal_in_explorer/open_with_default_app/open_in_browser;全部先 canonicalize 校验(§143/§144);VS Code 探测=Local\Programs→Program Files→PATH 的 code.exe,11 单测)
 ```
 
 | 改什么功能 | 去哪个文件 |
 |---|---|
 | 项目增/删/去重逻辑 | src/lib/stores/projectStore.svelte.ts + src-tauri/src/project/manager.rs |
 | 顶栏标签 UI / 右键菜单 | src/lib/components/ProjectTabs/ProjectTabs.svelte |
+| 右键移交条目(树/页签/项目,§135–141 分型唯一真源) | src/lib/services/handoffMenu.ts(菜单构建+剪贴板)+ src-tauri/src/handoff.rs(命令) |
 | 侧栏 Files/Git/Settings | src/lib/components/SidebarHeader + SidebarPanels |
 | 主题/外观 tokens | src/app.css + stores/settingsStore.svelte.ts |
 | 快捷键拦截/新组合注册 | src/lib/services/shortcuts.ts(禁用浏览器加速键在 src-tauri/src/lib.rs) |

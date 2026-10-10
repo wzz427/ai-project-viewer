@@ -11,10 +11,18 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 6 HANDOFF(V1.5 §180)待开工**:owner 已放行收口(2026-10-10 原话"收口吧"),他操作 compact 后新上下文第一件事 = 按 docs/workflow.md 立 **spec-006**(右键移交:Show in Explorer / Copy 绝对与相对路径 / Edit in Notepad / VS Code 三档 / System Default App / Default PDF App / Browser;后端保留 ExternalEditor 抽象,前端不获任意执行权限)→ 免审开工。**发版固定 0.6.x 递增(下一发 0.6.2),不跳段,直到 owner 另有指令。**
-INFRA-002(图标)/INFRA-003(操作栏)已 Done;"切换空白"案收口未复现(错误哨在,再犯必留名);教训 L22–L24 在档。纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
+主线 = **spec-006(Phase 6 HANDOFF)InTest 等 owner 复验**:0.6.2 已发体验渠道(2026-10-10),owner 点 Update 后照 spec §六 InTest 行的清单验(三处右键菜单的分型条目/复制路径 toast/Settings 的 VS Code 窗口模式)。**过则 spec-006 转 Done → 下一需求 = Phase 7 Git Review(V1.5 §181)立 spec-007;发版固定 0.6.x 递增(下一发 0.6.3),不跳段。**
+遗留小披露(见下条):owner 记事本里留了一个 AIV-TestProject 的 README.md 标签(真机轮所开,手动关即可);教训 L25 已入档(真机轮价值/单实例应用验证法/全局按键红线/phase3 STATE 路径 BEL 事故)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 · spec-006(Phase 6 HANDOFF)交付:0.6.2 已发,等 owner 复验
+
+> **下一步从哪接** —— owner 点 Update(0.6.2)复验:①文件树右键 README.md→Edit in Notepad(文件真在记事本开=已有窗口新标签)/Open in VS Code/Show in File Explorer/Copy Absolute/Relative Path(toast 确认);②PDF 右键=Open with Default PDF App(无 Notepad/VS Code);html/.url 右键=Open in Browser;文件夹右键=Open Folder in VS Code;③项目标签右键=Open in File Explorer/Copy Project Path/Open Project in VS Code;④Settings 的 Open in VS Code 单选(默认 New Window,切 Reuse 重启仍在);⑤页签右键与树菜单同套条目。全过 → spec-006 Done → Phase 7(spec-007)。
+
+- 交付:Rust `handoff.rs`(§132 ExternalEditor 抽象 Notepad/VSCode+§133 五语义命令,全部 canonicalize 校验,VS Code 探测 Local\**Programs**→PF→PATH)+ 前端共享 `handoffMenu.ts`(树/页签同源防漂)+ 三右键菜单按 §135–141 分型 + §134 VS Code Mode 入持久化;菜单条目随类型变化(文本类无 Open with Default App,图片/系统程序类无 Notepad/VS Code——§142 表为权威)。
+- 自测:cargo 63/63、vitest 19/19、check 0/0、phase3 **38/38**(+12 断言)、r3 8/8、pdf-suite 19/19;真机轮四移交实证(notepad 标题/explorer 选中/vscode 新窗/project 打开),浏览器按零打扰跳过。**真机轮抓住 VS Code 探测漏 Programs 段的 bug**(单测喂假目录全绿)——lessons **L25** 三判据+STATE 路径 BEL 事故修复。
+- **披露两件**:①真机轮在 owner 开着的记事本里留了个 README.md 标签(Win11 单实例行为,零风险手动关);②一次 Ctrl+W 因前台锁没到达目标窗,疑落入 owner 另一 ZCode 会话(未证实有损)——已立红线:焦点未验证不发全局键。
 
 ### 2026-10-10 · 0.6.0 复验打回二轮返工 → 0.6.1 已发;版本规则改 0.6.x 固定递增
 

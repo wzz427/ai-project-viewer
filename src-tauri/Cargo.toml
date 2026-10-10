@@ -1,6 +1,6 @@
 [package]
 name = "ai-project-viewer"
-version = "0.6.1"
+version = "0.6.2"
 description = "AI Project Viewer - a lightweight project observer for AI agent programming workflows"
 authors = ["AI Project Viewer"]
 edition = "2021"

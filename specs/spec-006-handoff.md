@@ -1,6 +1,6 @@
 # SPEC-006-Handoff —— 右键把文件交出去:记事本 / VS Code / 资源管理器 / 浏览器 / 复制路径
 
-> 状态:InDev(跃迁记录见 INDEX.md 那一行,本页不抄第二份)
+> 状态:InTest(跃迁记录见 INDEX.md 那一行,本页不抄第二份)
 > 创建:2026-10-10;Pre-Draft 结论出处 = V1.5 §180(Phase 6 清单)+ §130–§142(分型菜单规格)+
 > §188 HANDOFF 验收块;owner 放行开工(2026-10-10 原话"收口吧,然后我操作compact,你再开始phase6"→"启动phase6")。
 > 本 Phase 免审依据 docs/workflow.md §五 A2(动笔前疑问清单:无阻塞项;细节默认已标"未确认"于决策表)。
@@ -91,3 +91,4 @@
 |---|---|---|
 | 2026-10-10 | 立项 Draft→Ready(免审,workflow §五 A2:R/V 与 V1.5 §180/§130–142/§188 逐条对上,决策表 D1–D10 齐,无疑问需确认) | 测试覆盖矩阵 10 条 |
 | 2026-10-10 | Ready→InDev | — |
+| 2026-10-10 | InDev→InTest(0.6.2 已发体验渠道,等 owner 复验) | cargo 63/63(handoff 11 新测:逃逸/绝对路径注入/探测/scheme 白名单/file URL 编码/.url 解析);vitest 19/19;check 0/0;phase3 **38/38**(12 项新断言:三菜单分型/两端同源/项目菜单/复制 toast/VS Code Mode 默认+持久化);r3 8/8;pdf-suite 19/19。**真机轮(V9)**:notepad=既有窗口标题变 "README.md - Notepad"(Win11 单实例开标签,lessons L25②);Show in Explorer=文件夹窗真开且选中;Open Project=文件夹窗真开;VS Code=新窗 "README.md - Visual Studio Code" 真开(探测 bug 修复被此轮抓住,L25①);浏览器按零打扰判定跳过(同 ShellExecute 通道+URL 构造有单测)。**披露**:真机轮在 owner 开着的记事本里留了一个 README.md 标签(手动关即可);一次 Ctrl+W 因前台锁未达目标窗口,疑落入 owner 另一 ZCode 会话(L25③,未证实有损)。发版前三处版本号已核=0.6.2 |
