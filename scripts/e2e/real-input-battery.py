@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-"""REAL-INPUT verification harness (owner 2026-10-09: "解决验证问题").
+"""Final differential: EXACT same gesture battery (incl. preceding click and
+timing) on mintest control page vs app PDF viewer, with a foreground guard.
 
-CDP synthetic mouse events in a hidden window are NOT equivalent to a real
-mouse on a real window (the PDF selection bug passed all synthetic tests
-and still failed on the owner's screen). This harness shows the app as a
-real (non-activating) window and drives the OS-level mouse via Win32
-mouse_event — the same trusted path used for the drag tests (lessons L10).
-CDP is used read-only (geometry + selection result).
-
-Run: conda pywork python %TEMP%\\aiv-real-input-test.py
+Foreground guard: before each real gesture, if the app window lost OS
+foreground (owner reading chat etc.), re-activate it by a real click on its
+own title bar — the same thing a user does; no SetForegroundWindow tricks.
+Usage: python aiv-battery-replica.py mintest|app
 """
 import ctypes
 import os
@@ -22,15 +19,18 @@ from playwright.sync_api import sync_playwright
 user32 = ctypes.windll.user32
 EXE = r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe"
 PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
-STATE = os.path.expandvars(r"%TEMP%\aiv-real-input.json")
-CDP = 9240
+CDP = 9245
+MODE = sys.argv[1] if len(sys.argv) > 1 else "app"
+STATE = os.path.expandvars(rf"%TEMP%\aiv-battery-{MODE}.json")
+URL = "http://127.0.0.1:8899/mintest.html"
+
 
 def real_click(x, y):
     user32.SetCursorPos(int(x), int(y))
     time.sleep(0.15)
-    user32.mouse_event(0x0002, 0, 0, 0, 0)  # LEFTDOWN
+    user32.mouse_event(0x0002, 0, 0, 0, 0)
     time.sleep(0.05)
-    user32.mouse_event(0x0004, 0, 0, 0, 0)  # LEFTUP
+    user32.mouse_event(0x0004, 0, 0, 0, 0)
 
 
 def real_drag(x0, y0, x1, y1, steps=12):
@@ -49,10 +49,8 @@ def main():
     if os.path.exists(STATE):
         os.remove(STATE)
     subprocess.run(["powershell", "-NoProfile", "-Command",
-         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force; "
-         "Get-CimInstance Win32_Process -Filter \"Name='msedgewebview2.exe'\" | "
-         "Where-Object { $_.CommandLine -match 'aiprojectviewer' } | "
-         "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], capture_output=True)
+         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
+        capture_output=True)
     env = {**os.environ, "AIV_TEST_PROJECT": PROJECT, "AIV_STATE_FILE": STATE,
            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={CDP}"}
     proc = subprocess.Popen([EXE], env=env)
@@ -67,117 +65,89 @@ def main():
             pg = browser.contexts[0].pages[0]
             pg.wait_for_selector(".file-tree", timeout=25000)
             pg.wait_for_timeout(600)
-            print("real dpr:", pg.evaluate("window.devicePixelRatio"))
-            print("UA:", pg.evaluate("navigator.userAgent"))
-
-            pg.click("div.row[role='treeitem'] :text-is('pdf')")
-            pg.wait_for_timeout(400)
-            pg.click("div.row[role='treeitem'] :text-is('sample-10p-text.pdf')")
-            pg.wait_for_selector(".pdf-viewer canvas", timeout=25000)
-            pg.wait_for_timeout(2000)
-
-            # real window rect -> screen coordinates for span centers
             hwnd = None
             for _ in range(30):
                 hwnd = user32.FindWindowW(None, "AI Project Viewer")
                 if hwnd:
                     break
                 time.sleep(0.3)
-            rect = wt.RECT()
-            user32.GetWindowRect(hwnd, ctypes.byref(rect))
-            # page origin: canvas box in page coords + window origin
-            canv = pg.evaluate("""() => {
-              const c = document.querySelector('.pdf-canvas');
-              const r = c.getBoundingClientRect();
-              return { x: r.x, y: r.y };
-            }""")
-            # page -> screen: exact client origin (physical px) + css*dpr.
-            # Physical = CSS x devicePixelRatio at 125% scaling — mixing
-            # them shifts every click by 1.25x and invalidates the verdict.
-            cr = wt.RECT()
-            pt = wt.POINT(0, 0)
+
+            if MODE == "mintest":
+                pg.goto(URL, timeout=30000)
+                pg.wait_for_selector(".textLayer span", timeout=30000)
+            else:
+                pg.click("div.row[role='treeitem'] :text-is('pdf')")
+                pg.wait_for_timeout(400)
+                pg.click("div.row[role='treeitem'] :text-is('sample-10p-text.pdf')")
+                pg.wait_for_selector(".pdf-viewer canvas", timeout=25000)
+            pg.wait_for_timeout(2000)
+
+            cr = wt.RECT(); pt = wt.POINT(0, 0); wr = wt.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(wr))
             user32.GetClientRect(hwnd, ctypes.byref(cr))
             user32.ClientToScreen(hwnd, ctypes.byref(pt))
-            # self-calibrating scale: virtual client size vs page CSS viewport —
-            # immune to DPI-virtualization mismatch between processes (the
-            # css*dpr formula was off by exactly one 1.25 factor here)
-            inner_w = pg.evaluate("window.innerWidth")
-            inner_h = pg.evaluate("window.innerHeight")
-            sx_scale = cr.right / inner_w
-            sy_scale = cr.bottom / inner_h
-            ox = pt.x + canv["x"] * sx_scale
-            oy = pt.y + canv["y"] * sy_scale
-            print(f"client virtual=({cr.right},{cr.bottom}) inner=({inner_w},{inner_h}) "
-                  f"scale=({sx_scale:.4f},{sy_scale:.4f})")
+            kx = cr.right / pg.evaluate("window.innerWidth")
+            ky = cr.bottom / pg.evaluate("window.innerHeight")
 
-            spans = pg.evaluate("""() => {
-              const spans = [...document.querySelectorAll('.pdf-text-layer span')]
-                .filter(s => s.textContent.trim().length > 3);
-              return spans.slice(0, 3).map(s => {
-                const r = s.getBoundingClientRect();
-                return { x: r.x + r.width * 0.3, y: r.y + r.height / 2 };
-              });
-            }""")
+            SEL = ".textLayer span" if MODE == "mintest" else ".pdf-text-layer span"
 
-            # 1) owner's gesture: single real click on a line of text
-            real_click(ox + spans[0]["x"] * sx_scale, oy + spans[0]["y"] * sy_scale)
-            time.sleep(0.6)
-            sel_click = pg.evaluate("window.getSelection().toString()")
-            pg.evaluate("window.getSelection().removeAllRanges()")
-
-            # 2) one-line real drag along the same line
-            same = pg.evaluate("""() => {
-              const s = [...document.querySelectorAll('.pdf-text-layer span')]
-                .filter(s => s.textContent.trim().length > 3)[0];
-              const r = s.getBoundingClientRect();
-              return { x0: r.x + r.width * 0.25, x1: r.x + r.width * 0.75, y: r.y + r.height / 2 };
-            }""")
-            real_drag(ox + same["x0"] * sx_scale, oy + same["y"] * sy_scale, ox + same["x1"] * sx_scale, oy + same["y"] * sy_scale)
-            time.sleep(0.6)
-            sel_line = pg.evaluate("window.getSelection().toString()")
-            lines = [l for l in sel_line.split("\n") if l.strip()]
-            pg.evaluate("window.getSelection().removeAllRanges()")
-
-            print(f"real click selection: {len(sel_click.strip())} chars")
-            print(f"real one-line drag: {len(sel_line.strip())} chars, {len(lines)} lines")
-
-            # hypothesis: the long REAL drag triggers native drag&drop
-            pg.evaluate("window.__dragStarted = 0; document.addEventListener('dragstart', () => window.__dragStarted++)")
-            # bisect the drag span: where does it start over-selecting?
-            for a, b in [(0.3, 0.5), (0.3, 0.6), (0.25, 0.75), (0.75, 0.25), (0.4, 0.6)]:
-                seg = pg.evaluate("""(f) => {
-                  const s = [...document.querySelectorAll('.pdf-text-layer span')]
+            def span0():
+                return pg.evaluate("""(sel) => {
+                  const s = [...document.querySelectorAll(sel)]
                     .filter(s => s.textContent.trim().length > 3)[0];
                   const r = s.getBoundingClientRect();
-                  return { x0: r.x + r.width * f[0], x1: r.x + r.width * f[1], y: r.y + r.height / 2 };
-                }""", [a, b])
-                real_drag(ox + seg["x0"] * sx_scale, oy + seg["y"] * sy_scale, ox + seg["x1"] * sx_scale, oy + seg["y"] * sy_scale)
-                time.sleep(0.4)
-                sv = pg.evaluate("window.getSelection().toString()")
+                  return { x: r.x, y: r.y + r.height / 2, w: r.width };
+                }""", SEL)
+
+            def ensure_fg():
+                for _ in range(10):
+                    if user32.GetForegroundWindow() == hwnd:
+                        return True
+                    # user-like reactivation: click the app's own title bar
+                    real_click((wr.left + wr.right) / 2, wr.top + 15)
+                    time.sleep(0.4)
+                return user32.GetForegroundWindow() == hwnd
+
+            def do_click():
+                ok = ensure_fg()
+                s = span0()
+                real_click(pt.x + (s["x"] + s["w"] * 0.3) * kx,
+                           pt.y + s["y"] * ky)
+                time.sleep(0.6)
+                v = pg.evaluate("window.getSelection().toString()")
                 pg.evaluate("window.getSelection().removeAllRanges()")
-                drg = pg.evaluate("window.__dragStarted")
-                print(f"drag {a}->{b}: {len(sv.strip())} chars | dragstart={drg} | {sv.strip()[:40]!r}")
+                print(f"click (fg={ok}): {len(v.strip())}c")
 
-            # tiny drag (a few words on the same line)
-            tiny = pg.evaluate("""() => {
-              const s = [...document.querySelectorAll('.pdf-text-layer span')]
-                .filter(s => s.textContent.trim().length > 3)[0];
-              const r = s.getBoundingClientRect();
-              return { x0: r.x + r.width * 0.3, x1: r.x + r.width * 0.42, y: r.y + r.height / 2 };
-            }""")
-            real_drag(ox + tiny["x0"] * sx_scale, oy + tiny["y"] * sy_scale, ox + tiny["x1"] * sx_scale, oy + tiny["y"] * sy_scale)
-            time.sleep(0.5)
-            sel_tiny = pg.evaluate("window.getSelection().toString()")
-            pg.evaluate("window.getSelection().removeAllRanges()")
-            print(f"tiny drag (0.12 line width): {len(sel_tiny.strip())} chars | {sel_tiny.strip()[:60]!r}")
+            def do_drag(a, b):
+                ok = ensure_fg()
+                s = span0()
+                y = pt.y + s["y"] * ky
+                real_drag(pt.x + (s["x"] + s["w"] * a) * kx, y,
+                          pt.x + (s["x"] + s["w"] * b) * kx, y)
+                time.sleep(0.6)
+                v = pg.evaluate("window.getSelection().toString()")
+                pg.evaluate("window.getSelection().removeAllRanges()")
+                lines = [l for l in v.split("\n") if l.strip()]
+                print(f"drag {a}->{b} (fg={ok}): {len(v.strip())}c/{len(lines)}L | {v.strip()[:36]!r}")
 
-            # native double-click word selection
-            real_click(ox + same["x0"] * sx_scale, oy + same["y"] * sy_scale)
-            real_click(ox + same["x0"] * sx_scale, oy + same["y"] * sy_scale)
+            print(f"=== battery on {MODE} ===")
+            do_click()                      # the battery's leading click
+            do_drag(0.25, 0.75)             # the "one-line drag"
+            do_drag(0.3, 0.5)
+            do_drag(0.3, 0.6)
+            do_drag(0.25, 0.75)
+            do_drag(0.75, 0.25)
+            do_drag(0.4, 0.6)
+            do_drag(0.3, 0.42)
+            # double-click
+            ok = ensure_fg()
+            s = span0()
+            x, y = pt.x + (s["x"] + s["w"] * 0.3) * kx, pt.y + s["y"] * ky
+            real_click(x, y); real_click(x, y)
             time.sleep(0.5)
-            sel_dbl = pg.evaluate("window.getSelection().toString()")
+            v = pg.evaluate("window.getSelection().toString()")
             pg.evaluate("window.getSelection().removeAllRanges()")
-            print(f"double-click word: {len(sel_dbl.strip())} chars | {sel_dbl.strip()[:60]!r}")
+            print(f"dblclick (fg={ok}): {len(v.strip())}c | {v.strip()[:36]!r}")
             browser.close()
     finally:
         proc.terminate()

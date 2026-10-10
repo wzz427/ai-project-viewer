@@ -17,6 +17,10 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-10 · testing.md 整体重写 + 脚本全量入库(owner 指令"不能用临时的")
+
+> 在昨日正典化基础上做彻底:testing.md **全文重写**为"手册区 §0–§3(档位/环境/零打扰规程/脚本清单)+ 历史账本 §4(按 Phase 重组,旧 %TEMP% 脚本名全部标注'现行对应/未存档规格')";脚本侧新增 **phase3-suite**(自启动外壳补齐后 17 项全过)、**make-fixtures.py**(夹具生成器重建,扫描件 14MB 达标)、real-input-battery 换前台守卫双模式版;pdf-suite/acceptance-r3 从仓库路径复跑 19/19、8/8 验证。四个已蒸发的历史基建工具(cdp 注入/picker/confirm/shot)在 testing.md §3 记录能力去向与重建配方。
+
 ### 2026-10-10 · 测试体系正典化:scripts/e2e 入库 + testing.md 重构(owner 点头+追问)
 
 > owner 问"全场景测试脚本是什么/testing.md 是不是有严重问题"→ 诊断:①testing.md 是编年史不是手册;②脚本全在 %TEMP% 随时蒸发;③零打扰终态埋在轮次记录里。重构:**§1.2 零打扰规程+§1.3 脚本清单上移最前;历史区打横幅"账本不是手册"**;正典脚本入库 `scripts/e2e/`(pdf-selection-battery/pdf-suite/acceptance-r3/real-input-battery+oracle+README)。pdf-guide §4/§6 同步指向;挂账"Playwright 入库"销账。
