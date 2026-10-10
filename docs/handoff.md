@@ -11,11 +11,17 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-008(Phase 8 RUN/Trust)InTest,等 owner 复验 0.6.9**:项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
+主线 = **spec-008(Phase 8 RUN/Trust)InTest 返修一轮已发 0.6.10,等 owner 复验**(0.6.10:底部右键菜单完整显示守卫):项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
 复验要点:右键项目标签 → Trust Project for Execution → 右键 hello.ps1(hello.bat)→ Run Script → 弹**可见控制台**(Win11=Windows Terminal 窗口),输出可读、跑完窗口留着;右键 demo.exe → Run;左键 demo.exe → 信息卡;右键项目标签 → Untrust 还原。过 → spec-008 Done → Phase 9(Watcher,§183,发版 0.6.10 起)。
 遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L30 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 深夜 · 0.6.10 返修:新菜单项加入后底部右键仍完整显示(owner 指令)
+
+> **下一步从哪接** —— owner 点 Update(0.6.10)顺手验:右键窗口**最底部**的 .ps1/.exe/项目标签,菜单全部条目可见不被裁。连同 0.6.9 的信任/运行各条一起过 → spec-008 Done → Phase 9(spec-009,§183 Watcher)。
+
+- 实证:钳制逻辑量菜单实际高度自适应,五种菜单(script 8 项/exe/msi/textLike/project)底部右键全部落位视口内,**产品代码零改动**——本轮交付物=守卫加码:phase3 +3(script/exe/project **每个按钮**都在视口内),56/56+全档防退化绿。
 
 ### 2026-10-10 深夜 · spec-008(Phase 8 RUN/Trust)交付:0.6.9 已发体验渠道,等 owner 复验
 

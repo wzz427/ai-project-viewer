@@ -478,6 +478,39 @@ with sync_playwright() as p:
     }""")
     check("menu_clamped_to_viewport", bool(clamped.get("ok")), str(clamped))
 
+    # --- Phase 8 growth guard (owner 2026-10-10 晚: "新菜单项加了以后,
+    # 底部右键出来的列表还是一定能够全部显示") — the clamp must adapt to
+    # the TALLER menus; assert EVERY button is inside the viewport, not
+    # just the menu container. ---
+    def bottom_menu_probe(sel):
+        return page.evaluate("""(sel) => {
+          const row = document.querySelector(sel);
+          row.dispatchEvent(new MouseEvent('contextmenu', {
+            clientX: 12, clientY: innerHeight - 6, bubbles: true, cancelable: true }));
+          return new Promise(res => setTimeout(() => {
+            const m = document.querySelector('.menu');
+            if (!m) { res(null); return; }
+            const bad = [...m.querySelectorAll('button')].filter((b) => {
+              const r = b.getBoundingClientRect();
+              return r.top < 0 || r.bottom > innerHeight - 2
+                  || r.left < 0 || r.right > innerWidth - 2;
+            }).map((b) => b.textContent.trim());
+            res({ count: m.querySelectorAll('button').length, bad });
+            document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+          }, 350));
+        }""", sel)
+
+    for _name, _sel in [
+        ("script", '.file-tree .row[title="hello.ps1"]'),
+        ("exe", '.file-tree .row[title="demo.exe"]'),
+        ("project", '.project-tabs .tab'),
+    ]:
+        _r = bottom_menu_probe(_sel)
+        time.sleep(0.25)
+        check(f"menu_clamped_bottom_{_name}",
+              bool(_r) and _r["count"] > 0 and not _r["bad"],
+              f"r={_r}")
+
     # --- 0.6.4: re-expand re-lists (owner: "文件夹里增加了文件,仍然是空的") ---
     # The old cache short-circuit made collapse+re-expand serve the stale
     # listing forever. Uses the EXISTING data/ folder (expanded earlier in

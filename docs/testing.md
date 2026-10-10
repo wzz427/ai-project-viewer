@@ -84,7 +84,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **54 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + **Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败 toast** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **56 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + **Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败 toast+**底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust |
 | `git-suite.py` | Phase 7 Git 检视 30 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + **0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
@@ -146,6 +146,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | pdf-suite | 19/19 |
 | run-live-check(手动真机) | **PASS**:信任菜单翻转→Run Script→WindowsTerminal 控制台窗出现→脚本体执行(marker)→结束后 2.5s 仍驻留 |
 | 版本 | 0.6.9 三处已核 |
+
+#### 0.6.10 返修轮(2026-10-10 晚,owner 指令:新菜单项加入后底部右键必须仍完整显示;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 现状实证 | 五种菜单底部右键(script 8 项/exe/msi/textLike/project)全部落位视口内——钳制逻辑量实际高度自适应,无需改产品代码 |
+| phase3-suite | **56/56**(+3:menu_clamped_bottom_script/exe/project——断言从"菜单容器在视口内"加码到"**每个按钮**都在视口内") |
+| 其余档 | git-suite 31/31+r3 8/8+pdf 19/19+vitest 39/39+check 0/0(无代码变更,防退化) |
+| 版本 | 0.6.10 三处已核 |
 
 实现期两教训(lessons L29/L30):release GUI 构建必须 `pnpm tauri build --no-bundle`(plain cargo build 缺 custom-protocol,页面 ERR_CONNECTION_REFUSED);Win11 默认终端=WindowsTerminal.exe,控制台窗不在 spawn 者进程树内,检测须系统级差集。
 
