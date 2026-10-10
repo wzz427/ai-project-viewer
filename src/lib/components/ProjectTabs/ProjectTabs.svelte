@@ -5,12 +5,21 @@
     addProjectViaPicker,
     type ProjectTab,
   } from "$lib/stores/projectStore.svelte";
+  import { gitDirtyOf } from "$lib/stores/gitStore.svelte";
   import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
   import UpdateButton from "$lib/components/ProjectTabs/UpdateButton.svelte";
 
   let menuFor = $state<ProjectTab | null>(null);
   let menuX = $state(0);
   let menuY = $state(0);
+
+  // §10/§46 first layer: ✓ clean / ● dirty for the project's own scope;
+  // non-git and not-yet-fetched projects show no symbol.
+  function indicatorOf(tab: ProjectTab): string | null {
+    const dirty = gitDirtyOf(tab.rootPath);
+    if (dirty === undefined) return null;
+    return dirty ? "●" : "✓";
+  }
 
   function openMenu(tab: ProjectTab, e: MouseEvent) {
     e.preventDefault();
@@ -29,7 +38,7 @@
       oncontextmenu={(e) => openMenu(tab, e)}
       title={tab.rootPath}
     >
-      {tab.name}
+      {tab.name}{#if indicatorOf(tab)}<span class="git-state {indicatorOf(tab) === "●" ? "dirty" : "clean"}">{indicatorOf(tab)}</span>{/if}
     </button>
   {/each}
   <button class="add" onclick={() => addProjectViaPicker()} title="Add project" aria-label="Add project">
@@ -73,6 +82,19 @@
     background: var(--bg-active);
     color: var(--text);
     box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  .git-state {
+    margin-left: 5px;
+    font-size: 10px;
+  }
+
+  .git-state.dirty {
+    color: var(--git-d);
+  }
+
+  .git-state.clean {
+    color: var(--text-muted);
   }
 
   .add {

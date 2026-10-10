@@ -1,5 +1,6 @@
 mod file_inspect;
 mod file_tree;
+mod git;
 mod handoff;
 mod project;
 mod state;
@@ -161,6 +162,8 @@ pub fn run() {
             file_inspect::read_text_file,
             file_inspect::read_media_file,
             file_inspect::read_binary_file,
+            git::git_snapshot,
+            git::git_diff,
             handoff::edit_in_quick_editor,
             handoff::open_in_code_editor,
             handoff::reveal_in_explorer,

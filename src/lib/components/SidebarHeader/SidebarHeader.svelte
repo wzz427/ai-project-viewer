@@ -3,12 +3,15 @@
     mode,
     onModeChange,
     onRefresh,
+    gitBadge,
   }: {
     mode: "files" | "git" | "settings";
     onModeChange: (mode: "files" | "git" | "settings") => void;
     /** Active-project tree reload; undefined = no project (button hidden).
      *  Returns the in-flight promise so the button can spin until done. */
     onRefresh?: () => Promise<void>;
+    /** §9 badge text for the Git tab ("7" / "99+"); null = no badge. */
+    gitBadge?: string | null;
   } = $props();
 
   // Owner 2026-10-01: one entry button only. Clicking ⚙ opens Settings;
@@ -52,7 +55,7 @@
     class:active={mode === "git"}
     onclick={() => onModeChange("git")}
   >
-    Git
+    Git{#if gitBadge}<span class="git-badge">[{gitBadge}]</span>{/if}
   </button>
   <div class="spacer"></div>
   {#if onRefresh}
@@ -101,6 +104,13 @@
   .header-tab.active {
     background: var(--bg-active);
     color: var(--text);
+  }
+
+  /* §8: plain UI badge on the Git tab ("Git [7]"). */
+  .git-badge {
+    margin-left: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
   }
 
   .spacer {

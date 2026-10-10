@@ -48,6 +48,8 @@ WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>
 <release exe>
 ```
 
+⚠️ **隐藏窗口的定时器是停摆的**(lessons L28):AIV_HIDDEN 下页面 setTimeout 不触发,直到一次输入事件;断言依赖防抖/延时的逻辑要么走直取路径,要么先发一次输入唤醒。IPC 往返不受影响。
+
 窗口隐藏启动后 **SetWindowPos 移屏幕外(-2500)+SW_SHOWNOACTIVATE**——保持渲染
 (最小化窗口的 caretRangeFromPoint/hit-test 读到过期布局,屏幕外才准),全程不可见、
 不抢前台;正常双击启动不受影响。隐藏窗口收不到可信键盘输入(CDP Input 层)——测应用
@@ -83,6 +85,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
 | `phase3-suite.py` | 查看器+移交+树交互回归 44 项:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 | 凡动查看器、页签、右键菜单 |
+| `git-suite.py` | Phase 7 Git 检视 24 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
@@ -101,6 +104,19 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 > 各 Phase/轮次的实测记录与数字判读。开头统一声明:**本区引用的旧 `%TEMP%` 脚本名是
 > 当时名**——现行对应见 §3;未入库者(标注"未存档")其断言清单即重建规格。
 > 现行回归一律跑 §3 清单,不在本区找命令。
+
+### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| cargo | **76/76**(git.rs 新 13:porcelain v2 解析/renamed TAB 实证/§174 子目录 scope/ahead-behind 真克隆/冲突 U 双组/diff 守卫截断/空仓+detached/非 Git/路径消毒/安全旗标) |
+| vitest | **25/25**(gitFormat 新 6:badgeText 0/99+/relativeTime 各档/marksByRel staged 优先) |
+| svelte-check | 0 错 0 警 |
+| git-suite | **24/24**(见 §3 行;含 owner 可见路径:↻ 后徽标 7→8→7 往返) |
+| phase3-suite | 44/44 防退化 |
+| acceptance-r3 | 8/8 |
+| pdf-suite | 19/19 |
+| 版本 | 0.6.7 三处已核 |
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 

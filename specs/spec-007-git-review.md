@@ -1,6 +1,6 @@
 # SPEC-007-GitReview —— 侧栏 Git:改了什么、跟远端差多少,一眼看完(只看不改)
 
-> 状态:Ready(跃迁记录见 INDEX.md 那一行,本页不抄第二份)
+> 状态:InTest(跃迁记录见 INDEX.md 那一行,本页不抄第二份)
 > 创建:2026-10-10;Pre-Draft 结论出处 = V1.5 §181(Phase 7 清单)+ §8–§11/§20/§43–§78(git 域规格)+
 > §152/§153/§174/§188 Git 各验收块;owner 放行开工(2026-10-10 原话"收口吧,我准备开新对话,做下一个需求",
 > handoff 主线移交 Phase 7)。
@@ -118,3 +118,5 @@
 | 日期 | 跃迁/变更 | 产物(矩阵/自检/验收原话) |
 |---|---|---|
 | 2026-10-10 | 立项 Draft→Ready(免审,workflow §五 A2:R/V 与 V1.5 §181/§43–§78/§152/§153/§174/§188 逐条对上,决策表 D1–D14 齐,无疑问需确认) | 测试覆盖矩阵 10 条 |
+| 2026-10-10 | Ready→InDev | — |
+| 2026-10-10 | InDev→InTest(0.6.7 已发体验渠道,等 owner 复验) | cargo **76/76**(新 13:porcelain v2/renamed TAB 实证/§174 scope/ahead-behind 真克隆/冲突双组/diff 守卫/空仓 detached/非 Git/消毒/旗标);vitest **25/25**(gitFormat 6 新);check 0/0;**git-suite 24/24**(V5–V10 全数:e2e 新脚本三实例);phase3 **44/44**+r3 8/8+pdf 19/19;0.6.7 三处版本号核毕。**实现期一项设计修订**:启动扫描改 refreshGitNow 直取(WebView2 隐藏窗口 timer 冻结,lessons L28;防抖仍留聚焦/手动/切换);V9 的 Switch/Focus 触发=接线审查+owner 真机顺手验(单项目夹具无法 e2e 切换) |

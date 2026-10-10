@@ -189,3 +189,58 @@ export function applyUpdate(): Promise<void> {
 export function relaunch(): Promise<void> {
   return invoke<void>("relaunch");
 }
+
+// --- Git review (V1.5 §43–§78, spec-007) ---
+
+export type GitLetter = "M" | "A" | "D" | "R" | "C" | "T" | "?" | "U";
+
+/** One scoped file row; `rel` is PROJECT-relative (§65 conversion in Rust). */
+export interface GitChangeEntry {
+  rel: string;
+  letter: GitLetter;
+  origRel?: string;
+}
+
+export interface GitCommit {
+  hash: string;
+  subject: string;
+  ts: number;
+}
+
+/** §20 RuntimeGitState basis — runtime truth only, never persisted. */
+export interface GitSnapshot {
+  status: "ok" | "nonGit" | "gitMissing" | "error";
+  error?: string;
+  gitRoot?: string;
+  /** "" = project root is the git root; "apps/viewer" = subdirectory mode. */
+  scopeRel?: string;
+  branch?: string;
+  upstream?: string;
+  ahead?: number;
+  behind?: number;
+  changes: GitChangeEntry[];
+  staged: GitChangeEntry[];
+  uniqueCount: number;
+  commits: GitCommit[];
+  refreshedAt: number;
+}
+
+export interface GitDiffResult {
+  text: string;
+  truncated: boolean;
+  lines: number;
+}
+
+/** Full git state for one project; never rejects (failures fold into status). */
+export function gitSnapshot(rootPath: string): Promise<GitSnapshot> {
+  return invoke<GitSnapshot>("git_snapshot", { rootPath });
+}
+
+/** Unified diff for one file (§71); §72 caps already applied in Rust. */
+export function gitDiff(
+  rootPath: string,
+  relPath: string,
+  staged: boolean,
+): Promise<GitDiffResult> {
+  return invoke<GitDiffResult>("git_diff", { rootPath, rel: relPath, staged });
+}

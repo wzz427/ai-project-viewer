@@ -26,6 +26,15 @@
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
   --viewer-bg: #1e2126;
   --viewer-border: #2c3038;
+  /* Git letters (§46, spec-007 D5): VS Code-ish hues per status. */
+  --git-m: #e2c08d;
+  --git-a: #73c991;
+  --git-d: #e06c60;
+  --git-r: #6cb6ff;
+  --git-u: #c58fe0;
+  --git-q: #8b909a;
+  --git-add-bg: rgba(46, 160, 67, 0.25);
+  --git-del-bg: rgba(248, 81, 73, 0.25);
 }
 
 :root[data-theme="light"] {
@@ -41,6 +50,41 @@
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   --viewer-bg: #ffffff;
   --viewer-border: #e4e7ec;
+  --git-m: #9a6700;
+  --git-a: #1a7f37;
+  --git-d: #cf222e;
+  --git-r: #0969da;
+  --git-u: #8250df;
+  --git-q: #6b717c;
+  --git-add-bg: rgba(46, 160, 67, 0.18);
+  --git-del-bg: rgba(248, 81, 73, 0.18);
+}
+
+/* Git status letters, shared by tree marks and the Git panel rows. */
+.git-M,
+.git-C,
+.git-T {
+  color: var(--git-m);
+}
+
+.git-A {
+  color: var(--git-a);
+}
+
+.git-D {
+  color: var(--git-d);
+}
+
+.git-R {
+  color: var(--git-r);
+}
+
+.git-U {
+  color: var(--git-u);
+}
+
+.git-q {
+  color: var(--git-q);
 }
 
 * {

@@ -3,6 +3,7 @@ import { resolveProject } from "$lib/services/tauri";
 import { toast } from "$lib/stores/toastStore.svelte";
 import { forgetTree } from "$lib/stores/fileTreeStore.svelte";
 import { forgetTabs } from "$lib/stores/tabsStore.svelte";
+import { forgetGit } from "$lib/stores/gitStore.svelte";
 
 /** §17: "files" | "git"; "settings" is the third state since the §30
  *  revision made ⚙ a sidebar entry (spec-004 D6). */
@@ -101,6 +102,7 @@ export function removeProject(id: string) {
 
   forgetTree(projectState.tabs[idx].rootPath);
   forgetTabs(projectState.tabs[idx].rootPath);
+  forgetGit(projectState.tabs[idx].rootPath);
   projectState.tabs.splice(idx, 1);
   if (projectState.activeId === id) {
     const next = projectState.tabs[Math.min(idx, projectState.tabs.length - 1)];

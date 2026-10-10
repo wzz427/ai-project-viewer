@@ -226,3 +226,12 @@
 - **判据③**:发布流程改完必须当场反向验证(发版后 target\release 仍为 dev 标识),不能等下次撞上。
 - **连带修复**(本次报障的真因):`loadDir` 缓存短路使**折叠再展开永远读旧缓存**,空文件夹整场会话翻不了身(owner"仍然是空的")→ toggleExpand/loadRoot 改强制重读;新顶层目录仍需 Refresh/切项目(实时监听=Phase 9,Phase 7 加切换/聚焦刷新)。phase3 增 `reexpand_relisa_after_disk_add`。
 - **出处**:owner 复验 0.6.3 时报"文件夹里增加了文件,仍然是空的",2026-10-10。
+
+### L28:WebView2 隐藏窗口的页面定时器整体冻结——输入事件才唤醒;启动路径不许依赖 setTimeout
+
+- **症状**(Phase 7 首轮 e2e):AIV_HIDDEN 隐藏启动的实例里,启动扫描 effect 正常跑、refreshGit 正常被调,但 400ms 防抖的 setTimeout 永远不触发(badge 一直不出现);手动点 ↻ 后一切正常。`document.visibilityState` 报 "visible"(说谎)。
+- **实证**:CDP `page.evaluate("setTimeout(()=>console.log(...),300)")` 在无输入的隐藏页面同样不触发,直到下一次 CDP 点击事件才补发——**隐藏 WebView2 的 timer 队列被渲染器冻结,不是节流是停摆;输入事件是唤醒源**。IPC(invoke 往返)不受影响,只有定时器停。
+- **判据**:e2e 里"逻辑没跑"但"交互后全好" → 先怀疑隐藏窗口 timer 冻结,别查业务代码;验证法=evaluate 一个带 console.log 的 setTimeout,再看下次输入后是否补发。
+- **修法(产品侧,不只是测试侧)**:启动/新增项目的 git 扫描改 **refreshGitNow 直取**(顺带快 400ms);防抖只留给聚焦/手动/切换——这些路径只在窗口可见(醒着)时发生。既有 800ms 状态保存防抖不受影响(隐藏时本就该攒着,退出有 Rust 兜底落盘)。
+- **连带**:git-suite 的 rmtree 需先清 git 对象只读位(git 把 .git/objects 标只读,Windows rmtree 直接 PermissionError)。
+- **出处**:spec-007 git-suite 首跑 badge 永不出现,三层探针定位,2026-10-10。

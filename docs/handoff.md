@@ -11,11 +11,21 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 7 Git Review(V1.5 §181)待开工**:owner 已放行收口(2026-10-10 原话"收口吧,我准备开新对话,做下一个需求"),spec-006 转 Done。
-新会话第一件事 = 按 docs/workflow.md 立 **spec-007**(Git 侧栏:检测/Root-Scope/子目录 Scope/徽标/Branch/Ahead-Behind/Changes/Staged/Diff/Limit/近期提交/安全命令层;**§65 已合入 git -C 统一执行基准**;刷新触发=Project Open/Switch/Window Focus/Manual)。免审开工;**发版 0.6.7 起,0.6.x 固定递增不跳段**。
-遗留小披露(见下条):owner 记事本里留了一个 AIV-TestProject 的 README.md 标签(真机轮所开,手动关即可);教训 L25 已入档(真机轮价值/单实例应用验证法/全局按键红线/phase3 STATE 路径 BEL 事故)。
+主线 = **spec-007(Phase 7 Git Review)InTest,等 owner 复验 0.6.7**:侧栏 Git 面板/Branch+↑↓/CHANGES+STAGED/点文件开 diff/树字母标记/项目标签 ●✓/徽标 [N]/近期提交,子目录 Scope 与非 Git/未装 git 三态全备;刷新=打开/切换/聚焦/↻(Ctrl+R 连带)。
+复验要点:点侧栏 **Git** 看面板 → 点 CHANGES 里一个文件看 diff → 树里改过的文件行有彩色字母 → 顶栏项目名后 ●/✓;切回 VS Code 改个文件再点 ↻,徽标数字应变化。过 → spec-007 Done → Phase 8(RUN/Trust,§182,发版 0.6.8 起)。
+遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L28 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 晚 · spec-007(Phase 7 Git Review)交付:0.6.7 已发体验渠道,等 owner 复验
+
+> **下一步从哪接** —— owner 点 Update(0.6.7)验:①侧栏点 Git → 面板有分支行(main ↑N ↓N)、CHANGES/STAGED CHANGES/RECENT COMMITS;②点 CHANGES 文件 → 主区开 diff(±行着色),STAGED 行同理,未跟踪行开文件内容;③改动的文件在树里有彩色 M/A/? 字母,文件夹无;④项目标签 ●(脏)/✓(净),侧栏 Git[N] 徽标;⑤外部改文件后点 ↻(或 Ctrl+R)徽标变化;⑥超大 diff 显示 "Diff is too large to display."+Open in VS Code。全过 → spec-007 Done → Phase 8(spec-008,§182 RUN/Trust)。
+
+- 交付:Rust `git.rs`(git_snapshot/git_diff;§65 git -C 统一基准+§70 安全旗标+§72 流式截断+10s 超时+无控制台闪窗);前端 gitStore(运行时态零持久化/400ms 防抖/启动直取)+GitPanel(§50 结构+三空态)+DiffViewer(单槽,内存第一原则 D3)+徽标/页签指示/树标记;刷新四触发(§73;focus=App onFocusChanged,真机顺手验)。
+- 自测:cargo 76/76(git 13 新)、vitest 25/25、check 0/0、**git-suite 24/24**(新脚本三实例:BigRepo 根/子目录 §174/非 Git)、phase3 44/44、r3 8/8、pdf 19/19;0.6.7 三处版本号已核。
+- **新教训 L28**:WebView2 隐藏窗口页面定时器整体冻结(输入事件才唤醒)——启动扫描改 refreshGitNow 直取;e2e 断言别依赖防抖延时。连带:git-suite rmtree 需清 git 对象只读位。
+- 决策表 14 条在 spec-007 §四(D3 单槽 diff/D2 untracked 开文件/D4 树标记 staged 优先/D5 配色等为代拍默认,owner 翻案即改决策表行)。
+
 
 ### 2026-10-10 晚 · spec-006(Phase 6 HANDOFF)收口 Done;主线移交 Phase 7
 

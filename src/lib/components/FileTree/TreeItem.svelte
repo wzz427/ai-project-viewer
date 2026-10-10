@@ -12,6 +12,8 @@
   } from "$lib/stores/fileTreeStore.svelte";
   import { activeRelOf, openFile } from "$lib/stores/tabsStore.svelte";
   import { settings } from "$lib/stores/settingsStore.svelte";
+  import { gitMarkOf } from "$lib/stores/gitStore.svelte";
+  import { letterClass } from "$lib/services/gitFormat";
   import NodeContextMenu from "$lib/components/FileTree/NodeContextMenu.svelte";
   // Self-import is the Svelte 5 way to recurse (`<svelte:self>` is legacy).
   import Self from "$lib/components/FileTree/TreeItem.svelte";
@@ -51,6 +53,9 @@
   // click-scoped selection drifted from the tab strip — tree and file area
   // ended up highlighting different files).
   const selected = $derived(activeRelOf(rootPath) === rel);
+  // §46 third layer: single git letter on FILE rows only — folders never
+  // aggregate (§47/§48); collapsed-folder blind spots are accepted (§49).
+  const gitMark = $derived(entry.isDir ? null : gitMarkOf(rootPath, rel));
 
   let menu = $state<{ x: number; y: number } | null>(null);
   // Cursor-half drop: "before" draws the line above the row, "after" below.
@@ -158,6 +163,7 @@
   {/if}
   {#if pinned}<span class="star" title="Pinned">★</span>{/if}
   <span class="name" class:muted={entry.systemGenerated}>{entry.name}</span>
+  {#if gitMark}<span class="git-mark {letterClass(gitMark)}">{gitMark}</span>{/if}
 </div>
 
 {#if expanded && entry.isDir}
@@ -269,6 +275,15 @@
 
   .name.muted {
     color: var(--text-muted);
+  }
+
+  /* Git letter marks (§46; colors from app.css theme tokens). */
+  .git-mark {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding-left: 6px;
   }
 
   .row.dir .name {

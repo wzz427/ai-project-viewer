@@ -32,10 +32,28 @@
   } from "$lib/stores/tabsStore.svelte";
   import { refreshProject } from "$lib/stores/fileTreeStore.svelte";
   import { tabsState } from "$lib/stores/tabsStore.svelte";
+  import {
+    gitDiffSlot,
+    gitNeedsInitialScan,
+    markGitSeen,
+    refreshGit,
+    refreshGitNow,
+  } from "$lib/stores/gitStore.svelte";
+  import { badgeText } from "$lib/services/gitFormat";
+  import { gitSnapshotOf } from "$lib/stores/gitStore.svelte";
+  import DiffViewer from "$lib/components/Viewers/DiffViewer.svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
 
   function tabsOf(rootPath: string) {
     return tabsState.byRoot[rootPath]?.openFiles ?? [];
   }
+
+  // ↻ refreshes BOTH the tree and git (spec-007 D13): the 0.6.6 spin
+  // feedback naturally covers the combined work.
+  async function refreshAll(rootPath: string) {
+    await Promise.all([refreshProject(rootPath), refreshGit(rootPath)]);
+  }
+
   import { openSearchPanel } from "@codemirror/search";
   import { getActiveSearchView } from "$lib/components/Viewers/codeSearchRegistry";
   import { focusActiveFind } from "$lib/components/Viewers/activeFind";
@@ -43,6 +61,13 @@
   // §17 ProjectSession.sidebarMode — per project, persisted since Phase 4.
   const project = $derived(activeProject());
   const sidebarMode = $derived(project?.sidebarMode ?? "files");
+
+  // The single-slot diff view (spec-007 D3) takes over the viewer body
+  // while set; opening/activating a file tab closes it (tabsStore).
+  const diffShowing = $derived(
+    !!gitDiffSlot.current && !!project
+    && gitDiffSlot.current.rootPath === project.rootPath,
+  );
 
   // Real P0 behaviors (V1.5 §146/§147). The dispatcher claims the keydown at
   // capture phase, so these run instead of any browser default — Ctrl+R must
@@ -139,10 +164,48 @@
         if (!project) return;
         void refreshProject(project.rootPath);
         void refreshActiveFile(project.rootPath);
+        // §73 manual refresh covers git too (spec-007 D13) — one gesture,
+        // one coherent state.
+        void refreshGit(project.rootPath);
       }),
     ];
     return () => unsubs.forEach((u) => u());
   }
+
+  // --- Git auto-refresh triggers (§73; spec-007 R8) ---
+  // Project Open / startup: every project lacking a snapshot gets scanned
+  // (project-tab indicators need all of them, §46 first layer). New tabs
+  // from session restore or the picker land here too. `seen` is a plain
+  // Set so this effect never re-runs off gitState's own writes.
+  $effect(() => {
+    void projectState.tabs.map((t) => t.rootPath).length;
+    for (const t of projectState.tabs) {
+      if (gitNeedsInitialScan(t.rootPath)) {
+        markGitSeen(t.rootPath);
+        void refreshGitNow(t.rootPath);
+      }
+    }
+  });
+
+  // Project Switch In: the newly active project refreshes immediately.
+  $effect(() => {
+    const root = project?.rootPath;
+    if (root && !gitNeedsInitialScan(root)) void refreshGit(root);
+  });
+
+  // Window Regain Focus: active project only (§78).
+  onMount(() => {
+    let unlisten: (() => void) | undefined;
+    void getCurrentWindow()
+      .onFocusChanged(({ payload: focused }) => {
+        if (!focused) return;
+        const root = activeProject()?.rootPath;
+        if (root) void refreshGit(root);
+      })
+      .then((u) => (unlisten = u))
+      .catch(() => {});
+    return () => unlisten?.();
+  });
 
   onMount(() => {
     initTheme();
@@ -169,7 +232,8 @@
       <SidebarHeader
         mode={sidebarMode}
         onModeChange={(m) => project && setSidebarMode(project.rootPath, m)}
-        onRefresh={project ? () => refreshProject(project.rootPath) : undefined}
+        onRefresh={project ? () => refreshAll(project.rootPath) : undefined}
+        gitBadge={project ? badgeText(gitSnapshotOf(project.rootPath)?.uniqueCount ?? 0) : null}
       />
       <div class="sidebar-panel">
         {#if sidebarMode === "files"}
@@ -202,16 +266,20 @@
       {:else if project}
         <div class="viewer-stack">
           <FileTabs rootPath={project.rootPath} />
-          {#if tabsOf(project.rootPath).length > 0}
+          {#if tabsOf(project.rootPath).length > 0 || diffShowing}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="viewer-body"
-              role="region"
-              aria-label="File content"
-              oncontextmenu={onViewerContextMenu}
-            >
-              <ActiveViewer rootPath={project.rootPath} />
-            </div>
+              <div
+                class="viewer-body"
+                role="region"
+                aria-label="File content"
+                oncontextmenu={onViewerContextMenu}
+              >
+                {#if diffShowing}
+                  <DiffViewer />
+                {:else}
+                  <ActiveViewer rootPath={project.rootPath} />
+                {/if}
+              </div>
           {:else}
             <div class="viewer-placeholder">
               <div class="placeholder-card">
