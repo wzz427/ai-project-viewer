@@ -38,6 +38,7 @@
   }
   import { openSearchPanel } from "@codemirror/search";
   import { getActiveSearchView } from "$lib/components/Viewers/codeSearchRegistry";
+  import { focusActiveFind } from "$lib/components/Viewers/activeFind";
 
   // §17 ProjectSession.sidebarMode — per project, persisted since Phase 4.
   const project = $derived(activeProject());
@@ -122,6 +123,9 @@
         if (root && tab) closeFile(root, tab.relativePath);
       }),
       onShortcut("ctrl+f", () => {
+        // Unified Ctrl+F (SPEC-INFRA-003): the active viewer's toolbar owns
+        // the shortcut; CodeMirror's panel stays as the no-owner fallback.
+        if (focusActiveFind()) return;
         const view = getActiveSearchView();
         if (view) openSearchPanel(view);
       }),

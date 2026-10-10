@@ -20,6 +20,7 @@
   import { readMediaFile } from "$lib/services/tauri";
   import { joinRel, TREE_ROOT } from "$lib/stores/fileTreeStore.svelte";
   import { extOf } from "$lib/services/viewerType";
+  import ViewerToolbar from "./ViewerToolbar.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -82,11 +83,52 @@
     };
   });
 
+  // ---- toolbar find over the RENDERED text (SPEC-INFRA-003): TreeWalker
+  // collects matches as text-node offsets; jump selects the hit and scrolls
+  // its containing block into view (page-navigation grade, like the PDF).
+  function collectMatches(q: string): { node: Text; start: number }[] {
+    const el = container;
+    if (!el || !q) return [];
+    const needle = q.toLowerCase();
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const out: { node: Text; start: number }[] = [];
+    let n: Node | null = walker.nextNode();
+    while (n) {
+      const text = n.nodeValue?.toLowerCase() ?? "";
+      let i = text.indexOf(needle);
+      while (i !== -1) {
+        out.push({ node: n as Text, start: i });
+        i = text.indexOf(needle, i + Math.max(1, needle.length));
+      }
+      n = walker.nextNode();
+    }
+    return out;
+  }
+
+  const findApi = {
+    count: (q: string) => collectMatches(q).length,
+    jump: (q: string, index: number) => {
+      const hit = collectMatches(q)[index];
+      if (!hit) return;
+      const range = document.createRange();
+      range.setStart(hit.node, hit.start);
+      range.setEnd(hit.node, hit.start + q.length);
+      const block = hit.node.parentElement?.closest(
+        "p, li, h1, h2, h3, h4, pre, blockquote, td, th",
+      );
+      (block ?? hit.node.parentElement)?.scrollIntoView({ block: "center" });
+      const sel = document.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    },
+  };
+
 </script>
 
 <div class="markdown-viewer">
   <!-- View mode toggles via the file tab's right-click menu (owner item 5);
-       no floating overlay. -->
+       no floating overlay. Source mode gets its toolbar from the embedded
+       CodeViewer, rendered mode mounts its own. -->
   {#if tab.markdownMode === "source"}
     <div class="source-host">
       {#if content?.kind === "text"}
@@ -94,6 +136,7 @@
       {/if}
     </div>
   {:else}
+    <ViewerToolbar {findApi} />
     <!-- eslint-disable-next-line svelte/no-at-html-tags — markdown-it html:false output is escaped (§88) -->
     <div
       class="rendered md"
@@ -129,6 +172,10 @@
     overflow-y: auto;
     padding: 16px 24px 48px 24px;
     max-width: 860px;
+    /* Center the reading column: an 860px cap flush against the left edge
+       reads as a layout bug on a maximized window (owner 2026-10-10) —
+       the cap stays (readability), the leftover space splits evenly. */
+    margin: 0 auto;
     line-height: 1.65;
     font-size: var(--viewer-font-size);
   }

@@ -13,6 +13,14 @@ window.addEventListener(
   { capture: true },
 );
 
+// Global error trap (2026-10-10): a one-off "blank content after maximize +
+// tab switch" wedge never reproduced under CDP monitoring; if it ever comes
+// back, these lines make the culprit name itself in the console.
+window.addEventListener("error", (e) =>
+  console.error("[aiv-global] error:", e.message, `@${e.filename}:${e.lineno}`));
+window.addEventListener("unhandledrejection", (e) =>
+  console.error("[aiv-global] unhandled rejection:", e.reason));
+
 async function boot() {
   // Restore first, then start tracking: mount reads the restored stores,
   // and the sync loop's first write lands after the session is back.

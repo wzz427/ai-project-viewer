@@ -227,5 +227,72 @@ with sync_playwright() as p:
     }""")
     check("active_tab_accent", bool(styled))
 
+    # --- SPEC-INFRA-003: unified viewer toolbar (font + find) + centered MD ---
+    check("md_toolbar_present", page.locator(".markdown-viewer .vtb").count() == 1)
+    before = page.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--viewer-font-size')")
+    page.locator('.markdown-viewer .vtb button[aria-label="Larger text"]').click()
+    time.sleep(0.2)
+    after = page.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--viewer-font-size')")
+    check("toolbar_font_grows", before.strip() != after.strip(), f"{before} -> {after}")
+    page.locator('.markdown-viewer .vtb button[aria-label="Smaller text"]').click()
+    time.sleep(0.2)
+
+    word = page.evaluate(r"""() => {
+      const words = (document.querySelector('.markdown-viewer .rendered').innerText || '')
+        .split(/\s+/).filter(w => w.length >= 5);
+      return words[0] || '';
+    }""")
+    md_find = page.evaluate(r"""async (w) => {
+      const inp = document.querySelector('.markdown-viewer .vtb .search');
+      const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      set.call(inp, w);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 250));
+      const labels = [...document.querySelectorAll('.markdown-viewer .vtb .tb-label')]
+        .map(e => e.textContent.trim());
+      inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await new Promise(r => setTimeout(r, 250));
+      return { labels, sel: (document.getSelection() || '').toString() };
+    }""", word)
+    check("md_find_counts_and_jumps",
+          any("/" in t for t in md_find["labels"]) and md_find["sel"] == word,
+          f"word={word!r} labels={md_find['labels']} sel={md_find['sel']!r}")
+
+    open_file("main.py")
+    check("code_toolbar_present", page.locator(".code-viewer .vtb").count() == 1)
+    code_find = page.evaluate(r"""async () => {
+      const inp = document.querySelector('.code-viewer .vtb .search');
+      const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      set.call(inp, 'Entry');
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 300));
+      const labels = [...document.querySelectorAll('.code-viewer .vtb .tb-label')]
+        .map(e => e.textContent.trim());
+      return labels;
+    }""")
+    check("code_find_counts", any("/" in t for t in code_find), str(code_find))
+
+    # centered reading column + resize guard (owner 2026-10-10 bug class)
+    open_file("README.md")
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("Emulation.setDeviceMetricsOverride",
+             {"width": 1600, "height": 900, "deviceScaleFactor": 1, "mobile": False})
+    time.sleep(0.8)
+    centered = page.evaluate(r"""() => {
+      const el = document.querySelector('.markdown-viewer .rendered');
+      if (!el) return false;
+      const p = el.parentElement.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return Math.abs((r.left - p.left) - (p.right - r.right)) <= 2;
+    }""")
+    check("md_reading_column_centered", bool(centered))
+    open_file("metrics.json")
+    ok_json = page.locator(".code-viewer").count() == 1
+    open_file("README.md")
+    ok_md = page.locator(".markdown-viewer .rendered").count() == 1
+    check("resize_then_cross_type_switch", ok_json and ok_md,
+          f"json={ok_json} md={ok_md}")
+    cdp.send("Emulation.clearDeviceMetricsOverride")
+
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

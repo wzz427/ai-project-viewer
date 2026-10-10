@@ -12,6 +12,7 @@
   import { oneDark } from "@codemirror/theme-one-dark";
   import * as legacy from "./codeLanguages";
   import { setActiveSearchView } from "./codeSearchRegistry";
+  import ViewerToolbar from "./ViewerToolbar.svelte";
   import { settings } from "$lib/stores/settingsStore.svelte";
   import { saveScrollPosition, type RuntimeTab } from "$lib/stores/tabsStore.svelte";
 
@@ -93,14 +94,52 @@
     const dark = isDark();
     view?.dispatch({ effects: themeComp.reconfigure(dark ? oneDark : []) });
   });
+
+  // ---- toolbar find (SPEC-INFRA-003): one doc scan feeds both count and
+  // jump; positions in sliceString space are doc positions (\n included).
+  function scanPositions(q: string): number[] {
+    if (!view || !q) return [];
+    const hay = view.state.doc.sliceString(0).toLowerCase();
+    const needle = q.toLowerCase();
+    const out: number[] = [];
+    let i = hay.indexOf(needle);
+    while (i !== -1) {
+      out.push(i);
+      i = hay.indexOf(needle, i + Math.max(1, needle.length));
+    }
+    return out;
+  }
+
+  const findApi = {
+    count: (q: string) => scanPositions(q).length,
+    jump: (q: string, index: number) => {
+      const pos = scanPositions(q)[index];
+      if (pos === undefined || !view) return;
+      view.dispatch({
+        selection: { anchor: pos, head: pos + q.length },
+        effects: EditorView.scrollIntoView(pos, { y: "center" }),
+      });
+      view.focus();
+    },
+  };
 </script>
 
-<div class="code-viewer" bind:this={host}></div>
+<div class="code-viewer">
+  <ViewerToolbar {findApi} />
+  <div class="host" bind:this={host}></div>
+</div>
 
 <style>
   .code-viewer {
     height: 100%;
     overflow: hidden;
     font-size: 12.5px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .host {
+    flex: 1;
+    min-height: 0;
   }
 </style>

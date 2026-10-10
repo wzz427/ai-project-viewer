@@ -20,6 +20,7 @@
     acquireLib,
     releaseEngineIfIdle,
   } from "$lib/services/pdfEngine";
+  import { registerFindFocus, unregisterFindFocus } from "./activeFind";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -57,6 +58,7 @@
   let currentPage = $state(tab.pdfState?.page ?? 1);
 
   let scroller = $state<HTMLElement | null>(null);
+  let searchInput: HTMLInputElement | undefined = $state();
   /** page number (1-based) -> canvas holder element. */
   const slots = new Map<number, HTMLDivElement>();
   const renderedPages = new Set<number>();
@@ -105,6 +107,9 @@
 
   // ---------- release on unmount (§96) ----------
   onMount(() => {
+    // Ctrl+F lands on this document's own search box (SPEC-INFRA-003).
+    const focus = () => searchInput?.focus();
+    registerFindFocus(focus);
     // Selection-shield state (see renderPage) must drop wherever the
     // gesture ends — including a release outside this window.
     const clearSelecting = () => {
@@ -115,6 +120,7 @@
     window.addEventListener("pointerup", clearSelecting);
     window.addEventListener("blur", clearSelecting);
     return () => {
+      unregisterFindFocus(focus);
       window.removeEventListener("pointerup", clearSelecting);
       window.removeEventListener("blur", clearSelecting);
       activeDriver?.();
@@ -570,6 +576,7 @@
       class="search"
       type="search"
       placeholder="Find in document…"
+      bind:this={searchInput}
       bind:value={query}
       onkeydown={(e) => e.key === "Enter" && runSearch()}
       aria-label="Search document"
