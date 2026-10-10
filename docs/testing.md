@@ -15,6 +15,8 @@
 
 ## 1. 环境与命令(判据:只读这节就能跑测试)
 
+### 1.1 命令速查
+
 | 项 | 值 |
 |---|---|
 | 前端类型检查 | `pnpm check`(svelte-check,0 错 0 警为过) |
@@ -24,7 +26,7 @@
 | 带调试口启动(仅测试用) | `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222" <exe>`,CDP 工具 `%TEMP%\aiv-cdp.mjs` |
 | ⚠️ 网络前置 | npmjs 直连不通,仓库 `.npmrc` 已固定 npmmirror;cargo 走 crates.io 直连可通 |
 
-**GUI 自动化测试基建**(脚本在 `%TEMP%`,会话结束可能失效;首次重建约 20 分钟,重建方法记在 handoff):
+**GUI 自动化测试基建**(正典回归脚本已入库 `scripts/e2e/`(2026-10-10,跑法见其 README 与下方 §1.2/§1.3);一次性基建工具仍在 `%TEMP%`,失效后按本节方法重建):
 - CDP 注入 JS(读写 DOM、点击按钮):`node aiv-cdp.mjs "<expr>"` —— 不需要窗口前台
 - 驱动原生 Folder Picker / MessageBox:`aiv-picker.ps1` / `aiv-confirm.ps1`(UIA+Win32 消息,按 ClassName 找控件,不需要前台)
 - 窗口截图(可穿透遮挡):`aiv-shot.ps1`(PrintWindow PW_RENDERFULLCONTENT)
@@ -32,6 +34,40 @@
 - 🔴 **测试一律零前台**(owner 2026-01 立规,含"不许窗口闪现"):脚本不得 SetForegroundWindow/AppActivate/SW_RESTORE 抢焦点。**标准测法**(spec-003 起):
   `AIV_HIDDEN=1 AIV_TEST_PROJECT="<夹具路径>" WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222" <exe>` ——窗口全程不显示、项目自动添加(免原生选择框)、CDP/Playwright 驱动;正常双击启动不受影响(窗口由应用显式 show)。
   ⚠️ 隐藏窗口收不到可信键盘输入(CDP Input 层)——测应用 dispatcher 用 **DOM 合成 keydown**(window.dispatchEvent);物理键盘链路属 Phase 1 验证项,未变。拖拽用 Playwright mouse;截图用 PrintWindow 穿遮挡。旧法 SW_SHOWMINNOACTIVE 已废弃(启动瞬间仍会闪)。
+
+### 1.2 零打扰 GUI 测试规程(正典;owner 2026-10-09 立规"不许抢鼠标/不许弹窗")
+
+**启动公式**(正典脚本已内置):`AIV_HIDDEN=1 AIV_TEST_PROJECT=<夹具> AIV_STATE_FILE=%TEMP%\<独立>.json WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port> <release exe>` → 窗口隐藏启动后 **SetWindowPos 移屏幕外(-2500)+SW_SHOWNOACTIVATE**——保持渲染(最小化窗口的 caretRangeFromPoint/hit-test 读到的是过期布局,屏幕外才准),全程不可见不抢前台;真实 state 永不被碰(AIV_STATE_FILE 闸门)。
+
+**输入分层(下药前先分层)**:
+
+| 层 | 方法 | 测什么 |
+|---|---|---|
+| 页面内派发 | JS `new MouseEvent/PointerEvent` dispatch 到目标元素/window | **我们自己的 DOM 逻辑**(如 PDF 选择驱动)的完整路径;绕开可信合成的坑 |
+| 可信 CDP | Playwright connect_over_cdp 的 mouse/keyboard | 原生路径、且场景中 JS 不写选区时;**盲区:JS 写过选区后,拖动中的可信 move 会被浏览器吞** |
+| 真实输入层 | Win32 SetCursorPos/mouse_event;**坐标自校准 `屏幕=ClientToScreen 原点+CSS×(客户区宽/innerWidth)`(别乘 dpr——DPI 虚拟化下错 1.25 倍);手势前必查 GetForegroundWindow,丢了就点击自家未被遮挡区带回(WindowFromPoint 探测可见点;拖标题栏会变成拖窗口)** | 仅 owner 明确许可占用鼠标时,或最终交叉验收 |
+| 官方 oracle | `scripts/e2e/oracle/oracle.html`(官方完整查看器驱动页;搭建见 e2e README) | 判定"我们的问题还是上游/内核"——动代码前先拿它定基线 |
+
+**铁律**:①场景必须复刻 owner 原话手势(窗口是否最大化、出界方向、按住移动路径——历史上三轮假"修好了"全栽在场景不对齐);②疑内核问题先查 `navigator.userAgent` 的 WebView2 版本(143 有选择内核缺陷、155 修好;升级=离线包+管理员运行,引导器/winget 静默装对 per-machine 报 0x80040828);③断言写进脚本自判 PASS/FAIL,不留人工判读;④合成输入≠真实输入(L17),交付口径以 owner 亲手复验为准。
+
+### 1.3 脚本清单(scripts/e2e/,正典入库 2026-10-10;跑法详见其 README)
+
+| 脚本 | 覆盖 | 何时跑 |
+|---|---|---|
+| `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/出界/反选原场景/行首垫/跨页/串台/宽屏/双击) | 凡动 PdfViewer/文本层/选择驱动 |
+| `pdf-suite.py` | PDF 功能 19 项(渲染/翻页/缩放/搜索/虚拟化/释放/恢复/扫描件) | 凡动 PDF 相关 |
+| `acceptance-r3.py` | 验收轮 8 项(更新按钮/任务清单/右键 Copy/文本层) | UI 通用改动 |
+| `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方对照双模式,前台守卫) | 仅 owner 许可占用鼠标时 |
+| `oracle/` | 官方查看器对照基准 | 疑上游问题 |
+
+一次性诊断脚本(sweep/fight-log/max-repro/stepwise/probe 等)不入库,配方在本文历史区与 lessons,需要时重建。
+
+---
+
+## 【历史记录区(append-only)】
+
+> 以下是各 Phase/轮次的实测记录与证据链,**是账本不是手册**——"现在怎么测"只看 §0–§1.3;
+> 修法与数字的来龙去脉在这里查。文中引用的 `%TEMP%` 一次性脚本属历史配方,正典以 §1.3 为准。
 
 ## 2. Phase 1 功能自测记录(2026-10-01,全部通过)
 
@@ -169,16 +205,9 @@ owner 发现置顶项拖不到最顶部(拖到别处正常)。根因两层:① �
 
 **owner 验收建议路径**(1 分钟,release 已重建):打开应用 → `AIV-TestProject\pdf` → 点 sample-10p-text.pdf(渲染/工具栏)→ 翻页/跳页/缩放/Fit Width/Fit Page/Ctrl+滚轮 → 搜索框输 "Page 8"(跳页+计数,上一处/下一处)→ 滚到深页(只有窗口内的页在渲染)→ 切到别的文件再切回(页码/缩放/滚动还原)→ 点 sample-100p-scan.pdf(18.4MB 扫描件)→ 关掉重开应用,PDF 页签与页码还在(§93 持久化)。
 
-## 4. 验证体系 v2:真实输入层 + 官方对照层(2026-10-09 立;owner 质疑"验证完还这样"后建)
+## 4. 验证体系 v2 的演进史(2026-10-09 立;**现行正典已上移 §1.2,本节起是历史**)
 
-**教训**:CDP 合成鼠标事件与真实鼠标在浏览器里**不走同一条选择代码路径**——PDF 划词 bug 两轮"合成验证通过、真机失败"后立的规矩:**凡 UI 交互类验证(选择/拖拽/命中),合成事件只能证明 handler 逻辑,交付前必须过真实输入层**。
-
-| 层 | 方法 | 何时用 |
-|---|---|---|
-| 合成层(快) | Playwright connect_over_cdp 的 mouse/keyboard | 逻辑回归、大批量 |
-| dpr 保真 | CDP `Emulation.setDeviceMetricsOverride`(deviceScaleFactor=1.25=owner 实测 AppliedDPI 120) | 一切涉及布局/几何的断言 |
-| **真实输入层** | 真实窗口+Win32 `SetCursorPos`/`mouse_event`;坐标换算**自校准:屏幕=客户区原点+页面CSS×(客户区宽/innerWidth)**,每页现算比例(2026-10-09 修正:×dpr 公式在 DPI 虚拟化下错 1.25 倍——python 与 app 的 DPI 感知上下文不同,虚拟坐标≠物理坐标);**手势前必查前台**(`GetForegroundWindow`),丢了就真实点击自家标题栏带回(禁用 SetForegroundWindow,owner 立规) | 选择/拖拽/命中类交付前必过 |
-| 官方对照层 | mintest.html(~30 行:引 pdfjs-dist/web/pdf_viewer.css 原文+TextLayer API,`python -m http.server 8899 --directory node_modules/pdfjs-dist` 后浏览器开) | 怀疑"是我们的集成还是上游/内核"时,并排对比 |
+起点教训:CDP 合成鼠标与真实鼠标**不走同一条选择代码路径**(L17)——两轮"合成验证通过、真机失败"后立。后续按轮次演进:真实输入层(自校准坐标+前台守卫)→ 零打扰三件套(隐藏+屏幕外+CDP)→ 页面内派发(驱动自驱逻辑)。下列轮次记录保留原始证据链;其中"dpr 保真"手段(Emulation.setDeviceMetricsOverride=deviceScaleFactor 1.25)仍用于几何断言、宽屏模拟。
 
 ### PDF 划词调查:已解决(2026-10-09 owner 选 A,升级+实证当天闭环)
 

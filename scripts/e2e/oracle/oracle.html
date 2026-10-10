@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>pdf.js official viewer oracle</title>
+<link rel="stylesheet" href="web/pdf_viewer.css">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="viewerContainer" style="position:absolute; inset:0; overflow:auto; top:0">
+  <div id="viewer" class="pdfViewer"></div>
+</div>
+<script type="module">
+  const pdfjs = await import("./legacy/build/pdf.min.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = "./legacy/build/pdf.worker.min.mjs";
+  const { EventBus, PDFLinkService, PDFViewer } = await import("./web/pdf_viewer.mjs");
+  const eventBus = new EventBus();
+  const linkService = new PDFLinkService({ eventBus });
+  const container = document.getElementById("viewer");
+  const viewer = new PDFViewer({
+    container: document.getElementById("viewerContainer"),
+    eventBus,
+    linkService,
+  });
+  linkService.setViewer(viewer);
+  const task = pdfjs.getDocument({ url: "./sample-10p-text.pdf" });
+  eventBus.on("pagesloaded", () => { document.title = "READY"; });
+  viewer.setDocument(await task.promise);
+  window.__viewer = viewer;
+</script>
+</body>
+</html>

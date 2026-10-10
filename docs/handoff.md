@@ -17,6 +17,11 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-10 · 测试体系正典化:scripts/e2e 入库 + testing.md 重构(owner 点头+追问)
+
+> owner 问"全场景测试脚本是什么/testing.md 是不是有严重问题"→ 诊断:①testing.md 是编年史不是手册;②脚本全在 %TEMP% 随时蒸发;③零打扰终态埋在轮次记录里。重构:**§1.2 零打扰规程+§1.3 脚本清单上移最前;历史区打横幅"账本不是手册"**;正典脚本入库 `scripts/e2e/`(pdf-selection-battery/pdf-suite/acceptance-r3/real-input-battery+oracle+README)。pdf-guide §4/§6 同步指向;挂账"Playwright 入库"销账。
+
+
 ### 2026-10-10 · docs/pdf-guide.md 建立(owner 指令:沉淀 PDF 处理经验给未来 agent)
 
 > owner 问"这次划词为什么这么费时间,有没有深入总结"→ 全程复盘落成 docs/pdf-guide.md:架构现状/pdf.js 硬知识/选择机理六条/验证规程七条/六轮战史(症状→误判→真因)/未来检查清单。**总账:六轮里真代码错只有 1.5 轮,其余=内核缺陷/仪器错误/移植欠账/半吊子设计。** AGENTS.md 路由表已加行(PDF 活→先读它)。
@@ -277,4 +282,4 @@ Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,
 | 建异地备份 remote(私有库,SSH 认证),建好当天首推+核 0;建立之前仓库只有本地一份 | owner 亲手(方法:仓内 docs/AI-Project-Guide/07-backup-secrets.md)·**V1 全部完成后、owner 验收时**(2026-10-01 owner 拍板改期,不着急) | 2026-10-01 |
 | V1.5 §196 附注 A(git -C 统一执行基准)合入 §65 正文 | agent·Phase 7 前 | 2026-10-01 |
 | ~~**WebView2 划词阻塞:owner 选 A(升级 Runtime,推荐)/B(自实现选择层)**~~ 已闭环(2026-10-09 选 A,Runtime 143→155,实测全绿,见"现在在哪"首条;余 owner 复验) | owner 复验(重启 app 后划词)· ASAP | 2026-10-09 |
-| Playwright 回归脚本正式化入库(pywork 环境跑,替代 %TEMP% 手搓脚本;方案已口头验证可行) | agent·**等 owner 点头**(Phase 1 验收时顺带定;点头后约 30 分钟) | 2026-10-01 |
+| ~~Playwright 回归脚本正式化入库~~ 已销账(2026-10-10 owner 点头,scripts/e2e/ 入库+testing.md §1.2/§1.3 正典化) | — | 2026-10-01 |
