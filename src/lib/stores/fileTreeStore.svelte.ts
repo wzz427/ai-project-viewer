@@ -306,3 +306,72 @@ export async function revealInTree(rootPath: string, relPath: string) {
   }
   st.revealTarget = relPath;
 }
+
+/**
+ * §84 rename synchronization for the tree (watcher-driven, runs BEFORE
+ * refreshProject): rewrite the path-keyed state (children cache, expanded
+ * folders, pin parents, reveal target) and swap renamed entry names out
+ * of pin lists — a rename must not collapse expansions or drop pins.
+ */
+export function applyTreeRenames(
+  rootPath: string,
+  renames: { from: string; to: string }[],
+): void {
+  const st = treeFor(rootPath);
+  if (renames.length === 0) return;
+  const mapPath = (p: string): string => {
+    for (const r of renames) {
+      if (p === r.from || p.startsWith(r.from + "/")) {
+        return r.to + p.slice(r.from.length);
+      }
+    }
+    return p;
+  };
+  const lastName = (p: string) => p.slice(p.lastIndexOf("/") + 1);
+  const mapName = (parentRel: string, name: string): string => {
+    for (const r of renames) {
+      const fromParent = r.from.includes("/")
+        ? r.from.slice(0, r.from.lastIndexOf("/"))
+        : TREE_ROOT;
+      if (fromParent === parentRel && name === lastName(r.from)) {
+        return lastName(r.to);
+      }
+    }
+    return name;
+  };
+
+  st.children = Object.fromEntries(
+    Object.entries(st.children).map(([k, v]) => [mapPath(k), v]),
+  );
+  st.expandedFolders = st.expandedFolders.map(mapPath);
+  const pins: Record<string, string[]> = {};
+  for (const [parent, names] of Object.entries(st.pinnedItems)) {
+    pins[mapPath(parent)] = names.map((n) => mapName(parent, n));
+  }
+  st.pinnedItems = pins;
+  if (st.revealTarget) st.revealTarget = mapPath(st.revealTarget);
+}
+
+/**
+ * §83/§42 removal cleanup (watcher-driven): drop tree state keyed under
+ * removed paths so refreshProject never re-lists dead directories, and
+ * pins inside removed dirs go away (§42).
+ */
+export function pruneRemovedDirs(rootPath: string, removed: string[]): void {
+  if (removed.length === 0) return;
+  const st = treeFor(rootPath);
+  const isUnder = (p: string) =>
+    removed.some((r) => p === r || p.startsWith(r + "/"));
+  for (const key of Object.keys(st.children)) {
+    if (isUnder(key)) delete st.children[key];
+  }
+  st.expandedFolders = st.expandedFolders.filter((p) => !isUnder(p));
+  st.emptyDirs = st.emptyDirs.filter((p) => !isUnder(p));
+  for (const key of Object.keys(st.loadErrors)) {
+    if (isUnder(key)) delete st.loadErrors[key];
+  }
+  for (const key of Object.keys(st.pinnedItems)) {
+    if (isUnder(key)) delete st.pinnedItems[key];
+  }
+  if (st.revealTarget && isUnder(st.revealTarget)) st.revealTarget = null;
+}

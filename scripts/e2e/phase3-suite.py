@@ -728,5 +728,107 @@ with sync_playwright() as p:
     page.locator(".menu [data-menu-id='untrust-project']").dispatch_event("click")
     time.sleep(0.6)
 
+    # --- spec-009 (Phase 9 Watcher): external disk changes refresh the app
+    # with NO manual gesture — tree rows appear/vanish (V1), the open viewer
+    # swaps content + §82 toast coalescing a burst (V2/V9), a deleted file
+    # keeps its §83 card with Close Tab (V3), a rename follows the tab and
+    # its pin (V4). Probes live under data/ (already expanded). ---
+    def wait_row(title, present, timeout_s=6):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if (page.locator(f'.file-tree .row[title="{title}"]').count() > 0) == present:
+                time.sleep(0.3)  # let follow-up rendering settle
+                return True
+            time.sleep(0.15)
+        return False
+
+    w_probe = os.path.join(PROJECT, "data", "zz-watch-me.txt")
+    w_renamed = os.path.join(PROJECT, "data", "zz-renamed.txt")
+    for p in (w_probe, w_renamed):
+        if os.path.exists(p):
+            os.remove(p)
+
+    # V1: file appears in the tree with no click at all.
+    with open(w_probe, "w") as f:
+        f.write("watch marker A\n")
+    check("watcher_tree_auto_add", wait_row("data/zz-watch-me.txt", True))
+
+    # V2 + V9: open it, then TWO writes inside one debounce window ->
+    # one reload to the final content, exactly one "✓ ... updated" toast.
+    row_by_title("data/zz-watch-me.txt").first.click()
+    body_contains("watch marker A")
+    time.sleep(0.5)
+    with open(w_probe, "w") as f:
+        f.write("watch marker B1\n")
+    time.sleep(0.12)
+    with open(w_probe, "w") as f:
+        f.write("watch marker B2\n")
+    reloaded = body_contains("watch marker B2", timeout_s=6)
+    toasts_seen, first_txt, was = 0, "", False
+    t0 = time.time()
+    while time.time() - t0 < 3.5:
+        has_toast = page.locator(".toast").count() > 0
+        if has_toast and not was:
+            toasts_seen += 1
+            if not first_txt:
+                first_txt = page.locator(".toast").inner_text()
+        was = has_toast
+        time.sleep(0.1)
+    check("watcher_active_file_auto_reload",
+          reloaded and toasts_seen == 1 and "zz-watch-me.txt updated" in first_txt,
+          f"reloaded={reloaded} toasts={toasts_seen} txt={first_txt!r}")
+
+    # V3: delete externally -> tree row vanishes, tab keeps its §83 card,
+    # Close Tab really closes it.
+    os.remove(w_probe)
+    deleted_card = body_contains("This file has been deleted.", timeout_s=6)
+    row_gone = wait_row("data/zz-watch-me.txt", False)
+    close_btn = page.locator(".unsupported button", has_text="Close Tab")
+    has_close = close_btn.count() == 1
+    n_before = tab_count()
+    if has_close:
+        close_btn.first.click()
+        time.sleep(0.4)
+    check("watcher_deleted_tab_state",
+          deleted_card and row_gone and has_close and tab_count() == n_before - 1,
+          f"card={deleted_card} row={row_gone} close={has_close} "
+          f"tabs={n_before}->{tab_count()}")
+
+    # V4: recreate, open, PIN, rename externally -> same tab follows the
+    # new name (title + active + pin), content survives the retarget.
+    with open(w_probe, "w") as f:
+        f.write("rename me\n")
+    if not wait_row("data/zz-watch-me.txt", True):
+        row_by_title("data").first.click(); time.sleep(0.3)
+        row_by_title("data").first.click(); time.sleep(0.8)  # manual fallback
+        wait_row("data/zz-watch-me.txt", True)
+    row_by_title("data/zz-watch-me.txt").first.click()
+    body_contains("rename me")
+    time.sleep(0.4)
+    page.locator(".file-tab.active").click(button="right")
+    page.locator(".menu button", has_text="Pin Tab").click()
+    time.sleep(0.3)
+    os.rename(w_probe, w_renamed)
+    renamed_ok, pinned_kept, content_kept = False, False, False
+    deadline = time.time() + 6
+    while time.time() < deadline:
+        active = page.locator(".file-tab.active")
+        if active.count() and "zz-renamed.txt" in active.inner_text():
+            renamed_ok = True
+            pinned_kept = page.locator(".file-tab.active .pin").count() == 1
+            content_kept = "rename me" in page.locator(".viewer-body").inner_text()
+            break
+        time.sleep(0.15)
+    check("watcher_rename_follows_tab",
+          renamed_ok and pinned_kept and content_kept,
+          f"renamed={renamed_ok} pin={pinned_kept} content={content_kept}")
+
+    # cleanup: close the pinned probe tab, remove the renamed file, let the
+    # watcher take the row away on its own (second auto-remove sighting).
+    press("w")
+    time.sleep(0.4)
+    os.remove(w_renamed)
+    check("watcher_tree_auto_remove", wait_row("data/zz-renamed.txt", False))
+
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

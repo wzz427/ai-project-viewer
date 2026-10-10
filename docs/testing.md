@@ -84,8 +84,8 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **58 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + **Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败 toast+**底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust |
-| `git-suite.py` | Phase 7 Git 检视 32 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + **0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换;0.6.12 增诊断导出 |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **63 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链 |
+| `git-suite.py` | Phase 7 Git 检视 33 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + 0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭 + **Phase 9:外部写/删探针→徽标自动 [8]/[7](零手势,V5;窗口 park offscreen——L34)**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换/watcher→git 链 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
@@ -187,6 +187,21 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 版本 | 0.6.13 三处已核 |
 
 实现期两教训(lessons L29/L30):release GUI 构建必须 `pnpm tauri build --no-bundle`(plain cargo build 缺 custom-protocol,页面 ERR_CONNECTION_REFUSED);Win11 默认终端=WindowsTerminal.exe,控制台窗不在 spawn 者进程树内,检测须系统级差集。
+
+#### 0.7.0 Phase 9 Watcher 首发轮(2026-10-11,spec-009;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| cargo | **95/95**(watcher.rs 新 9:§32 忽略段过滤/rel 计算/相邻配对+不焊幻影 rename/storm 折叠/classify 全形状+**Windows Name(Both) 拆分**/真监听冒烟=tempdir 写文件批到达+忽略目录不跨 IPC) |
+| vitest | **50/50**(watcherApply 新 11:needsReload 精确路径不含祖先/isGone 含目录前缀+rename from/renamedRel 文件+祖先目录+不匹配前缀) |
+| svelte-check | 0 错 0 警 |
+| phase3-suite | **63/63**(+5:watcher_tree_auto_add/auto_remove、watcher_active_file_auto_reload[双写 400ms 内合并一次 reload+一次 toast]、watcher_deleted_tab_state[删除态+Close Tab 真关]、watcher_rename_follows_tab[标题+active+pin+内容]) |
+| git-suite | **33/33**(+1:git_watcher_auto_refresh_updates_badge——外部写/删探针,徽标自动 [8]→[7] 零手势;套件补 park_offscreen) |
+| acceptance-r3 | 8/8 |
+| pdf-suite | 19/19 |
+| 版本 | 0.7.0 三处已核(package.json/tauri.conf.json/Cargo.toml) |
+
+实现期两教训(lessons L33/L34):Windows 上 notify 的 rename 是**单个 Name(Both) 事件带 [from,to]**,按 From/To 两事件的心智模型写分类器必漏(树靠重列兜底掩盖根因,页签不跟才暴露);隐藏 WebView2 冻结的是定时器队列不是页面——fs 事件照常送达 handleBatch,但其中 refreshGit 的 400ms 防抖定时器冻着(git-suite 徽标涨不回落;诊断环两笔 fs-change 都在+零报错定位)。修=watcher 触发的 git 刷新走 refreshGitNow 直取(Rust 侧已合并过,前端无需二次防抖)+e2e 一律 park_offscreen。
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 

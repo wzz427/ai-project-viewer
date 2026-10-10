@@ -266,3 +266,18 @@
 - **机理**:`const trusted = $derived(...)`;处理器里 `setProjectTrusted(root, !trusted)` 执行后,下一行 `trusted ? A : B` 的读取会**同步求值到新值**——先写后读,读到的已是被自己改过的状态。
 - **判据**:凡是"翻转语义"的处理器(取反/切换),改前先 `const was = x;` 存快照,文案与逻辑都用快照;review 时看见 `$derived` 出现在 `set` 调用之后的同一函数里就停。测试侧:文案断言必须精确到分支词("is now trusted"),子串断言对"双向文案"是假绿。
 - **出处**:owner 真机点 Trust 时 toast 文案与动作相反,时间线探针(t=433 错文案/t=1694 正确 launch)定位,2026-10-10。
+
+
+### L33:Windows 上 notify 的 rename 是单个 `Name(Both)` 事件带 [from,to] 两路径——不是 From/To 两个事件
+
+- **症状**(Phase 9 首跑):监听链路全通(树自动更新/自动重读/删除态全绿),唯独"改名跟随页签"不跟——页签没拿到 rename 对,树却照常刷新(靠目录重列兜的底,掩盖了根因)。
+- **机理**:Windows 后端把一次改名合成**一个** `Modify(Name(RenameMode::Both))` 事件,`paths=[旧, 新]`;按文档里"From 一个事件、To 一个事件"的心智模型写分类器,Both 落进兜底分支当两次普通 Changed,配对永远不发生。写探针打印真实事件形状(`cargo test -- --nocapture` 一次性 probe)一验即破。
+- **判据**:跨平台 FS 事件库的事件形状,**按平台实测再写分支**;rename 处理必须有"Both 拆成相邻 From/To"的分支(留 cargo 单测:classify_event_splits_windows_both_rename)。另外配对只认**相邻**(内核的 From/To 紧挨着到),全局 zip 会把同窗内无关的"移出+移入"焊成幻影 rename——这条是被自己的单测打脸后改的。
+- **出处**:phase3 watcher_rename_follows_tab 首败+临时探针实证,2026-10-11。
+
+### L34:隐藏 WebView2 冻结的是"定时器队列",不是页面——事件驱动链路里再挂 debounce,等于把 L28 请回来
+
+- **症状**(Phase 9 git-suite):监听触发的 Git 徽标自动涨([8])但不回落([7] 卡死);诊断环显示**两笔 fs-change 都到达、handleBatch 都执行、零报错**——独立探针复刻同一场景却全通。
+- **机理**:git-suite 没像 phase3 那样 park_offscreen,AIV_HIDDEN 的从未显示窗口会被 WebView2 挂起;挂起冻的是 setTimeout 队列(L28 原案),而 fs 事件本身是投递任务照常送达。于是 handler 跑了、直接调用(树重列)生效,**handler 里的 400ms 防抖定时器却冻着**——最后一步永远不触发,直到窗口被唤醒。之前手动轮的点击(输入事件)把页面拍醒过,恰好掩盖。
+- **判据**:凡是**可能在窗口不可见时到达的事件**(fs 变化/托盘/后台完成),其处理链路禁止依赖 setTimeout;要么直调 Now 型函数,要么把防抖下沉到 Rust 线程(watcher 本体即此法)。e2e 套件一律 park_offscreen(可见但屏幕外),别让"挂起"混进被测变量。gitStore 的 refreshGitNow 注释其实早写了这条,这次是它第一次咬到"新写的代码"。
+- **出处**:git_watcher_auto_refresh 稳定失败+诊断环取证+双探针对照,2026-10-11。

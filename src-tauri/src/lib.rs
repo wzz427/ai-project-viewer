@@ -6,6 +6,7 @@ mod project;
 mod run;
 mod state;
 mod updater;
+mod watcher;
 
 use std::sync::OnceLock;
 use std::time::Instant;
@@ -106,6 +107,9 @@ pub fn run() {
             }
         })
         .manage(state::LastState::default())
+        // Phase 9 (spec-009 D6): ONE live watch for the active project;
+        // start_project_watch atomically swaps this slot.
+        .manage(std::sync::Mutex::new(None::<watcher::WatchSlot>))
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 disable_browser_accelerators(&window);
@@ -177,6 +181,8 @@ pub fn run() {
             state::write_diagnostics,
             state::load_state,
             state::save_state,
+            watcher::start_project_watch,
+            watcher::stop_project_watch,
             updater::check_update,
             updater::apply_update,
             updater::relaunch

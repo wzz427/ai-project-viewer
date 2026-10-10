@@ -58,9 +58,12 @@
 </script>
 
 {#if tab}
-  <!-- Keyed by file: switching files always remounts the viewer, so content
-       can never go stale (owner 2026-10-01 items 3/10 root cause). -->
-  {#key tab.relativePath}
+  <!-- Keyed by file + content revision: switching files always remounts
+       the viewer (content can never go stale, owner 2026-10-01 items
+       3/10), and an external reload (watcher/Ctrl+R, spec-009 D3) bumps
+       contentRev so mount-built viewers (CodeMirror, PDF) pick up the
+       new bytes while §160.5 restores keep the scroll position. -->
+  {#key `${tab.relativePath}:${tab.contentRev ?? 0}`}
   {#if tab.deleted || tab.viewerType === "binary" || tab.viewerType === "unsupported"}
     <UnsupportedViewer {rootPath} {tab} />
   {:else if tab.viewerType === "markdown" && text !== null}

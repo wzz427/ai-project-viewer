@@ -33,6 +33,7 @@
   } from "$lib/stores/tabsStore.svelte";
   import { refreshProject } from "$lib/stores/fileTreeStore.svelte";
   import { tabsState } from "$lib/stores/tabsStore.svelte";
+  import { initWatcher } from "$lib/stores/watcherStore.svelte";
   import {
     gitNeedsInitialScan,
     gitViewSlot,
@@ -195,6 +196,17 @@
     if (root && !gitNeedsInitialScan(root)) void refreshGit(root);
   });
 
+  // Active-project watch (§77, spec-009 D6): exactly one live watcher,
+  // swapped atomically Rust-side; no project → nothing watched.
+  $effect(() => {
+    const root = project?.rootPath;
+    if (root) {
+      void invoke("start_project_watch", { rootPath: root }).catch(() => {});
+    } else {
+      void invoke("stop_project_watch").catch(() => {});
+    }
+  });
+
   // Window Regain Focus: active project only (§78).
   onMount(() => {
     let unlisten: (() => void) | undefined;
@@ -212,6 +224,7 @@
   onMount(() => {
     initTheme();
     installShortcutDispatcher();
+    initWatcher();
     const unwire = wireShortcuts();
 
     // Test hook (testing.md §1): auto-add a project without the native

@@ -25,6 +25,7 @@ import {
 } from "$lib/services/viewerType";
 import { toast } from "$lib/stores/toastStore.svelte";
 import { diagError, diagEvent } from "$lib/stores/diagnosticsStore.svelte";
+import { renamedRel } from "$lib/services/watcherApply";
 import { revealInTree } from "$lib/stores/fileTreeStore.svelte";
 import { closeGitView } from "$lib/stores/gitStore.svelte";
 
@@ -61,6 +62,11 @@ export interface RuntimeTab {
   sizeBytes?: number;
   /** runtime-only: Executable Info card fields (§122). */
   modifiedMs?: number;
+  /** runtime-only: bumped on every external content reload (spec-009
+   *  D3) — rides ActiveViewer's {#key} so CodeMirror/PDF viewers (which
+   *  build their state once at mount) remount with fresh content while
+   *  the §160.5 save/restore keeps the scroll position. */
+  contentRev?: number;
 }
 
 interface ProjectTabs {
@@ -428,45 +434,126 @@ export async function openFile(rootPath: string, rel: string) {
 
 /** Ctrl+R slice (§82 manual): reload the active file, toast if it changed. */
 export async function refreshActiveFile(rootPath: string) {
-  const st = projectTabs(rootPath);
-  const rel = st.activeFileRelativePath;
+  const rel = projectTabs(rootPath).activeFileRelativePath;
   if (!rel) return;
-  const tab = st.openFiles.find((t) => t.relativePath === rel);
-  if (!tab) return;
+  if (await reloadFile(rootPath, rel)) {
+    toast(`✓ ${fileNameOf(rel)} updated`);
+  }
+}
+
+/**
+ * Reload ONE open tab's content from disk — the watcher's per-file
+ * primitive (§82 automatic slice, spec-009); Ctrl+R is the same function
+ * on the active tab. Returns true when the displayed content actually
+ * changed (the caller owns the §82 toast). A vanished file flags the tab
+ * deleted (§83) instead of throwing; a file that came back revives it.
+ */
+export async function reloadFile(rootPath: string, rel: string): Promise<boolean> {
+  const tab = projectTabs(rootPath).openFiles.find((t) => t.relativePath === rel);
+  if (!tab) return false;
 
   let info;
   try {
     info = await inspectFile(rootPath, rel);
   } catch {
-    tab.deleted = true;
-    return;
+    if (!tab.deleted) tab.deleted = true;
+    return false;
   }
+  const revived = tab.deleted === true;
   tab.deleted = false;
+
+  if (tab.viewerType === "binary" || tab.viewerType === "unsupported") {
+    if (revived) tab.contentRev = (tab.contentRev ?? 0) + 1;
+    return revived;
+  }
+
+  if (tab.viewerType === "executable") {
+    const modified = info.modified ?? undefined;
+    const statChanged =
+      revived || tab.sizeBytes !== info.sizeBytes || tab.modifiedMs !== modified;
+    if (statChanged) {
+      tab.sizeBytes = info.sizeBytes;
+      tab.modifiedMs = modified;
+      tab.contentRev = (tab.contentRev ?? 0) + 1;
+    }
+    return statChanged;
+  }
 
   if (tab.viewerType === "image") {
     const media = await readMediaFile(rootPath, rel).catch(() => null);
-    if (media) {
+    if (!media) return false;
+    const prev = contentCache.get(cacheKey(rootPath, rel));
+    const changed =
+      revived || !prev || prev.kind !== "media" || prev.dataUrl !== media.dataUrl;
+    if (changed) {
       contentCache.set(cacheKey(rootPath, rel), {
         kind: "media",
         dataUrl: media.dataUrl,
       });
+      tab.contentRev = (tab.contentRev ?? 0) + 1;
     }
-    return;
+    return changed;
   }
-  if (tab.viewerType === "binary" || tab.viewerType === "unsupported") return;
+
+  if (tab.viewerType === "pdf") {
+    const data = await readBinaryFile(rootPath, rel).catch(() => null);
+    if (!data) return false;
+    const prev = contentCache.get(cacheKey(rootPath, rel));
+    // Byte-exact compare would copy the buffer; length is the pragmatic
+    // PDF change signal (same-length rewrites are vanishingly rare).
+    const changed =
+      revived || !prev || prev.kind !== "pdf" || prev.data.byteLength !== data.byteLength;
+    if (changed) {
+      contentCache.set(cacheKey(rootPath, rel), { kind: "pdf", data });
+      tab.contentRev = (tab.contentRev ?? 0) + 1;
+    }
+    return changed;
+  }
 
   const fresh = await readTextFile(rootPath, rel).catch(() => null);
-  if (!fresh) return;
+  if (!fresh) return false;
   const prev = contentCache.get(cacheKey(rootPath, rel));
-  if (prev?.kind === "text" && prev.text !== fresh.text) {
-    toast(`✓ ${fileNameOf(rel)} updated`);
+  const changed =
+    revived || !prev || prev.kind !== "text" || prev.text !== fresh.text;
+  if (changed) {
+    contentCache.set(cacheKey(rootPath, rel), {
+      kind: "text",
+      text: fresh.text,
+      encoding: fresh.encoding,
+    });
+    tab.encoding = fresh.encoding;
+    tab.contentRev = (tab.contentRev ?? 0) + 1;
   }
-  contentCache.set(cacheKey(rootPath, rel), {
-    kind: "text",
-    text: fresh.text,
-    encoding: fresh.encoding,
-  });
-  tab.encoding = fresh.encoding;
+  return changed;
+}
+
+/**
+ * §84 rename synchronization for tabs: retarget relativePath (file or
+ * ancestor-dir rename), moving the content cache entry along, and keep
+ * the active-file identity. Returns the rels that moved (for logging).
+ */
+export function applyTabRenames(
+  rootPath: string,
+  renames: { from: string; to: string }[],
+): string[] {
+  const st = tabsState.byRoot[rootPath];
+  if (!st || renames.length === 0) return [];
+  const moved: string[] = [];
+  for (const tab of st.openFiles) {
+    const next = renamedRel(tab.relativePath, renames);
+    if (next) {
+      const prev = contentCache.get(cacheKey(rootPath, tab.relativePath));
+      contentCache.delete(cacheKey(rootPath, tab.relativePath));
+      if (prev) contentCache.set(cacheKey(rootPath, next), prev);
+      tab.relativePath = next;
+      moved.push(next);
+    }
+  }
+  if (st.activeFileRelativePath) {
+    st.activeFileRelativePath =
+      renamedRel(st.activeFileRelativePath, renames) ?? st.activeFileRelativePath;
+  }
+  return moved;
 }
 
 export function forgetTabs(rootPath: string) {

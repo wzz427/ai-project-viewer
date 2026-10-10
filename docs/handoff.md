@@ -11,18 +11,39 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 9 Watcher(spec-009,V1.5 §183+§76–§85)**:文件变化实时监听——树自动更新 /
-正在看的文件被外部(AI/别的程序)改了自动重读+轻 toast"✓ x updated" / Git 自动刷新 / 删除与改名的
-页签·置顶收藏同步(§83–§85,可靠识别 1:1 才算 rename) / 防抖 300–500ms(§81) / **只盯激活项目**(§77)
-/ 忽略目录 11 种(.git…target,§80)——**与树可见性是两份清单**(§28,树默认显示 dist/build/target 但 watcher 不盯)。
-**发版 0.7.0 起**(owner 2026-10-11 指令"版本升到0.7";0.7.x 固定递增不跳段,版本三处已升)。
-**开工前规矩(2026-10-10 owner 立规):写代码前先跟 owner 说人话对齐本 Phase 范围与关键默认**(workflow §五 A2)。
-**未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断已装)——
-复现时 Settings → Export Diagnostics,文件在 %APPDATA%\com.aiprojectviewer.app.exp\diagnostics\aiv-diagnostics-<ts>.txt,
-同机直读定位;修复随 0.7.x 发。Phase 9 的"自动重读"恰好动同一片区,若其根因在查看器换装链路上,本期测试可能先撞见。
-协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律 aivlaunch(PID 限定)。
+主线 = **spec-009 InTest:Phase 9 Watcher 已发 0.7.0,等 owner 复验**(复验清单见 §一 首条);
+过了 → **Phase 10(性能/安全/发版准备,§184,spec-010)——本阶段禁新增产品功能**(九类泄漏
+审查+安全审查+V1 收口)。**版本段 0.7.x**(owner 2026-10-11 指令"版本升到0.7";固定递增不跳段)。
+**未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断
+已装)——复现时 Settings → Export Diagnostics,文件在 %APPDATA%\com.aiprojectviewer.app.exp\
+diagnostics\aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。注意:Phase 9 的自动重读
+({#key}=rel+contentRev 重挂载)恰好重写了查看器换装链路——若冻结 bug 根因在那一段,owner 复验
+0.7.0 时可能直接消失或变形,留意复验反馈。
+协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律
+aivlaunch(PID 限定)+**park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-11 · spec-009(Phase 9 Watcher)交付:0.7.0 已发体验渠道,等 owner 复验
+
+> **下一步从哪接** —— owner 点 Update(0.7.0)验,全程零手势(不用点 ↻):①开着的项目里
+> 外部加/删文件,左侧树半秒内自己跟;②正开着的文件被外部改→内容自动换新+右下角
+> "✓ 文件名 updated"(滚动位置保留);③删掉开着的文件→页签显示"This file has been
+> deleted."+Close Tab;④外部改名→页签标题跟着改(置顶也跟);⑤Git 项目徽标数字自动变。
+> 过 → spec-009 Done → Phase 10(性能/安全/发版准备,§184,本阶段禁新增产品功能)。
+
+- 开工前对齐完成:owner 要求行业对照(VS Code/Zed/Sublime/JetBrains 均"树自动+干净静默
+  重载")后拍板照建议方案(§183 全集+自动重读+提示保留),spec-009 §一/§六留痕。
+- 交付:Rust `watcher.rs`(notify-debouncer-full 400ms 单槽+§32 忽略清单 Rust 侧过滤+
+  相邻配对 rename+storm 上限 200 折叠)+ 前端 watcherStore 编排(改名应用→树重列→开着的
+  页签 reloadFile→refreshGitNow→激活页签 toast §82)+contentRev 重挂载换装(顺带修 Ctrl+R
+  对代码页签不刷新的旧账)。App effect 驱动激活项目 start/stop(§77 只盯一个)。
+- 测试:cargo **95/95**(+9 含真监听冒烟)、vitest **50/50**(watcherApply 11 新)、check 0/0、
+  phase3 **63/63**(+5 watcher)、git-suite **33/33**(+1 徽标自动往返)、r3 8/8、pdf 19/19。
+- 两教训入档:**L33**(Windows notify 的 rename=单事件 `Name(Both)` 带 [from,to],按
+  From/To 两事件的心智模型必漏)/ **L34**(隐藏 WebView2 冻的是定时器队列不是页面——fs
+  事件照常送达,链路里挂 setTimeout 防抖会死;watcher→git 用 refreshGitNow 直取,e2e 一律
+  park_offscreen)。内存账:激活项目一个 watcher(切走即 drop),前端零新增定时器。
 
 ### 2026-10-11 · spec-008(Phase 8 RUN/Trust)收口 Done;主线移交 Phase 9
 

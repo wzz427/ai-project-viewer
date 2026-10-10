@@ -13,9 +13,11 @@
 
 ## 一、Pre-Draft 结论
 
-- **开工前对齐(2026-10-10 owner 立规)**:已发起两问(范围是否照 §183 全集 /
-  自动重读=直接换新+小提示 还是 弹框先问),**未获回复——按需求文档原文默认开工**
-  (范围=§183 全集;自动重读=§82 字面"自动重新读取+轻 Toast");owner 复验时一句话可翻案。
+- **开工前对齐(2026-10-10 owner 立规)**:首问(范围是否照 §183 全集 / 自动重读=直接换新
+  +小提示 还是 弹框先问)未获复,先按需求文档原文默认开工;**owner 回线后补齐对齐**——应其
+  要求做了行业考据(VS Code/Zed/Sublime/JetBrains:树全部自动;"干净缓冲静默重载,脏了才问",
+  我们只读永无脏分支;toast 为 §82 有意偏差)→ owner 拍板"就按你建议的方案"=范围照 §183
+  全集+自动重读+提示保留(§六留痕)。
 - 现状盘点:忽略清单模块已在;refreshProject 每层重列+pin 对账;refreshActiveFile 已实现
   §82 文本分支(toast 文案同款);UnsupportedViewer 已有删除态+[Close Tab](§83 字面);
   刷新通路 ↻/Ctrl+R=refreshProject+refreshGit 同源(spec-008 D12)。
@@ -66,14 +68,16 @@ From/To 窗口内配对(§84),>200 事件/窗折叠 storm;emit `"fs-changed"`
 前端新 `watcherStore.svelte.ts`:boot 时 `listen("fs-changed")`;批次处理序=①应用改名
 (页签 rel/缓存键/active/pins/revealTarget)→②refreshProject(树重列+pin 对账)→③开着的
 页签按 affected 重载内容(文本/媒体/PDF/exe stat;`contentRev++` 经 ActiveViewer {#key}
-重挂载换内容,§160.5 滚动恢复顺带保位)→④删除态复查(inspect)→⑤refreshGit→⑥激活页签
-变了才 toast。纯逻辑抽 `watcherApply.ts` 供 vitest。接线:App $effect(激活 rootPath)→
-start/stop;onMount initWatcher。
+重挂载换内容,§160.5 滚动恢复顺带保位)→④删除态复查(inspect)→⑤refreshGitNow(**直取
+非防抖——事件常在隐藏窗到达,定时器队列会冻,lessons L34;Rust 侧已合并过,前端无需二次防抖**)
+→⑥激活页签变了才 toast。纯逻辑抽 `watcherApply.ts` 供 vitest。接线:App $effect(激活
+rootPath)→start/stop;onMount initWatcher。实现期修订:Windows 的 rename 是单个
+`Name(Both)` 事件带 [from,to](L33)——classify 先拆成相邻 From/To 再配对。
 
 | D# | 决策 | 依据 | 备选 | 排除理由 |
 |---|---|---|---|---|
 | D1 | 防抖住 Rust(notify-debouncer-full 400ms),前端不二次防抖 | §80 越早合并越省 IPC;L28 隐藏窗页面定时器冻结——前端防抖在 e2e 隐藏模式不可靠 | 前端防抖 | 同上+两处超时漂移 |
-| D2 | rename 识别=notify From/To 事件对(窗口内 zip) | §84"可靠识别":内核级配对比目录列表 diff 强;列表 diff(现 reconcilePins)只覆盖已缓存层 | 仅列表 diff | 深层未展开文件改名漏跟 |
+| D2 | rename 识别=notify From/To 事件对(窗口内相邻配对) | §84"可靠识别":内核级配对比目录列表 diff 强;列表 diff(现 reconcilePins)只覆盖已缓存层;实现期修订:Windows 形状=单事件 `Name(Both)` 带 [from,to],拆分后相邻配对(L33);只认相邻,全局 zip 会把无关移出+移入焊成幻影 rename | 仅列表 diff | 深层未展开文件改名漏跟 |
 | D3 | 内容更新后 viewer 经 contentRev 重挂载 | 实测 CodeViewer doc 只在 mount 建、PDF 同族——text prop 变不重画;重挂载统一走 §160.5 保位;顺带修 Ctrl+R 对代码页签不生效的旧账 | 每 viewer 内 doc 同步 | 每查看器一套同步,PDF 引擎重载更繁 |
 | D4 | toast 只报激活页签的变更 | §82 主体=当前打开文件;后台静默换缓存防横幅刷屏(owner 厌恶 clutter) | 每文件一 toast | agent 批量写→刷屏 |
 | D5 | storm 上限 200 事件/窗→折叠为一次全量刷新 | §80;一次 refreshProject+refreshGit 与 ↻ 等价、有界 | 无上限 | 监视目录外的风暴(手滑写爆)拖垮 UI |
@@ -89,17 +93,19 @@ start/stop;onMount initWatcher。
 
 | R# | V# | 测法 | 所需夹具 | 状态 |
 |---|---|---|---|---|
-| R8 | V6 | cargo 纯函数:忽略过滤/rel/rename 配对/storm 折叠 | 无 | ⚠(方案) |
-| R1 | V7 | cargo 冒烟:spawn_watcher+mpsc,写文件→批到达 | tempfile | ⚠(方案) |
-| R4/affected | V8 | vitest:watcherApply 纯函数 | 无 | ⚠(方案) |
-| R2 | V1 | e2e:外部增删文件树自动跟 | AIV-TestProject | ⚠(方案) |
-| R3 | V2/V9 | e2e:激活页签重读+toast+防抖一次 | 同上 | ⚠(方案) |
-| R6 | V3 | e2e:删除态+Close Tab | 同上 | ⚠(方案) |
-| R7 | V4 | e2e:改名跟页签标题/置顶 | 同上 | ⚠(方案) |
-| R5 | V5 | e2e(git-suite):徽标自动变 | %TEMP% git 夹具 | ⚠(方案) |
+| R8 | V6 | cargo 纯函数:忽略过滤/rel/rename 配对(含 Both 拆分+不焊幻影)/storm 折叠 | 无 | ✓ |
+| R1 | V7 | cargo 冒烟:spawn_watcher+mpsc,写文件→批到达+忽略目录不跨 IPC | tempfile | ✓ |
+| R4/affected | V8 | vitest:watcherApply 纯函数(11 项) | 无 | ✓ |
+| R2 | V1 | e2e:外部增删文件树自动跟(零手势) | AIV-TestProject | ✓ |
+| R3 | V2/V9 | e2e:激活页签重读+toast+双写 400ms 合并一次 | 同上 | ✓ |
+| R6 | V3 | e2e:删除态+Close Tab 真关 | 同上 | ✓ |
+| R7 | V4 | e2e:改名跟页签标题/active/pin/内容 | 同上 | ✓ |
+| R5 | V5 | e2e(git-suite):徽标自动 [8]→[7] 零手势 | %TEMP% git 夹具 | ✓ |
 
 ## 六、变更与验收记录
 
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
-| 2026-10-11 | 立项 Draft→Ready(R/V 与 V1.5 §183+§76–§85 逐条对上;对齐两问未获复,按基线默认开工,见 §一) | 测试覆盖矩阵 8 行 |
+| 2026-10-11 | 立项 Draft→Ready(R/V 与 V1.5 §183+§76–§85 逐条对上;对齐两问初未获复按基线默认开工) | 测试覆盖矩阵 8 行 |
+| 2026-10-11 | **开工前对齐完成**:owner 回线,经行业对照(VS Code/Zed/Sublime/JetBrains 均为"树自动+干净缓冲静默重载";我们=只读查看器无脏分支,toast 为 §82 有意偏差)后拍板"就按你建议的方案"=范围照 §183 全集+自动重读+提示保留 | 本轮对话(行业考据含来源链接) |
+| 2026-10-11 | InDev→InTest(**0.7.0 已发体验渠道,等 owner 复验**) | cargo **95/95**(+9:忽略/rel/配对/Both 拆分/storm/真监听冒烟)、vitest **50/50**(watcherApply 11 新)、check 0/0、phase3 **63/63**(+5 watcher:树自动增删/激活重读+toast 合并/删除态/改名跟随)、git-suite **33/33**(+1 徽标自动往返;套件补 park_offscreen)、r3 8/8+pdf 19/19;两教训入档 **L33**(Windows rename=单事件 Name(Both) 带 [from,to],探针实证)/**L34**(隐藏窗冻结定时器队列,fs 事件却照常送达——watcher→git 改 refreshGitNow 直取);内存账:激活项目一个 watcher(debouncer 线程+内核句柄,切走即 drop),前端零新增定时器,contentRev=每页签一整数,重载即换旧引用释放 |

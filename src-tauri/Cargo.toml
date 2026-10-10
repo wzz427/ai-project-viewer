@@ -27,6 +27,9 @@ encoding_rs = "0.8"
 base64 = "0.22"
 md5 = "0.7"
 tauri-plugin-opener = "2.7.0"
+# Phase 9 watcher (spec-009): notify via the debouncer's re-export so the
+# crate graph holds exactly one notify version.
+notify-debouncer-full = "0.5"
 
 [dev-dependencies]
 tempfile = "3"

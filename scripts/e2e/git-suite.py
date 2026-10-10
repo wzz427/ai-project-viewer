@@ -117,6 +117,9 @@ def connect(p, port):
 
 def run_instance(project, state, port, fn):
     proc = aivlaunch.launch(EXE, project, state, port)
+    _hwnd = aivlaunch.window_of(proc.pid)
+    if _hwnd:
+        aivlaunch.park_offscreen(_hwnd)
     try:
         with sync_playwright() as p:
             browser = connect(p, port)
@@ -364,6 +367,20 @@ def instance_a(page):
         page.locator(".sidebar-header .refresh").click()
         check("git_manual_refresh_reverts", badge_becomes(page, "[7]"),
               f"badge after revert={badge_text(page, timeout_s=2)!r}")
+    finally:
+        if os.path.exists(probe):
+            os.remove(probe)
+
+    # spec-009 V5: the WATCHER refreshes git with no gesture at all —
+    # external write -> badge climbs to [8] on its own, delete -> [7].
+    try:
+        wf(probe, "watched probe\n")
+        ok_auto = badge_becomes(page, "[8]")
+        os.remove(probe)
+        ok_back = badge_becomes(page, "[7]")
+        check("git_watcher_auto_refresh_updates_badge", ok_auto and ok_back,
+              f"auto={ok_auto} back={ok_back} "
+              f"badge={badge_text(page, timeout_s=2)!r}")
     finally:
         if os.path.exists(probe):
             os.remove(probe)
