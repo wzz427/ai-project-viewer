@@ -58,6 +58,8 @@ export interface RuntimeTab {
   /** runtime-only: why "unsupported" (binary guard verdict etc.). */
   unsupportedReason?: "binary" | "huge";
   sizeBytes?: number;
+  /** runtime-only: Executable Info card fields (§122). */
+  modifiedMs?: number;
 }
 
 interface ProjectTabs {
@@ -337,6 +339,19 @@ export async function openFile(rootPath: string, rel: string) {
     } catch (err) {
       toast(`Cannot open PDF: ${err}`, { kind: "error" });
     }
+    return;
+  }
+
+  // §122: the .exe info card is stat-only — route before the binary
+  // verdict (an .exe is binary by nature) and before the huge guard
+  // (no content is read, so size is irrelevant).
+  if (viewerTypeFor(rel) === "executable") {
+    addOrActivate(rootPath, {
+      relativePath: rel,
+      viewerType: "executable",
+      sizeBytes: info.sizeBytes,
+      modifiedMs: info.modified ?? undefined,
+    });
     return;
   }
 

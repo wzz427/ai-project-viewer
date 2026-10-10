@@ -70,6 +70,7 @@ async function restoreProject(p: PersistedProject): Promise<ProjectTab | null> {
       rootPath: resolved.rootPath,
       sidebarMode: p.sidebarMode,
       sidebarWidth: p.sidebarWidth,
+      trustedForExecution: p.trustedForExecution,
     };
     projectState.tabs.push(tab);
     return tab;

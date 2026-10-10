@@ -13,6 +13,7 @@
   import JsonViewer from "./JsonViewer.svelte";
   import ImageViewer from "./ImageViewer.svelte";
   import PdfViewer from "./PdfViewer.svelte";
+  import ExecutableInfoViewer from "./ExecutableInfoViewer.svelte";
   import UnsupportedViewer from "./UnsupportedViewer.svelte";
   import { extOf } from "$lib/services/viewerType";
 
@@ -34,6 +35,7 @@
     const t = tab;
     if (!t || t.deleted) return;
     if (t.viewerType === "binary" || t.viewerType === "unsupported") return;
+    if (t.viewerType === "executable") return; // stat card, no content
     if (!cachedContent(rootPath, t.relativePath)) {
       void ensureContentLoaded(rootPath, t.relativePath);
     }
@@ -54,6 +56,8 @@
     <ImageViewer {rootPath} {tab} />
   {:else if tab.viewerType === "pdf"}
     <PdfViewer {rootPath} {tab} />
+  {:else if tab.viewerType === "executable"}
+    <ExecutableInfoViewer {rootPath} {tab} />
   {:else if text !== null}
     <div class="code-host">
       <CodeViewer {rootPath} {tab} text={text} language={extOf(tab.relativePath)} />

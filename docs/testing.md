@@ -84,10 +84,11 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 44 项:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 | 凡动查看器、页签、右键菜单 |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **54 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + **Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败 toast** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust |
 | `git-suite.py` | Phase 7 Git 检视 30 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + **0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
+| `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
 | `oracle/` | 官方查看器对照基准(搭建见 README) | 疑上游问题 |
 
@@ -131,6 +132,22 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | pdf-suite | 19/19 |
 | 截图自评 | 面板+并排各一张(视觉工具核:分段/计数徽章/提交图形列/HEAD 胶囊/行对齐/折叠条落地,时间 "1m ago") |
 | 版本 | 0.6.8 三处已核 |
+
+### 4.11 Phase 8 RUN/Trust(2026-10-10,spec-008;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| cargo | **86/86**(run.rs 新 8:argv 无 -ExecutionPolicy/cmd /K 构型/白名单拒绝/越界拒绝/两宿主存活性[stdin 持管法];handoff +1:.url 禁协议接线) |
+| vitest | **39/39**(menuKind 新 5:script 三扩展/py-js-sh 排除/exe-msi 分裂/大小写/folder-browserText;appState +1 trust 往返+旧态无字段愈合 false) |
+| svelte-check | 0 错 0 警 |
+| phase3-suite | **54/54**(+10:见 §3 行;untrusted 自动取消走 test_mode_active 分支,零打扰红线保住) |
+| git-suite | 31/31 防退化 |
+| acceptance-r3 | 8/8 |
+| pdf-suite | 19/19 |
+| run-live-check(手动真机) | **PASS**:信任菜单翻转→Run Script→WindowsTerminal 控制台窗出现→脚本体执行(marker)→结束后 2.5s 仍驻留 |
+| 版本 | 0.6.9 三处已核 |
+
+实现期两教训(lessons L29/L30):release GUI 构建必须 `pnpm tauri build --no-bundle`(plain cargo build 缺 custom-protocol,页面 ERR_CONNECTION_REFUSED);Win11 默认终端=WindowsTerminal.exe,控制台窗不在 spawn 者进程树内,检测须系统级差集。
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 

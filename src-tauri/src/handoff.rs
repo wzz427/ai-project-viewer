@@ -133,7 +133,7 @@ fn find_first_existing(candidates: &[PathBuf]) -> Option<PathBuf> {
 // §143/§144 path validation — same canonicalize+starts_with rule as the
 // tree/file commands, but targets may be files OR folders.
 
-fn resolve_target(root: &Path, rel: &str) -> Result<PathBuf, String> {
+pub fn resolve_target(root: &Path, rel: &str) -> Result<PathBuf, String> {
     let root_canon = dunce::canonicalize(root)
         .map_err(|e| format!("Project folder is not accessible: {e}"))?;
 
@@ -216,7 +216,15 @@ pub fn open_in_browser(root_path: String, rel: String) -> Result<(), String> {
         .unwrap_or_default();
     let url = match ext.as_str() {
         "html" | "htm" => file_url_of(&path),
-        "url" => shortcut_url(&path)?,
+        "url" => {
+            let u = shortcut_url(&path)?;
+            // §115: a shortcut may carry ANY scheme; only http/https ever
+            // auto-open (javascript:/powershell:/file:/shell: rejected).
+            if !browser_url_allowed(&u) {
+                return Err(format!("Shortcut scheme is not allowed to auto-open: {u}"));
+            }
+            u
+        }
         _ => return Err(format!("Not a browser-openable file: {rel}")),
     };
     open_url(&url, None::<&str>).map_err(|e| e.to_string())
@@ -379,6 +387,29 @@ mod tests {
         let p = dir.path().join("big.url");
         std::fs::write(&p, vec![b'x'; (SHORTCUT_MAX_BYTES + 1) as usize]).unwrap();
         assert!(shortcut_url(&p).is_err());
+    }
+
+    #[test]
+    fn shortcut_with_forbidden_scheme_is_refused_before_open() {
+        // Mirrors the open_in_browser .url branch without opening anything:
+        // the extracted URL must clear the §115 allowlist or the command
+        // errors out before open_url is reached.
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("evil.url");
+        for (url, ok) in [
+            ("powershell:-encoded-command xyz", false),
+            ("javascript:alert(1)", false),
+            ("file://c:/windows/system32", false),
+            ("https://example.com/x", true),
+        ] {
+            std::fs::write(
+                &p,
+                format!("[InternetShortcut]\r\nURL={url}\r\n"),
+            )
+            .unwrap();
+            let extracted = url_from_shortcut_text(&std::fs::read_to_string(&p).unwrap()).unwrap();
+            assert_eq!(browser_url_allowed(&extracted), ok, "{url}");
+        }
     }
 
     #[test]

@@ -32,6 +32,8 @@ export interface FileInspection {
   sizeClass: SizeClass;
   encoding: FileEncoding;
   isBinary: boolean;
+  /** Unix ms; rides the stat call for the Executable Info card (§122). */
+  modified: number | null;
 }
 
 /** Canonicalize a folder into a project identity (V1.5 §14/§144). */
@@ -156,6 +158,31 @@ export function openInBrowser(
 }
 
 /** Milliseconds from Rust process start to the moment this is called. */
+/**
+ * §116/§137 Run Script: persistent visible console (cmd /K or
+ * powershell -NoExit host), cwd = project root. Trust gate lives in the
+ * frontend flow (spec-008 D2); Rust still fences path + extension.
+ */
+export function runProjectScript(
+  rootPath: string,
+  rel: string,
+): Promise<void> {
+  return invoke("run_project_script", { rootPath, rel });
+}
+
+/** §123/§139 Run: direct launch of the exe, cwd = its own folder. */
+export function runProjectExecutable(
+  rootPath: string,
+  rel: string,
+): Promise<void> {
+  return invoke("run_project_executable", { rootPath, rel });
+}
+
+/** True under a scripted GUI test — modal confirms auto-cancel (spec-008 D3). */
+export function testModeActive(): Promise<boolean> {
+  return invoke<boolean>("test_mode_active");
+}
+
 export function startupElapsedMs(): Promise<number> {
   return invoke<number>("startup_elapsed_ms");
 }

@@ -18,6 +18,10 @@ export interface ProjectTab {
   sidebarMode: SidebarMode;
   /** §17 ProjectSession.sidebarWidth — persisted; no drag UI yet (D6). */
   sidebarWidth: number;
+  /** §129 Project Trust for Execution — per project, default off (§128);
+   * rides the Phase 4 persistence whitelist (spec-008 D2: frontend-owned
+   * UX gate; the real safety fence is Rust's extension+path checks). */
+  trustedForExecution: boolean;
 }
 
 /**
@@ -52,6 +56,16 @@ export function setSidebarWidth(rootPath: string, width: number) {
   if (tab) tab.sidebarWidth = Math.min(600, Math.max(200, Math.round(width)));
 }
 
+/** §129: Trust reads/writes are per project root; never inherited. */
+export function isProjectTrusted(rootPath: string): boolean {
+  return projectState.tabs.some((t) => t.rootPath === rootPath && t.trustedForExecution);
+}
+
+export function setProjectTrusted(rootPath: string, trusted: boolean) {
+  const tab = projectState.tabs.find((t) => t.rootPath === rootPath);
+  if (tab) tab.trustedForExecution = trusted;
+}
+
 /** Add (or switch to) a project by raw path — shared by picker and test hook. */
 export async function addProjectFromPath(rawPath: string) {
   try {
@@ -70,6 +84,7 @@ export async function addProjectFromPath(rawPath: string) {
       rootPath: resolved.rootPath,
       sidebarMode: "files",
       sidebarWidth: 260,
+      trustedForExecution: false, // §128: new projects start untrusted
     };
     projectState.tabs.push(tab);
     projectState.activeId = tab.id;

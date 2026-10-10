@@ -1,7 +1,9 @@
 <script lang="ts">
   import { ask } from "@tauri-apps/plugin-dialog";
   import {
+    isProjectTrusted,
     removeProject,
+    setProjectTrusted,
     type ProjectTab,
   } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
@@ -11,11 +13,14 @@
     project,
     x,
     y,
+    onRefreshProject,
     onclose,
   }: {
     project: ProjectTab;
     x: number;
     y: number;
+    /** §141 Refresh Project — forwarded from App's refreshAll (tree+git). */
+    onRefreshProject?: (rootPath: string) => Promise<void>;
     onclose: () => void;
   } = $props();
 
@@ -34,6 +39,8 @@
 
   // §141 handoff block — built with plain-string snapshots (lessons L12).
   const handoff = $derived(projectHandoffGroups(project.rootPath));
+  // §129/§141: revocable per project; label reflects the CURRENT state.
+  const trusted = $derived(isProjectTrusted(project.rootPath));
 
   function close(e?: Event) {
     if (e && e.target instanceof Node && el?.contains(e.target)) return;
@@ -79,6 +86,30 @@
       >{entry.label}</button>
     {/each}
   {/each}
+  <div class="sep"></div>
+  {#if onRefreshProject}
+    <button
+      class="menu-item"
+      data-menu-id="refresh-project"
+      onclick={() => {
+        void onRefreshProject?.(project.rootPath);
+        onclose();
+      }}
+    >Refresh Project</button>
+  {/if}
+  <button
+    class="menu-item"
+    data-menu-id={trusted ? "untrust-project" : "trust-project"}
+    onclick={() => {
+      setProjectTrusted(project.rootPath, !trusted);
+      toast(
+        trusted
+          ? `“${project.name}” is no longer trusted for execution.`
+          : `“${project.name}” is now trusted for execution.`,
+      );
+      onclose();
+    }}
+  >{trusted ? "Untrust Project" : "Trust Project for Execution"}</button>
   <div class="sep"></div>
   <button class="menu-item" onclick={confirmRemove}>Remove Project</button>
 </div>

@@ -19,7 +19,8 @@ import type { SidebarMode } from "$lib/stores/projectStore.svelte";
 export const STATE_VERSION = 1;
 
 const VIEWER_TYPES = new Set([
-  "markdown", "pdf", "text", "code", "json", "image", "binary", "unsupported",
+  "markdown", "pdf", "text", "code", "json", "image", "executable", "binary",
+  "unsupported",
 ]);
 const SIDEBAR_MODES: SidebarMode[] = ["files", "git", "settings"];
 const THEMES: Theme[] = ["system", "light", "dark"];
@@ -104,6 +105,7 @@ export interface BuildInput {
     rootPath: string;
     sidebarMode: SidebarMode;
     sidebarWidth: number;
+    trustedForExecution: boolean;
   }[];
   activeProjectId: string | null;
   trees: Record<string, TreeLike>;
@@ -142,8 +144,9 @@ export function buildAppState(input: BuildInput): AppStateV1 {
       activeFileRelativePath: tabs?.activeFileRelativePath ?? undefined,
       sidebarMode: p.sidebarMode,
       sidebarWidth: p.sidebarWidth,
-      // Phase 8 owns the trust flow; the field ships now (§17) at default.
-      trustedForExecution: false,
+      // §129 Trust: persisted live value; missing in pre-Phase-8 state
+      // files heals to false via parseProject's default.
+      trustedForExecution: p.trustedForExecution,
       fileTreePreferences: {
         foldersFirst: tree?.foldersFirst ?? true,
         pinnedItems: Object.fromEntries(

@@ -3,6 +3,7 @@ mod file_tree;
 mod git;
 mod handoff;
 mod project;
+mod run;
 mod state;
 mod updater;
 
@@ -170,6 +171,8 @@ pub fn run() {
             handoff::reveal_in_explorer,
             handoff::open_with_default_app,
             handoff::open_in_browser,
+            run::run_project_script,
+            run::run_project_executable,
             state::load_state,
             state::save_state,
             updater::check_update,

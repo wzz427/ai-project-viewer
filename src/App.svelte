@@ -227,7 +227,7 @@
 </script>
 
 <div class="shell">
-  <ProjectTabs />
+  <ProjectTabs onRefreshProject={(rootPath) => refreshAll(rootPath)} />
   <div class="body">
     <aside class="sidebar" style:width={`${project?.sidebarWidth ?? 260}px`}>
       <SidebarHeader

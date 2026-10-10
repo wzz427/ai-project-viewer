@@ -43,6 +43,9 @@ pub struct FileInspection {
     pub size_class: SizeClass,
     pub encoding: FileEncoding,
     pub is_binary: bool,
+    /// §122 Executable Info card needs Modified; stat already has it, so it
+    /// rides along (unix ms) instead of a second command/IO.
+    pub modified: Option<u64>,
 }
 
 fn classify_size(size: u64) -> SizeClass {
@@ -88,6 +91,11 @@ pub fn inspect(path: &Path) -> Result<FileInspection, String> {
     }
     let size = meta.len();
     let size_class = classify_size(size);
+    let modified = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64);
 
     let sample_len = if size <= LARGE_FILE_BYTES {
         size as usize
@@ -104,6 +112,7 @@ pub fn inspect(path: &Path) -> Result<FileInspection, String> {
         size_class,
         encoding,
         is_binary,
+        modified,
     })
 }
 

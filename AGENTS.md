@@ -72,7 +72,7 @@
 | 干什么 | 进哪 |
 |---|---|
 | **怎么把项目跑起来**(解释器/装依赖/启动/跑测试/平台坑) | 🔴 【architecture.md §0 开发环境与跑法】 |
-| **接开发任务,按什么顺序做什么** | 🔴 【需求文档 V1.5 §175–192】定 Phase 顺序(**一次只做当前 Phase**,完成即停等 owner)→ **开工按【docs/workflow.md】状态机走:立 SPEC(根目录 specs/spec-NNN,编号与 Phase 对齐,模板 specs/SPEC-template.md)、台账 specs/INDEX.md、跃迁过自检门**(2026-10-01 owner 立规;Spec 免审、动笔前疑问先确认等本项目适配见 workflow §五) |
+| **接开发任务,按什么顺序做什么** | 🔴 【需求文档 V1.5 §175–192】定 Phase 顺序(**一次只做当前 Phase**,完成即停等 owner)→ **开工按【docs/workflow.md】状态机走:立 SPEC(根目录 specs/spec-NNN,编号与 Phase 对齐,模板 specs/SPEC-template.md)、台账 specs/INDEX.md、跃迁过自检门;**写代码前先跟 owner 说人话对齐本 Phase 范围与关键默认**(2026-10-10 owner 立规收紧;Spec 文档免审等本项目适配见 workflow §五) |
 | **查产品该是什么样 / 功能边界 / 技术方案** | 🔴 【《AI Project Viewer 产品需求与技术设计文档 V1.5 FINAL.md》】——唯一需求基线,兼任 roadmap(每 Phase 的实现 SPEC 在根目录 specs/);尾部 §196 为 ZCode 评审附注;需求变更走增量修订+变更审计(§193),**禁止整篇重写** |
 | 需求原话有分歧 | 【demand.txt】(owner 原话落盘;与需求文档冲突时以需求文档为准) |
 | 要提交了,跑哪几档测试 | 🔴 【docs/testing.md】(唯一真值,别处只挂指针;Phase 验收清单在 V1.5 §188) |

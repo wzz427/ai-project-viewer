@@ -97,7 +97,7 @@ ProjectViewer/(仓库根)
 │       ├── components/SidebarHeader/(Files/Git[徽标 §9]/⚙/↻)
 │       ├── components/FileTree/(FileTree 宿主 / TreeItem 递归行 / NodeContextMenu Pin 右键)
 │       ├── components/ProjectTabs/FileTabs.svelte(主区文件标签条)
-│       ├── components/Viewers/(ActiveViewer 路由 / MarkdownViewer / CodeViewer+codeLanguages+codeSearchRegistry / JsonViewer / ImageViewer / **PdfViewer(Phase 5:pdfjs legacy+工具栏+虚拟化+切离释放)** / **DiffViewer(Phase 7:side-by-side 并排 diff 单槽视图,0.6.8 返修:双栏行号+路径列头+红绿对置+空侧斜纹+折叠计数条,parseUnifiedDiff 纯解析(D16);§72 超限 Open in VS Code,Esc/× 关)** / **CommitDetailView(0.6.8 返修:提交详情单槽——Message/作者/日期/Hash/文件列表,文件点入提交视角 diff)** / UnsupportedViewer / **ViewerToolbar+activeFind(0.6:文本类统一操作栏=全局字号+Find;Ctrl+F 注册表)**)
+│       ├── components/Viewers/(ActiveViewer 路由 / MarkdownViewer / CodeViewer+codeLanguages+codeSearchRegistry / JsonViewer / ImageViewer / **PdfViewer(Phase 5:pdfjs legacy+工具栏+虚拟化+切离释放)** / **DiffViewer(Phase 7:side-by-side 并排 diff 单槽视图,0.6.8 返修:双栏行号+路径列头+红绿对置+空侧斜纹+折叠计数条,parseUnifiedDiff 纯解析(D16);§72 超限 Open in VS Code,Esc/× 关)** / **CommitDetailView(0.6.8 返修:提交详情单槽——Message/作者/日期/Hash/文件列表,文件点入提交视角 diff)** / UnsupportedViewer / **ViewerToolbar+activeFind(0.6:文本类统一操作栏=全局字号+Find;Ctrl+F 注册表)** / **ExecutableInfoViewer(Phase 8:§122 exe 信息卡=stat 纯字段,无内容缓冲)**)
 │       ├── components/SidebarPanels/(Files=路径框+FileTree / **Git=Phase 7 面板(§50 分支行↑↓/子目录 Repository+Scope 盒/CHANGES+STAGED+RECENT COMMITS/§152/§153 三空态)** / Settings)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案)
 │       ├── components/Toast/(单槽 toast)
@@ -113,7 +113,7 @@ ProjectViewer/(仓库根)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家,功能 Phase 9)/
 │           viewerType.ts(扩展名→查看器路由)/ handoffMenu.ts(Phase 6:右键移交分型菜单构建,树/页签同源+剪贴板 toast)/
-│           gitFormat.ts(Phase 7 纯函数:badgeText §9/relativeTime §54——%ct 秒 Rust 侧 ×1000 转 ms(0.6.8 修 "56y ago")/marksByRel §46/letterClass 配色类)/ diffSideBySide.ts(0.6.8:unified→并排行拉链纯解析,DiffSegment/DiffRow)/
+│           menuKind.ts(Phase 8 菜单分型纯函数,§142 切片:script/exe/msi,handoffMenu 消费+vitest 直测)/ gitFormat.ts(Phase 7 纯函数:badgeText §9/relativeTime §54——%ct 秒 Rust 侧 ×1000 转 ms(0.6.8 修 "56y ago")/marksByRel §46/letterClass 配色类)/ diffSideBySide.ts(0.6.8:unified→并排行拉链纯解析,DiffSegment/DiffRow)/
 │           ContextMenu/menuPosition.ts(右键菜单视口钳制,0.6.3)
 └── src-tauri/ —— Rust 后端
     ├── tauri.conf.json(窗口 1280×800/CSP/NSIS/dragDropEnabled:false——HTML5 拖拽必需,lessons L10)
@@ -125,7 +125,7 @@ ProjectViewer/(仓库根)
         ├── file_tree.rs(list_directory:单层+§29 打标+hidden_count+越界拒;§176 块1)
         ├── file_inspect.rs(inspect_file/read_text_file/read_media_file/read_binary_file:§101 流水线+按编码解码+图片 data URL+PDF 原始字节通道(ArrayBuffer,100MB 顶),守卫全在 Rust 侧)
         ├── handoff.rs(Phase 6 §132 ExternalEditor 抽象=NotepadEditor/VSCodeEditor+§133 语义命令 edit_in_quick_editor/open_in_code_editor/reveal_in_explorer/open_with_default_app/open_in_browser;全部先 canonicalize 校验(§143/§144);VS Code 探测=Local\Programs→Program Files→PATH 的 code.exe,11 单测)
-        └── git.rs(Phase 7 只读 Git Review:git_snapshot/git_diff/git_commit_detail 三命令(0.6.8 增 show 详情:改名/作者/文件,hash 消毒);§65 全部 git -C <GitRoot>+§70 安全旗标 --no-pager/quotepath=false/--no-ext-diff/--no-textconv/--no-optional-locks;porcelain=v2 解析(renamed TAB 双路径实证)+Scope 过滤换算项目相对路径;§72 diff 流式截断 2MB/20k 行+10s 超时+CREATE_NO_WINDOW;13 单测含 §174 场景/ahead-behind/冲突/空仓 detached)
+        └── run.rs(Phase 8 运行层:run_project_script/run_project_executable 两语义命令;§117/§118 持久宿主策略=cmd /K+powershell -NoExit+CREATE_NEW_CONSOLE(实验定,spec-008 §一);§120 无 -ExecutionPolicy;§121/§124 cwd;扩展名白名单住 Rust;spawn 后即忘零驻留)/ git.rs(Phase 7 只读 Git Review:git_snapshot/git_diff/git_commit_detail 三命令(0.6.8 增 show 详情:改名/作者/文件,hash 消毒);§65 全部 git -C <GitRoot>+§70 安全旗标 --no-pager/quotepath=false/--no-ext-diff/--no-textconv/--no-optional-locks;porcelain=v2 解析(renamed TAB 双路径实证)+Scope 过滤换算项目相对路径;§72 diff 流式截断 2MB/20k 行+10s 超时+CREATE_NO_WINDOW;13 单测含 §174 场景/ahead-behind/冲突/空仓 detached)
 ```
 
 | 改什么功能 | 去哪个文件 |
@@ -134,6 +134,7 @@ ProjectViewer/(仓库根)
 | 顶栏标签 UI / 右键菜单 | src/lib/components/ProjectTabs/ProjectTabs.svelte |
 | 右键移交条目(树/页签/项目,§135–141 分型唯一真源) | src/lib/services/handoffMenu.ts(菜单构建+剪贴板)+ src-tauri/src/handoff.rs(命令) |
 | 侧栏 Files/Git/Settings(含头部 ↻ Refresh 图标,0.6.5/0.6.6) | src/lib/components/SidebarHeader + SidebarPanels |
+| 运行脚本/程序+项目信任(Phase 8) | src-tauri/src/run.rs(运行层) + projectStore.trustedForExecution(§129 门,前端 UX 门+Rust 扩展名/路径围栏) + handoffMenu.runWithTrust(§128 确认框+§119 toast) + ExecutableInfoViewer |
 | Git 只读检视(徽标/页签 ✓●/树标记/Git 面板/并排 diff/提交详情/刷新触发,Phase 7+0.6.8 返修) | src-tauri/src/git.rs(命令+解析) + src/lib/stores/gitStore.svelte.ts(态+防抖) + gitFormat.ts/diffSideBySide.ts(纯函数) + GitPanel(0.6.8 照 VS Code 重排:分段文件名/计数徽章/提交图形列)/DiffViewer/CommitDetailView 组件 |
 | 主题/外观 tokens | src/app.css + stores/settingsStore.svelte.ts |
 | 快捷键拦截/新组合注册 | src/lib/services/shortcuts.ts(禁用浏览器加速键在 src-tauri/src/lib.rs) |

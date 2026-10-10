@@ -235,3 +235,17 @@
 - **修法(产品侧,不只是测试侧)**:启动/新增项目的 git 扫描改 **refreshGitNow 直取**(顺带快 400ms);防抖只留给聚焦/手动/切换——这些路径只在窗口可见(醒着)时发生。既有 800ms 状态保存防抖不受影响(隐藏时本就该攒着,退出有 Rust 兜底落盘)。
 - **连带**:git-suite 的 rmtree 需先清 git 对象只读位(git 把 .git/objects 标只读,Windows rmtree 直接 PermissionError)。
 - **出处**:spec-007 git-suite 首跑 badge 永不出现,三层探针定位,2026-10-10。
+
+### L29:release GUI 构建必须 `pnpm tauri build --no-bundle`——plain `cargo build --release` 缺 custom-protocol,页面是 ERR_CONNECTION_REFUSED
+
+- **症状**(Phase 8 e2e 首跑):`cargo build --release` 出的 exe 起得来、CDP 连得上,但页面停在 about:blank,内容是 Edge 错误页"localhost 拒绝连接"(devUrl localhost:1420 没人听);25s 等不到 .file-tree。之前轮次一直绿,是因为当时用了正法构建。
+- **机理**:Tauri 2 的 `custom-protocol` 特性由 `tauri build`(CLI)注入——启用后走内嵌 frontendDist 资产;plain cargo build 不带该特性,运行时回退 devUrl,而 vite dev server 没在跑 → 连接拒绝。
+- **判据**:exe 能起但页面空白/拒绝连接 + URL 落在 localhost:1420 → 先问"这个 exe 是怎么构建的",再看代码。architecture §0/testing §0 已有明文,别凭记忆敲 cargo。
+- **出处**:Phase 8 phase3 首跑三连挂,2026-10-10。
+
+### L30:Windows 11 默认控制台宿主是 WindowsTerminal.exe——控制台窗口不在 spawn 者的进程树里;无控制台时 cmd /K 会被 stdin EOF 打死
+
+- **事实一(归因)**:CREATE_NEW_CONSOLE 起的"可见控制台",在 Win11 默认设置下窗口属于 **WindowsTerminal.exe**(独立进程,非 app 子进程)——按"子树内找 ConsoleWindowClass"检测必漏;正确姿势=**系统级可见窗口 before/after 差集**(run-live-check.py 的 top_windows/console_delta)。
+- **事实二(无窗测试)**:CREATE_NO_WINDOW 下没有控制台,cmd /K / powershell -NoExit 的交互 stdin 立刻 EOF → 宿主自退,"跑完留窗"性质直接消失(这正是 §118 担忧的机理)。无窗验证宿主存活性要**stdin 塞一根持有不关的管道**(模拟真控制台"输入永不 EOF"),cargo 测试 run.rs 即此法。
+- **判据**:测"控制台可见/驻留"类行为,先问宿主模型(Win11=WindowsTerminal),再选归因法;e2e 例行轮永远不真 launch(零打扰红线),真机检走手动脚本+PID 树清理。
+- **出处**:Phase 8 真机抽检两轮检测扑空+cargo 宿主测试首败,2026-10-10。

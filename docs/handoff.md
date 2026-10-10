@@ -11,10 +11,21 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-008(Phase 8 RUN/Trust)开工,发版 0.6.9 起**:Project Trust(新项目默认不可执行,首次运行弹确认,可持久可撤销不跨项目,§128–129)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,可见外部控制台+stdout/stderr+快结束可读+成败 Toast,§116–121;**进程创建策略按 §118 由本轮实验定**)+ EXE(.exe 左键 Executable Info 查看器+右键 Run 绝对路径不拼 cmd,§122–124)+ 项目菜单 Trust/Untrust 与 Refresh Project(§141)。HTML/URL→Browser 已在 Phase 6 交付。
-遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L28 在档。
+主线 = **spec-008(Phase 8 RUN/Trust)InTest,等 owner 复验 0.6.9**:项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
+复验要点:右键项目标签 → Trust Project for Execution → 右键 hello.ps1(hello.bat)→ Run Script → 弹**可见控制台**(Win11=Windows Terminal 窗口),输出可读、跑完窗口留着;右键 demo.exe → Run;左键 demo.exe → 信息卡;右键项目标签 → Untrust 还原。过 → spec-008 Done → Phase 9(Watcher,§183,发版 0.6.10 起)。
+遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L30 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 深夜 · spec-008(Phase 8 RUN/Trust)交付:0.6.9 已发体验渠道,等 owner 复验
+
+> **下一步从哪接** —— owner 点 Update(0.6.9)验:①右键项目标签 → Trust Project for Execution(toast 确认);②右键 hello.ps1 或 hello.bat → Run Script → **可见控制台窗**(Windows Terminal)跑脚本,输出可读,跑完窗口留着手动关;③右键 demo.exe → Run;左键 demo.exe → 信息卡(Windows Executable/Size/Modified/Path);④右键 sample.msi 无 Run 只有 System Default;⑤Untrust 后再 Run 会弹信任确认框。全过 → spec-008 Done → Phase 9(spec-009,§183 Watcher)。
+
+- **开工前需求对齐已做**(owner 抓偏立规:方向确认+控制台留窗,workflow §五 A2 收紧+spec-008 §六留痕)。
+- 交付:Rust run.rs(§117/§118 持久宿主策略——四组对照实验定:cmd /K+powershell -NoExit+CREATE_NEW_CONSOLE;§120 无 -ExecutionPolicy;白名单住 Rust);前端 trust 状态(§129,Phase 4 预留字段接线)+runWithTrust 门(§128 确认框+§119 toast;test 模式自动 Cancel 保 e2e 零打扰)+菜单分型(script/exe/msi,§137/§139/§126)+ExecutableInfoViewer(§122,stat 纯卡);**顺带销 Phase 6 遗留漏洞:.url Open in Browser 接上 §115 http/https 白名单**(browser_url_allowed 曾定义未接线)。
+- 自测:cargo 86/86、vitest 39/39(menuKind 新纯模块)、check 0/0、phase3 **54/54**(+10)、git-suite 31/31、r3 8/8、pdf 19/19;**run-live-check.py 真机 PASS**(手动专用工具,会开真控制台,绝不入例行轮)。
+- 新教训 **L29**(release 构建必须 pnpm tauri build --no-bundle,plain cargo 缺 custom-protocol→页面拒绝连接)/ **L30**(Win11 默认终端宿主 WindowsTerminal.exe 不在子树,窗口归因用系统级差集;无控制台时 cmd /K 被 stdin EOF 打死,无窗测试用持管 stdin)。
+- 内存账:trust=每项目一布尔(入既有持久化形状);运行 spawn 后即忘(不 wait/不 kill);信息卡无内容缓冲;零新增定时器。
 
 ### 2026-10-10 晚 · spec-007(Phase 7 Git Review)收口 Done;主线移交 Phase 8
 

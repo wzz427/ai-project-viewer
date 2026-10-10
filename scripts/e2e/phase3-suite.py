@@ -331,8 +331,9 @@ with sync_playwright() as p:
     check("handoff_tree_image", m_img == {"open", "default-app", "reveal",
           "copy-abs", "copy-rel"}, str(sorted(m_img)))
     m_exe = menu_ids_of(tree_menu("demo.exe"))
-    check("handoff_tree_exe", m_exe == {"reveal", "copy-abs", "copy-rel"},
-          str(sorted(m_exe)))
+    # spec-008 (§139): +Open(info card) +Run, still no editors
+    check("handoff_tree_exe", m_exe == {"open", "run", "reveal", "copy-abs",
+          "copy-rel"}, str(sorted(m_exe)))
     m_html = menu_ids_of(tree_menu("index.html"))
     m_url = menu_ids_of(tree_menu("example.url"))
     check("handoff_tree_browser", "browser" in m_html and "browser" in m_url
@@ -358,8 +359,11 @@ with sync_playwright() as p:
     # Project tab menu (§141)
     m_proj = menu_ids_of(
         lambda: page.locator(".project-tabs .tab.active").click(button="right"))
+    # spec-008: §141 full set — +Refresh Project +Trust Project (untrusted
+    # default flips the label to Untrust Project once trusted)
     check("handoff_project_menu", m_proj == {"project-explorer",
-          "copy-project-path", "project-vscode"}, str(sorted(m_proj)))
+          "copy-project-path", "project-vscode", "refresh-project",
+          "trust-project"}, str(sorted(m_proj)))
     page.locator(".project-tabs .tab.active").click(button="right")
     has_remove = page.locator(".menu button", has_text="Remove Project").count() == 1
     page.mouse.click(400, 250)
@@ -541,6 +545,91 @@ with sync_playwright() as p:
     finally:
         if os.path.exists(probe):
             os.remove(probe)
+
+    # --- spec-008 (Phase 8 RUN/Trust): menus, info card, trust gate ---
+    # .ps1/.cmd/.bat get Run Script; py/js/sh do not (§116/§127)
+    m_ps1 = menu_ids_of(tree_menu("hello.ps1"))
+    check("p8_script_menu_has_run",
+          m_ps1 >= {"open", "run-script", "notepad", "vscode",
+                    "reveal", "copy-abs", "copy-rel"}, str(sorted(m_ps1)))
+    expand("src")
+    def row_by_title(t):
+        return page.locator(f'.file-tree .row[title="{t}"]')
+    m_py = menu_ids_of(lambda: row_by_title("src/main.py").first.click(button="right"))
+    check("p8_python_no_run_entry", "run-script" not in m_py, str(sorted(m_py)))
+
+    # §139 exe: Open(info)+Run, no editors; §126 msi: System Default, no Run
+    m_exe = menu_ids_of(tree_menu("demo.exe"))
+    check("p8_exe_menu",
+          m_exe == {"open", "run", "reveal", "copy-abs", "copy-rel"},
+          str(sorted(m_exe)))
+    m_msi = menu_ids_of(tree_menu("sample.msi"))
+    check("p8_msi_menu_no_run",
+          m_msi == {"default-app", "reveal", "copy-abs", "copy-rel"},
+          str(sorted(m_msi)))
+
+    # §122: left-click .exe -> stat card (no content read)
+    tree_row("demo.exe").click()
+    page.wait_for_selector(".exe-info .kind", timeout=4000)
+    info_txt = page.locator(".exe-info").inner_text()
+    low = info_txt.lower()
+    check("p8_exe_info_viewer",
+          "windows executable" in low
+          and "this file cannot be previewed." in low
+          and "size:" in low and "modified:" in low
+          and "path:" in low,
+          repr(info_txt[:200]))
+
+    # §128 untrusted + test mode: Run Script auto-cancels — nothing launches
+    tree_row("hello.bat").click(button="right")
+    page.wait_for_selector(".menu [data-menu-id='run-script']", timeout=4000)
+    page.locator(".menu [data-menu-id='run-script']").dispatch_event("click")
+    time.sleep(1.5)
+    launched_toast = page.evaluate(
+        "() => { const t = document.querySelector('.toast');"
+        " return t ? t.innerText : null; }")
+    check("p8_untrusted_run_auto_cancel", launched_toast is None,
+          f"toast={launched_toast!r}")
+
+    # §141 project menu: Refresh Project + Trust/Untrust, toggling per state
+    page.locator(".project-tabs .tab").first.click(button="right")
+    page.wait_for_selector(".menu [data-menu-id='trust-project']", timeout=4000)
+    page.locator(".menu [data-menu-id='trust-project']").dispatch_event("click")
+    time.sleep(0.6)
+    trust_toast = page.locator(".toast").inner_text()
+    check("p8_trust_toggle",
+          "trusted for execution" in trust_toast, trust_toast)
+    page.locator(".project-tabs .tab").first.click(button="right")
+    page.wait_for_selector(".menu [data-menu-id='untrust-project']", timeout=4000)
+    untrust_ids = page.eval_on_selector_all(
+        ".menu [data-menu-id]", "els => els.map(e => e.dataset.menuId)")
+    page.mouse.click(400, 250)  # close without toggling (state restored below)
+    check("p8_project_menu_refresh_entry",
+          "refresh-project" in untrust_ids and "untrust-project" in untrust_ids,
+          str(untrust_ids))
+
+    # §119 failure toast: trusted project + vanished target -> loud failure
+    fail_bat = os.path.join(PROJECT, "data", "tmp-fail.bat")
+    with open(fail_bat, "w", newline="") as f:
+        f.write("@echo off\r\necho x\r\n")
+    tree_row("data").click()          # collapse
+    time.sleep(0.3)
+    tree_row("data").click()          # re-expand re-lists (0.6.4 behavior)
+    time.sleep(0.8)
+    row_by_title("data/tmp-fail.bat").first.click(button="right")
+    page.wait_for_selector(".menu [data-menu-id='run-script']", timeout=4000)
+    os.remove(fail_bat)               # target vanishes before launch
+    page.locator(".menu [data-menu-id='run-script']").dispatch_event("click")
+    fail_toast = page.wait_for_selector(".toast").inner_text()
+    check("p8_launch_failure_toast",
+          fail_toast.startswith("Failed to launch"), fail_toast)
+    time.sleep(1.0)
+
+    # restore: untrust (leave the temp project state as it started)
+    page.locator(".project-tabs .tab").first.click(button="right")
+    page.wait_for_selector(".menu [data-menu-id='untrust-project']", timeout=4000)
+    page.locator(".menu [data-menu-id='untrust-project']").dispatch_event("click")
+    time.sleep(0.6)
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

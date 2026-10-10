@@ -7,16 +7,22 @@
  * semantic commands (§133: the frontend never builds executables).
  */
 
+import { ask } from "@tauri-apps/plugin-dialog";
 import { toast } from "$lib/stores/toastStore.svelte";
 import { settings } from "$lib/stores/settingsStore.svelte";
 import { openFile } from "$lib/stores/tabsStore.svelte";
-import { extOf } from "$lib/services/viewerType";
+import { isProjectTrusted, setProjectTrusted } from "$lib/stores/projectStore.svelte";
+import { extOf, fileNameOf } from "$lib/services/viewerType";
+import { menuKindOf } from "$lib/services/menuKind";
 import {
   editInQuickEditor,
   openInBrowser,
   openInCodeEditor,
   openWithDefaultApp,
   revealInExplorer,
+  runProjectExecutable,
+  runProjectScript,
+  testModeActive,
 } from "$lib/services/tauri";
 
 export interface HandoffEntry {
@@ -73,20 +79,35 @@ function guarded(label: string, fn: () => Promise<void>): () => Promise<void> {
 
 // --- per-type classification (menu slice of §142's resolver) ---
 
-type MenuKind = "folder" | "textLike" | "browserText" | "pdf" | "systemApp" | "executable";
 
-/** §142 lists only .exe (Executable Info) and .msi (Unsupported) here;
- * .ps1/.cmd/.bat are SCRIPTS (Code Viewer + Notepad/VS Code, §137). */
-const EXECUTABLE = new Set(["exe", "msi"]);
-
-function menuKindOf(name: string, isDir: boolean): MenuKind {
-  if (isDir) return "folder";
-  const ext = extOf(name);
-  if (ext === "pdf") return "pdf";
-  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) return "systemApp";
-  if (EXECUTABLE.has(ext)) return "executable";
-  if (ext === "html" || ext === "htm" || ext === "url") return "browserText";
-  return "textLike";
+/**
+ * §128/§129 first-run gate + §119 toasts. Trust is a per-project UX gate
+ * (spec-008 D2); Rust still fences extension + path on its own. Test mode
+ * auto-cancels the native dialog (L7: TaskDialogs are undrivable) so e2e
+ * stays zero-disturbance — the Trust-and-Run path is owner-真机 verified.
+ */
+export async function runWithTrust(
+  rootPath: string,
+  rel: string,
+  launch: () => Promise<void>,
+): Promise<void> {
+  if (!isProjectTrusted(rootPath)) {
+    if (await testModeActive().catch(() => false)) return;
+    const yes = await ask(
+      "This project contains executable files.\n\nRunning scripts or programs can modify files or your system.",
+      { title: "Trust Project", kind: "warning", okLabel: "Trust and Run", cancelLabel: "Cancel" },
+    );
+    if (!yes) return;
+    setProjectTrusted(rootPath, true);
+  }
+  const name = fileNameOf(rel);
+  try {
+    await launch();
+    toast(`✓ ${name} launched`);
+  } catch (err) {
+    console.error("launch failed:", err);
+    toast(`Failed to launch ${name}`, { kind: "error" });
+  }
 }
 
 interface BuildOpts {
@@ -146,6 +167,16 @@ export function fileHandoffGroups(
     label: "Open with Default PDF App",
     run: guarded("Open", () => openWithDefaultApp(rootPath, rel)),
   };
+  const runScript: HandoffEntry = {
+    id: "run-script",
+    label: "Run Script",
+    run: () => runWithTrust(rootPath, rel, () => runProjectScript(rootPath, rel)),
+  };
+  const runExe: HandoffEntry = {
+    id: "run",
+    label: "Run",
+    run: () => runWithTrust(rootPath, rel, () => runProjectExecutable(rootPath, rel)),
+  };
   const reveal: HandoffEntry = {
     id: "reveal",
     label: "Show in File Explorer",
@@ -174,7 +205,14 @@ export function fileHandoffGroups(
         [notepad, vscode],
         [reveal, copyAbs, copyRel],
       ];
-    case "browserText": // §136 (Run Script entries are Phase 8, D8)
+    case "script": // §137: Run Script in its own group
+      return [
+        ...(opts.includeOpen ? [[open]] : []),
+        [runScript],
+        [notepad, vscode],
+        [reveal, copyAbs, copyRel],
+      ];
+    case "browserText": // §136
       return [
         ...(opts.includeOpen ? [[open]] : []),
         [browser],
@@ -193,8 +231,17 @@ export function fileHandoffGroups(
         [defaultApp],
         [reveal, copyAbs, copyRel],
       ];
-    case "executable": // §139 minus Run (Phase 8)
-      return [[reveal, copyAbs, copyRel]];
+    case "exe": // §139: Open (info card) / Run / path verbs
+      return [
+        ...(opts.includeOpen ? [[open]] : []),
+        [runExe],
+        [reveal, copyAbs, copyRel],
+      ];
+    case "msi": // §126: System Default only — no Run, no in-app Open
+      return [
+        [defaultApp],
+        [reveal, copyAbs, copyRel],
+      ];
   }
 }
 

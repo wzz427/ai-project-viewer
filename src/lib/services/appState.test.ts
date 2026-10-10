@@ -15,6 +15,7 @@ function sampleInput(): BuildInput {
         rootPath: "D:\\proj\\alpha",
         sidebarMode: "git",
         sidebarWidth: 260,
+        trustedForExecution: false,
       },
     ],
     activeProjectId: "p1",
@@ -101,6 +102,15 @@ describe("buildAppState", () => {
     input.activeProjectId = null;
     expect(buildAppState(input).activeProjectId).toBeUndefined();
   });
+
+  it("persists per-project execution trust and round-trips it (§129)", () => {
+    const input = sampleInput();
+    input.projects[0].trustedForExecution = true;
+    const state = buildAppState(input);
+    expect(state.projects[0].trustedForExecution).toBe(true);
+    const parsed = parseAppState(JSON.stringify(state));
+    expect(parsed!.projects[0].trustedForExecution).toBe(true);
+  });
 });
 
 describe("parseAppState", () => {
@@ -151,6 +161,8 @@ describe("parseAppState", () => {
     expect(p.openFiles).toHaveLength(1);
     expect(p.openFiles[0].relativePath).toBe("a.md");
     expect(p.fileTreePreferences.foldersFirst).toBe(true);
+    // pre-Phase-8 state files carry no trust field — heals to untrusted (§128)
+    expect(p.trustedForExecution).toBe(false);
     expect(p.fileTreePreferences.pinnedItems["."]).toEqual(["ok.md"]);
     expect(parsed!.settings).toEqual({
       theme: "system",

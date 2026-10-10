@@ -9,6 +9,11 @@
   import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
   import UpdateButton from "$lib/components/ProjectTabs/UpdateButton.svelte";
 
+  let {
+    /** §141 Refresh Project — same refresh as the ↻ header icon (tree+git). */
+    onRefreshProject,
+  }: { onRefreshProject?: (rootPath: string) => Promise<void> } = $props();
+
   let menuFor = $state<ProjectTab | null>(null);
   let menuX = $state(0);
   let menuY = $state(0);
@@ -52,6 +57,7 @@
     project={menuFor}
     x={menuX}
     y={menuY}
+    onRefreshProject={onRefreshProject}
     onclose={() => (menuFor = null)}
   />
 {/if}

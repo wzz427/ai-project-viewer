@@ -11,6 +11,7 @@ export type ViewerType =
   | "code"
   | "json"
   | "image"
+  | "executable"
   | "binary"
   | "unsupported";
 
@@ -34,6 +35,8 @@ export function viewerTypeFor(name: string): ViewerType {
   if (ext === "json") return "json";
   if (ext === "pdf") return "pdf";
   if (IMAGE.has(ext)) return "image";
+  // §122: .exe left-click opens the Executable Info card (stat only).
+  if (ext === "exe") return "executable";
   if (CODE.has(ext)) return "code";
   if (TEXT.has(ext)) return "text";
   // Unknown extension: open as plain text when the pipeline says it is text
