@@ -270,6 +270,22 @@ def instance_a(page):
           page.locator(".diff-viewer").count() == 0
           and page.locator(".file-tab").count() > 0)
 
+    # 0.6.11 bug (owner 2026-10-10: "切回 Files 后页签全都丢了,显示的
+    # 还是 Git 的内容"): leaving the Git panel must close the git view and
+    # hand the viewer body back to the file tabs.
+    page.locator('.git-panel .entry[title="apps/viewer/a.ts"]').first.click()
+    time.sleep(1.0)
+    diff_was_up = page.locator(".diff-viewer").count() == 1
+    open_files_panel(page)
+    time.sleep(0.4)
+    check("git_return_to_files_restores_tabs",
+          diff_was_up
+          and page.locator(".diff-viewer").count() == 0
+          and page.locator(".file-tab").count() > 0
+          and page.locator(".file-tab.active").count() == 1
+          and page.locator(".code-host").count() >= 1)
+    open_git_panel(page)  # re-entry keeps working for the checks below
+
     # V8: oversized diff -> §72 message + hand-off button (never clicked).
     page.locator('.git-panel .entry[title="apps/viewer/big-change.ts"]').first.click()
     time.sleep(1.5)

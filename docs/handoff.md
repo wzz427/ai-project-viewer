@@ -11,11 +11,17 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-008(Phase 8 RUN/Trust)InTest 返修一轮已发 0.6.10,等 owner 复验**(0.6.10:底部右键菜单完整显示守卫):项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
+主线 = **spec-008(Phase 8 RUN/Trust)InTest 返修已发 0.6.11,等 owner 复验**(0.6.10 底部菜单守卫+0.6.11 修:切回 Files 页签丢失):项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
 复验要点:右键项目标签 → Trust Project for Execution → 右键 hello.ps1(hello.bat)→ Run Script → 弹**可见控制台**(Win11=Windows Terminal 窗口),输出可读、跑完窗口留着;右键 demo.exe → Run;左键 demo.exe → 信息卡;右键项目标签 → Untrust 还原。过 → spec-008 Done → Phase 9(Watcher,§183,发版 0.6.10 起)。
 遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L30 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 深夜 · 0.6.11 返修:切回 Files 页签丢失(owner 报障)
+
+> **下一步从哪接** —— owner 点 Update(0.6.11)验原流程:Files 开几个文件 → 切 Git 点一个条目看 diff → 切回 Files → **页签条和文件内容都回来了**。连同 0.6.9/0.6.10 各条一起过 → spec-008 Done → Phase 9(spec-009,§183 Watcher)。
+
+- 根因:git 视图(单槽)寿命未绑定面板——切侧栏模式不关它,FileTabs 被 `{#if}` 一直藏着;页签数据未丢。修=setSidebarMode 离开 git 即 closeGitView+activateProject 切项目即 closeGitView(同族隐患:项目 A 的 diff 残留到项目 B)。教训 **L31**(覆盖视图寿命绑定面板+测试矩阵必须含"不关而切上下文");git-suite +1(owner 原流程复现)32/32,全档绿。
 
 ### 2026-10-10 深夜 · 0.6.10 返修:新菜单项加入后底部右键仍完整显示(owner 指令)
 

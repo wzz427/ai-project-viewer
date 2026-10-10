@@ -249,3 +249,12 @@
 - **事实二(无窗测试)**:CREATE_NO_WINDOW 下没有控制台,cmd /K / powershell -NoExit 的交互 stdin 立刻 EOF → 宿主自退,"跑完留窗"性质直接消失(这正是 §118 担忧的机理)。无窗验证宿主存活性要**stdin 塞一根持有不关的管道**(模拟真控制台"输入永不 EOF"),cargo 测试 run.rs 即此法。
 - **判据**:测"控制台可见/驻留"类行为,先问宿主模型(Win11=WindowsTerminal),再选归因法;e2e 例行轮永远不真 launch(零打扰红线),真机检走手动脚本+PID 树清理。
 - **出处**:Phase 8 真机抽检两轮检测扑空+cargo 宿主测试首败,2026-10-10。
+
+
+### L31:接管主区的覆盖视图,生命周期必须绑定"打开它的面板/项目"——离开即关,不做驻留
+
+- **症状**(owner 0.6.10 复验,0.6.11 修):Files 开着文件页签 → 切 Git 点条目看 diff → 切回 Files,**页签条消失、主区仍是 diff**。数据没丢(页签 store 完好),是 git 视图还挂着:主区渲染 `{#if gitViewShowing}` 同时藏 FileTabs+渲染 DiffViewer,而切换侧栏模式的 setSidebarMode 只翻模式标志、从不关视图——覆盖视图的寿命没绑定到面板寿命。
+- **判据**:任何"接管主区"的覆盖视图(diff/详情/预览),自检两个问题——①除了显式关闭(×/Esc/点文件),还有哪些上下文切换该关它(面板切走/项目切走/窗口失焦?)②有没有一条 e2e 走"开着覆盖视图→切上下文→断言主区归还原主"。覆盖视图挡住的是**别人的地盘**,归还责任在它。
+- **修法**:setSidebarMode 离开 git 即 closeGitView;activateProject 切项目即 closeGitView(同族隐患一并堵:项目 A 的 diff 会在项目 B 的 Files 界面继续占着主区)。git-suite 增 git_return_to_files_restores_tabs(owner 原流程复现)。
+- **为什么没测出来**:git-suite 的 diff 测试都以显式关闭(×)收尾,从未"不关就切走"——覆盖视图的测试矩阵必须含"不关而切上下文"这条路。
+- **出处**:owner 报障原话"再返回到 Files 时,会发现 Files 的文件区那些页签全都丢了,显示的还是 Git 区域的内容",2026-10-10。
