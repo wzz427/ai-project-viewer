@@ -23,6 +23,15 @@
   // bubbling handler on the menu itself — closings must spare the menu.
   let el = $state<HTMLElement | null>(null);
 
+  // Clamp inside the viewport once mounted (menu was clipped at the
+  // bottom-left window edge before, owner 2026-10-10).
+  let left = $state(0);
+  let top = $state(0);
+  $effect(() => {
+    if (!el) return;
+    ({ left, top } = clampMenu(el, x, y));
+  });
+
   // §141 handoff block — built with plain-string snapshots (lessons L12).
   const handoff = $derived(projectHandoffGroups(project.rootPath));
 
@@ -44,6 +53,7 @@
       toast(`Removed "${tab.name}" (folder untouched on disk).`);
     }
   }
+  import { clampMenu } from "$lib/components/ContextMenu/menuPosition";
 
   $effect(() => {
     window.addEventListener("mousedown", close, { capture: true });
@@ -52,7 +62,7 @@
   });
 </script>
 
-<div class="menu" bind:this={el} style="left: {x}px; top: {y}px">
+<div class="menu" bind:this={el} style="left: {left}px; top: {top}px">
   <div class="menu-path mono muted">{project.rootPath}</div>
   {#each handoff as group, gi}
     {#if gi > 0}

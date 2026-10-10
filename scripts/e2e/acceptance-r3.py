@@ -11,6 +11,8 @@ import time
 
 from playwright.sync_api import sync_playwright
 
+import aivlaunch
+
 EXE = os.path.expandvars(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\debug\ai-project-viewer.exe")
 PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
 STATE = os.path.expandvars(r"%TEMP%\aiv-r3-state.json")
@@ -26,11 +28,8 @@ def check(name, cond, detail=""):
 
 
 def kill_all():
-    subprocess.run(["powershell", "-NoProfile", "-Command",
-         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force; "
-         "Get-CimInstance Win32_Process -Filter \"Name='msedgewebview2.exe'\" | "
-         "Where-Object { $_.CommandLine -match 'aiprojectviewer' } | "
-         "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], capture_output=True)
+    # Owner isolation (aivlaunch): this repo's build tree only.
+    aivlaunch.kill_strays()
 
 
 def main():
@@ -41,7 +40,10 @@ def main():
     env = {**os.environ, "AIV_HIDDEN": "1", "AIV_TEST_PROJECT": PROJECT,
            "AIV_STATE_FILE": STATE,
            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={CDP}"}
-    proc = subprocess.Popen([EXE], env=env, stdout=open(DEBUG, "ab"), stderr=subprocess.STDOUT)
+    proc = subprocess.Popen([EXE], env=env, stdout=open(DEBUG, "ab"),
+                            stderr=subprocess.STDOUT)
+    # NOTE: this older script still launches via its own Popen; process
+    # termination at the end goes through aivlaunch.kill_tree (PID-scoped).
     with sync_playwright() as pw:
         for _ in range(60):
             try:
@@ -127,9 +129,7 @@ def main():
 
         errors = pg.evaluate("window.__aivErrors || 0")
         browser.close()
-    proc.terminate()
-    proc.wait(timeout=10)
-    kill_all()
+    aivlaunch.kill_tree(proc)
 
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
     if FAIL:

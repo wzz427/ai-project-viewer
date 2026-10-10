@@ -210,3 +210,10 @@
 - **判据③(全局按键红线)**:想给外部窗口发键(如 Ctrl+W 关标签),必须**先验证 GetForegroundWindow==目标**再发;AttachThreadInput 也可能拿不到前台(Win11 前台锁)。盲发 keybd_event 的按键会落到当时的前台窗口——本轮一次 Ctrl+W 疑似落进 owner 另一个 ZCode 会话(未证实有损,已披露)。**焦点拿不到就放弃全局键盘,改窗口内消息/UIA,或留给 owner 手动。**
 - **附带修复**:phase3-suite 的 STATE 路径自正典化起就藏着一个 BEL 字节(`%TEMP%\aiv-p3suite.json` 的 `\a` 被某轮编辑解释成 \x07),状态隔离一直靠"写盘失败"在裸奔;本轮读 state 文件时才暴露。**教训:路径字符串过手(编辑器/复制粘贴)后,od -c 看一眼再信。**
 - **出处**:spec-006 真机轮(V9),2026-10-10。
+
+### L26:测试与 owner 客户端的隔离红线——绝不按进程名杀、绝不按窗口标题找
+
+- **症状**(owner 2026-10-10 原话"开发代码时不敢使用这个软件,感觉随时可能自动关闭文件"):体验版客户端与开发构建**同进程名**(ai-project-viewer.exe)、同窗口标题("AI Project Viewer"),e2e 脚本收尾 `Get-Process <名> | Stop-Process -Force` 把 owner 正在用的客户端一起强杀(强杀无优雅退出,还会丢最近防抖窗口内的状态);`FindWindowW(标题)` 也可能抓到他的窗口挪去屏外。
+- **判据(全部 e2e 脚本硬规矩,已抽 `scripts/e2e/aivlaunch.py` 单一真源)**:①杀进程只按 PID(taskkill /T /PID),清扫残留只匹配 **ExecutablePath 在本仓库 target 树内**的进程;②找窗口只按 **EnumWindows+GetWindowThreadProcessId==自己 PID**;③测试态 AIV_STATE_FILE 独立文件(已有);④发布只写 updates 目录(已有)。
+- **附带发现**:测试期间 owner 客户端被杀过(0.6.2 复验轮前后),当时未察觉——**"零打扰"不光指不抢前台,还包括不动 owner 的进程与窗口**;零打扰的定义扩入 testing.md §1.2。
+- **出处**:owner 复验 0.6.2 三件反馈之第三件,2026-10-10。

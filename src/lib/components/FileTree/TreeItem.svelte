@@ -6,12 +6,11 @@
     isPinned,
     joinRel,
     reorderPinned,
-    selectNode,
     toggleExpand,
     treeState,
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
-  import { openFile } from "$lib/stores/tabsStore.svelte";
+  import { activeRelOf, openFile } from "$lib/stores/tabsStore.svelte";
   import { settings } from "$lib/stores/settingsStore.svelte";
   import NodeContextMenu from "$lib/components/FileTree/NodeContextMenu.svelte";
   // Self-import is the Svelte 5 way to recurse (`<svelte:self>` is legacy).
@@ -48,7 +47,10 @@
     }),
   );
   const hiddenCount = $derived(st.hiddenCounts[rel] ?? 0);
-  const selected = $derived(st.selectedRelPath === rel);
+  // Highlight derives from the ACTIVE TAB (owner 2026-10-10: the old
+  // click-scoped selection drifted from the tab strip — tree and file area
+  // ended up highlighting different files).
+  const selected = $derived(activeRelOf(rootPath) === rel);
 
   let menu = $state<{ x: number; y: number } | null>(null);
   // Cursor-half drop: "before" draws the line above the row, "after" below.
@@ -59,8 +61,8 @@
       void toggleExpand(rootPath, rel);
     } else {
       // Single click opens the file (spec-003 D1) — reading is this app's
-      // main verb; the row stays highlighted as the selected node.
-      selectNode(rootPath, rel);
+      // main verb. The row highlights because openFile makes it the ACTIVE
+      // tab (derived above), not via a click-scoped selection.
       void openFile(rootPath, rel);
     }
   }

@@ -16,6 +16,8 @@ import ctypes.wintypes as wt
 
 from playwright.sync_api import sync_playwright
 
+import aivlaunch
+
 EXE = r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe"
 PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
 STATE = os.path.expandvars(r"%TEMP%\aiv-v14.json")
@@ -23,25 +25,16 @@ CDP = 9255
 
 
 def main():
+    aivlaunch.kill_strays()
     if os.path.exists(STATE):
         os.remove(STATE)
-    subprocess.run(["powershell", "-NoProfile", "-Command",
-         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
-        capture_output=True)
     env = {**os.environ, "AIV_TEST_PROJECT": PROJECT, "AIV_STATE_FILE": STATE,
            "AIV_HIDDEN": "1",
            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={CDP}"}
     proc = subprocess.Popen([EXE], env=env)
-    user32 = ctypes.windll.user32
-    hwnd = 0
-    for _ in range(40):
-        hwnd = user32.FindWindowW(None, "AI Project Viewer")
-        if hwnd:
-            break
-        time.sleep(0.25)
+    hwnd = aivlaunch.window_of(proc.pid)
     if hwnd:
-        user32.SetWindowPos(hwnd, 0, -2500, -100, 0, 0, 0x0001 | 0x0010 | 0x0004)
-        user32.ShowWindow(hwnd, 4)
+        aivlaunch.park_offscreen(hwnd)
     try:
         with sync_playwright() as pw:
             for _ in range(60):
@@ -225,11 +218,7 @@ def main():
             read("V6 (expect one word)")
             browser.close()
     finally:
-        proc.terminate()
-        proc.wait(timeout=10)
-        subprocess.run(["powershell", "-NoProfile", "-Command",
-             "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
-            capture_output=True)
+        aivlaunch.kill_tree(proc)
 
 
 if __name__ == "__main__":

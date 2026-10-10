@@ -14,6 +14,8 @@ import time
 
 from playwright.sync_api import sync_playwright
 
+import aivlaunch
+
 EXE = Path = None
 import pathlib
 EXE = pathlib.Path(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\debug\ai-project-viewer.exe")
@@ -32,22 +34,15 @@ def check(name, cond, detail=""):
 
 
 def kill_all():
-    subprocess.run(["powershell", "-NoProfile", "-Command",
-         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force; "
-         "Get-CimInstance Win32_Process -Filter \"Name='msedgewebview2.exe'\" | "
-         "Where-Object { $_.CommandLine -match 'aiprojectviewer' } | "
-         "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], capture_output=True)
+    # Owner isolation (aivlaunch): stragglers from THIS repo's build tree
+    # only — the experience client shares the exe name and must never be
+    # matched. The old webview-by-commandline sweep is gone with it.
+    aivlaunch.kill_strays()
 
 
 def launch():
-    kill_all()
-    env = {**os.environ,
-           "AIV_HIDDEN": "1",
-           "AIV_TEST_PROJECT": PROJECT,
-           "AIV_STATE_FILE": STATE,
-           "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={CDP}"}
-    return subprocess.Popen([str(EXE)], env=env, stdout=open(DEBUG, "ab"),
-                            stderr=subprocess.STDOUT)
+    return aivlaunch.launch(str(EXE), PROJECT, STATE, CDP,
+                            stdout=open(DEBUG, "ab"))
 
 
 def connect(pw):
@@ -184,8 +179,7 @@ def main():
         check("no page errors", len(errors) == 0, "\n".join(errors[:3]))
 
         browser.close()
-        proc.terminate()
-        proc.wait(timeout=10)
+        aivlaunch.kill_tree(proc)
 
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
     if FAIL:

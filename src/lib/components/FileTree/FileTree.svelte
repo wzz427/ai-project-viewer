@@ -9,6 +9,7 @@
   import TreeItem from "$lib/components/FileTree/TreeItem.svelte";
 
   let { rootPath }: { rootPath: string } = $props();
+  let host = $state<HTMLElement | null>(null);
 
   // Read reactively (rootPath changes when the user switches project tabs);
   // loadRoot below creates the per-project state on first run.
@@ -18,6 +19,29 @@
   // levels load on expand (V1.5 §27 lazy tree).
   $effect(() => {
     void loadRoot(rootPath);
+  });
+
+  // VS Code reveal (owner 2026-10-10): scroll the revealed file's row into
+  // view. Reads the parent level's listing + expansion so the effect
+  // re-runs when revealInTree's async level loads actually land.
+  $effect(() => {
+    const stv = st;
+    if (!stv || !host) return;
+    const target = stv.revealTarget;
+    if (!target) return;
+    const parentRel = target.includes("/")
+      ? target.slice(0, target.lastIndexOf("/"))
+      : TREE_ROOT;
+    const kidsLoaded = !!stv.children[parentRel];
+    const expanded = stv.expandedFolders.includes(parentRel);
+    if (!kidsLoaded || !expanded) return; // level still loading
+    const row = host.querySelector<HTMLElement>(
+      `.row[title="${CSS.escape(target)}"]`,
+    );
+    if (row) {
+      row.scrollIntoView({ block: "nearest" });
+      stv.revealTarget = null;
+    }
   });
 
   const rootEntries = $derived(st?.children[TREE_ROOT] ?? []);
@@ -32,7 +56,7 @@
   const error = $derived(st?.loadErrors[TREE_ROOT]);
 </script>
 
-<div class="file-tree" role="tree" aria-label="Project files">
+<div class="file-tree" role="tree" aria-label="Project files" bind:this={host}>
   {#if error}
     <div class="hint error">{error}</div>
   {:else if !st || !st.children[TREE_ROOT]}

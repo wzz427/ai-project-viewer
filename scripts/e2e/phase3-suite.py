@@ -1,19 +1,16 @@
-# Regression tests for the 2026-10-01 ten-item feedback round (zero foreground).
+# -*- coding: utf-8 -*-
+"""Phase 3 viewer regression (self-launching, zero disturbance).
+Was a replay script expecting an app on :9222; formalized 2026-10-10 with
+the standard launcher (AIV_HIDDEN + off-screen + CDP). All process/window
+handling goes through aivlaunch (owner-isolation: PID-scoped only)."""
+import atexit
 import json
+import os
 import time
 
 from playwright.sync_api import sync_playwright
 
-# -*- coding: utf-8 -*-
-"""Phase 3 viewer regression (self-launching, zero disturbance).
-Was a replay script expecting an app on :9222; formalized 2026-10-10 with
-the standard launcher (AIV_HIDDEN + off-screen + CDP)."""
-import atexit
-import ctypes
-import ctypes.wintypes as wt
-import os
-import subprocess
-import time
+import aivlaunch
 
 EXE = os.path.join(os.path.dirname(__file__), "..", "..",
                    "src-tauri", "target", "release", "ai-project-viewer.exe")
@@ -21,34 +18,13 @@ PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
 STATE = os.path.join(os.environ["TEMP"], "aiv-p3suite.json")
 CDP = 9257
 
-if os.path.exists(STATE):
-    os.remove(STATE)
-subprocess.run(["powershell", "-NoProfile", "-Command",
-     "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
-    capture_output=True)
-_env = {**os.environ, "AIV_TEST_PROJECT": PROJECT, "AIV_STATE_FILE": STATE,
-        "AIV_HIDDEN": "1",
-        "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={CDP}"}
-proc = subprocess.Popen([os.path.abspath(EXE)], env=_env)
-_user32 = ctypes.windll.user32
-for _ in range(40):
-    if _user32.FindWindowW(None, "AI Project Viewer"):
-        break
-    time.sleep(0.25)
-_hwnd = _user32.FindWindowW(None, "AI Project Viewer")
+proc = aivlaunch.launch(os.path.abspath(EXE), PROJECT, STATE, CDP)
+_hwnd = aivlaunch.window_of(proc.pid)
 if _hwnd:
-    _user32.SetWindowPos(_hwnd, 0, -2500, -100, 0, 0, 0x0001 | 0x0010 | 0x0004)
-    _user32.ShowWindow(_hwnd, 4)
+    aivlaunch.park_offscreen(_hwnd)
 
 def _cleanup():
-    proc.terminate()
-    try:
-        proc.wait(timeout=10)
-    except Exception:
-        pass
-    subprocess.run(["powershell", "-NoProfile", "-Command",
-         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
-        capture_output=True)
+    aivlaunch.kill_tree(proc)
 
 atexit.register(_cleanup)
 
@@ -425,6 +401,78 @@ with sync_playwright() as p:
           default_new
           and persisted["settings"]["external"]["vsCodeNewWindow"] is False,
           f"default_new={default_new} persisted={persisted.get('settings', {}).get('external')}")
+
+    # --- 0.6.3 rework: tree highlight must BE the active tab; opening a
+    # file in a collapsed folder must expand the chain and reveal the row
+    # (owner: "左侧文件树高亮显示的文件和文件区高亮显示的文件不一致"). ---
+
+    def active_tree_names():
+        return page.eval_on_selector_all(
+            ".file-tree .row.selected .name",
+            "els => els.map(e => e.textContent.trim())")
+
+    # open a DEEP file once (expand by hand; open_file waits for the tab).
+    # NOTE: sample.csv is PINNED (earlier pin-model test) and survives the
+    # unpinned-slot recycling — it is the stable "other" tab here; README's
+    # tab was recycled away by design, so don't look for it.
+    expand("deep")
+    expand("migrations")
+    open_file("001_init.sql")
+
+    # activate via the TAB STRIP — the tree must follow, not the reverse
+    page.locator(".file-tab", has_text="sample.csv").first.click()
+    time.sleep(0.4)
+    hl_csv = active_tree_names() == ["sample.csv"]
+    page.locator(".file-tab", has_text="001_init.sql").first.click()
+    time.sleep(0.8)
+    hl_deep = active_tree_names() == ["001_init.sql"]
+    check("tree_highlight_follows_active_tab", hl_csv and hl_deep,
+          f"csv={hl_csv} deep={hl_deep} got={active_tree_names()}")
+
+    # reveal: collapse the whole chain, then re-activate the deep tab —
+    # the chain must re-expand and the row land INSIDE the scroll viewport
+    for folder in ("migrations", "deep", "src"):
+        row = tree_row(folder)
+        if row.get_attribute("aria-expanded") == "true":
+            row.click()
+            time.sleep(0.25)
+    collapsed = tree_row("src").get_attribute("aria-expanded") != "true"
+    page.locator(".file-tab", has_text="001_init.sql").first.click()
+    time.sleep(1.2)
+    vis = page.evaluate(r"""() => {
+      const rows = [...document.querySelectorAll('.file-tree .row')];
+      const row = rows.find(r => r.title === 'src/deep/migrations/001_init.sql');
+      if (!row) return { ok: false, why: 'row not in DOM' };
+      const t = row.getBoundingClientRect();
+      const tree = document.querySelector('.file-tree').getBoundingClientRect();
+      return { ok: t.top >= tree.top && t.bottom <= tree.bottom, why: '' };
+    }""")
+    exp = all(
+        tree_row(f).get_attribute("aria-expanded") == "true"
+        for f in ("src", "deep", "migrations")
+    )
+    check("tab_activation_reveals_in_tree",
+          collapsed and exp and bool(vis["ok"]),
+          f"collapsed_first={collapsed} expanded_after={exp} visible={vis}")
+
+    # --- menu clamp (owner: "左下角文件右键菜单显示不完整") ---
+    clamped = page.evaluate(r"""() => {
+      const row = [...document.querySelectorAll('.file-tree .row')]
+        .find(r => r.title === 'notes.txt');
+      if (!row) return { ok: false, why: 'no row' };
+      row.dispatchEvent(new MouseEvent('contextmenu', {
+        clientX: 10, clientY: innerHeight - 15, bubbles: true, cancelable: true }));
+      return new Promise(res => setTimeout(() => {
+        const m = document.querySelector('.menu');
+        if (!m) { res({ ok: false, why: 'no menu' }); return; }
+        const r = m.getBoundingClientRect();
+        document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        res({ ok: r.bottom <= innerHeight - 2 && r.right <= innerWidth - 2
+                   && r.top >= 0 && r.left >= 0,
+              why: `rect=${Math.round(r.top)},${Math.round(r.bottom)} vh=${innerHeight}` });
+      }, 350));
+    }""")
+    check("menu_clamped_to_viewport", bool(clamped.get("ok")), str(clamped))
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

@@ -24,7 +24,12 @@ export interface ProjectTreeState {
   /** Rel parent → pinned child names in manual order ("." = root, §19). */
   pinnedItems: Record<string, string[]>;
   foldersFirst: boolean;
-  selectedRelPath: string | null;
+  /** VS Code reveal (owner 2026-10-10): path whose row the FileTree view
+   *  must scroll into view; set by revealInTree, cleared once scrolled.
+   *  The ACTIVE-FILE highlight is NOT stored here — TreeItem derives it
+   *  from the active tab (tabsStore), one source of truth. The old
+   *  click-scoped selectedRelPath drifted from the tab and was removed. */
+  revealTarget: string | null;
 }
 
 function newState(): ProjectTreeState {
@@ -36,7 +41,7 @@ function newState(): ProjectTreeState {
     loadErrors: {},
     pinnedItems: {},
     foldersFirst: true,
-    selectedRelPath: null,
+    revealTarget: null,
   };
 }
 
@@ -262,6 +267,20 @@ export function setFoldersFirst(rootPath: string, value: boolean) {
   treeFor(rootPath).foldersFirst = value;
 }
 
-export function selectNode(rootPath: string, relPath: string | null) {
-  treeFor(rootPath).selectedRelPath = relPath;
+/**
+ * Reveal a file VS Code-style (owner 2026-10-10): expand every ancestor
+ * (lazily loading each level), then mark the path for the FileTree view to
+ * scroll its row into view. Aborts at a missing level (nothing to show).
+ */
+export async function revealInTree(rootPath: string, relPath: string) {
+  const st = treeFor(rootPath);
+  const parts = relPath.split("/");
+  for (let i = 1; i < parts.length; i++) {
+    const dir = parts.slice(0, i).join("/");
+    if (st.expandedFolders.includes(dir)) continue;
+    await loadDir(rootPath, dir, false);
+    if (st.loadErrors[dir]) return;
+    st.expandedFolders.push(dir);
+  }
+  st.revealTarget = relPath;
 }

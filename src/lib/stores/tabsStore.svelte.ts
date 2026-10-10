@@ -24,6 +24,7 @@ import {
   type ViewerType,
 } from "$lib/services/viewerType";
 import { toast } from "$lib/stores/toastStore.svelte";
+import { revealInTree } from "$lib/stores/fileTreeStore.svelte";
 
 export type MarkdownMode = "rendered" | "source";
 
@@ -99,6 +100,12 @@ export function cachedContent(
   return contentCache.get(cacheKey(rootPath, rel));
 }
 
+/** The project's active file (relative path) — the tree highlight's
+ * single source (owner 2026-10-10: tree/tab highlights had drifted). */
+export function activeRelOf(rootPath: string): string | null {
+  return tabsState.byRoot[rootPath]?.activeFileRelativePath ?? null;
+}
+
 export function activeTab(rootPath: string): RuntimeTab | undefined {
   const st = tabsState.byRoot[rootPath];
   if (!st?.activeFileRelativePath) return undefined;
@@ -121,6 +128,7 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
       pinned: existing.pinned,
     });
     st.activeFileRelativePath = tab.relativePath;
+    void revealInTree(rootPath, tab.relativePath);
     return;
   }
   // Pin model (owner 2026-10-01, clarified same day): with NOTHING pinned,
@@ -153,6 +161,7 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
     st.openFiles.push(tab);
   }
   st.activeFileRelativePath = tab.relativePath;
+  void revealInTree(rootPath, tab.relativePath);
 }
 
 /** View-mode writes go through the store, never through component props —
@@ -246,6 +255,7 @@ export function activateFile(rootPath: string, rel: string) {
   const st = projectTabs(rootPath);
   if (st.openFiles.some((t) => t.relativePath === rel)) {
     st.activeFileRelativePath = rel;
+    void revealInTree(rootPath, rel);
     void recheckDeleted(rootPath, rel);
   }
 }
@@ -271,6 +281,7 @@ export function cycleTab(rootPath: string, direction: 1 | -1) {
   const next =
     st.openFiles[(idx + direction + st.openFiles.length) % st.openFiles.length];
   st.activeFileRelativePath = next.relativePath;
+  void revealInTree(rootPath, next.relativePath);
 }
 
 /** §83 detection point: tab activation and Ctrl+R (spec-003 D5). */

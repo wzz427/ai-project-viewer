@@ -34,6 +34,15 @@
 
   let el = $state<HTMLElement | null>(null);
 
+  // Clamp inside the viewport once mounted (menu was clipped at the
+  // bottom-left window edge before, owner 2026-10-10).
+  let left = $state(0);
+  let top = $state(0);
+  $effect(() => {
+    if (!el) return;
+    ({ left, top } = clampMenu(el, x, y));
+  });
+
   function close(e?: Event) {
     if (e && e.target instanceof Node && el?.contains(e.target)) return;
     onclose();
@@ -44,6 +53,7 @@
     return () =>
       window.removeEventListener("mousedown", close, { capture: true });
   });
+  import { clampMenu } from "$lib/components/ContextMenu/menuPosition";
 
   function togglePin() {
     // Pin changes sibling DISPLAY order only — never the path on disk
@@ -54,7 +64,7 @@
   }
 </script>
 
-<div class="menu" bind:this={el} style="left: {x}px; top: {y}px">
+<div class="menu" bind:this={el} style="left: {left}px; top: {top}px">
   <div class="menu-path mono muted">
     {isDir ? "folder" : "file"} · {name}
   </div>

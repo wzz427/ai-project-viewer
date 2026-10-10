@@ -16,6 +16,8 @@ import time
 import ctypes.wintypes as wt
 from playwright.sync_api import sync_playwright
 
+import aivlaunch
+
 user32 = ctypes.windll.user32
 EXE = r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe"
 PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
@@ -48,9 +50,7 @@ def real_drag(x0, y0, x1, y1, steps=12):
 def main():
     if os.path.exists(STATE):
         os.remove(STATE)
-    subprocess.run(["powershell", "-NoProfile", "-Command",
-         "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
-        capture_output=True)
+    aivlaunch.kill_strays()
     env = {**os.environ, "AIV_TEST_PROJECT": PROJECT, "AIV_STATE_FILE": STATE,
            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={CDP}"}
     proc = subprocess.Popen([EXE], env=env)
@@ -65,12 +65,8 @@ def main():
             pg = browser.contexts[0].pages[0]
             pg.wait_for_selector(".file-tree", timeout=25000)
             pg.wait_for_timeout(600)
-            hwnd = None
-            for _ in range(30):
-                hwnd = user32.FindWindowW(None, "AI Project Viewer")
-                if hwnd:
-                    break
-                time.sleep(0.3)
+            # Owner isolation: window by OUR pid, never by title.
+            hwnd = aivlaunch.window_of(proc.pid, timeout_s=12)
 
             if MODE == "mintest":
                 pg.goto(URL, timeout=30000)
@@ -150,11 +146,7 @@ def main():
             print(f"dblclick (fg={ok}): {len(v.strip())}c | {v.strip()[:36]!r}")
             browser.close()
     finally:
-        proc.terminate()
-        proc.wait(timeout=10)
-        subprocess.run(["powershell", "-NoProfile", "-Command",
-             "Get-Process ai-project-viewer -ErrorAction SilentlyContinue | Stop-Process -Force"],
-            capture_output=True)
+        aivlaunch.kill_tree(proc)
 
 
 if __name__ == "__main__":

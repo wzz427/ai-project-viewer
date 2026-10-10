@@ -11,10 +11,20 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-006(Phase 6 HANDOFF)InTest 等 owner 复验**:0.6.2 已发体验渠道(2026-10-10),owner 点 Update 后照 spec §六 InTest 行的清单验(三处右键菜单的分型条目/复制路径 toast/Settings 的 VS Code 窗口模式)。**过则 spec-006 转 Done → 下一需求 = Phase 7 Git Review(V1.5 §181)立 spec-007;发版固定 0.6.x 递增(下一发 0.6.3),不跳段。**
+主线 = **spec-006(Phase 6 HANDOFF)InTest 等 owner 复验(0.6.3)**:0.6.2 三件反馈已返修再发(树高亮跟随激活页签+自动展开定位/右键菜单钳制/测试隔离红线),owner 点 Update 后验 0.6.3 三修 + 上轮移交条目(清单 spec §六)。**过则 spec-006 转 Done → 下一需求 = Phase 7 Git Review(V1.5 §181)立 spec-007;发版固定 0.6.x 递增(下一发 0.6.4),不跳段。**
 遗留小披露(见下条):owner 记事本里留了一个 AIV-TestProject 的 README.md 标签(真机轮所开,手动关即可);教训 L25 已入档(真机轮价值/单实例应用验证法/全局按键红线/phase3 STATE 路径 BEL 事故)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 · 0.6.3 返修:树高亮跟随激活页签+自动展开定位;菜单钳制;测试隔离红线
+
+> **下一步从哪接** —— owner 点 Update(0.6.3)复验三修:①树高亮=当前激活页签(点页签/开文件,树跟着走);②文件在未展开文件夹里时,激活其页签→树自动展开整条链并滚动到该行;③右键菜单贴边不再被裁。连同 0.6.2 移交条目一起过 → spec-006 Done → Phase 7。
+
+- 根因:树高亮原是 selectedRelPath(只在点树行时写),与页签激活两套状态必然走岔——删除该状态,TreeItem 派生 `activeRelOf(rootPath)`(唯一真源=激活页签);reveal=activateFile/addOrActivate/cycleTab 挂 `revealInTree`(展开祖先+revealTarget),FileTree 视图滚动定位(对装载/展开响应)。
+- 菜单裁切=定位在点击点无钳制 → `clampMenu`(三菜单,8px 边距)。
+- **测试隔离红线(lessons L26)**:e2e 曾按进程名杀/按标题找窗,把 owner 正开着的体验版客户端强杀过(同进程名同标题)——抽 `aivlaunch.py` 单一真源(只 PID taskkill /T、残留清扫限本仓库 target 树、找窗按 PID),五脚本换装,testing.md §1.2 定义扩写。
+- 自测:phase3 **41/41**(新增 tree_highlight_follows_active_tab/tab_activation_reveals_in_tree/menu_clamped_to_viewport,全部对 owner 原话)+r3 8/8+pdf 19/19+cargo 63/63+vitest 19/19+check 0/0;0.6.3 已发,三处版本号核毕。
+
 
 ### 2026-10-10 · spec-006(Phase 6 HANDOFF)交付:0.6.2 已发,等 owner 复验
 
