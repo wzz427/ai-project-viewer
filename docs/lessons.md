@@ -176,3 +176,11 @@
 - **修法(v14 终版)**:mousedown 用 caretRangeFromPoint 钉死锚点(行首垫内按下同样适用);rAF 每帧把终点钳到指针**最近的文本行**(行集合=全部已渲染页,跨页可用);双击/三击/shift/键盘保持原生(detail≥2/shiftKey 放行)。单例+自毁沿用(L20)。
 - **测试技法**:页面内派发非可信 mousedown/PointerEvent 可完整驱动纯 DOM 监听逻辑,绕开"可信合成输入在 JS 写选区后 move 被吞"的盲区——**自驱逻辑用非可信事件测,原生路径用可信输入测,分开下药**。
 - **出处**:owner v13 复验四轮报障,2026-10-09。
+
+### L22:同路径 exe 静默换图标后,桌面/任务栏不重画——三层验证定位缓存层;发图标资产必附"重启资源管理器"提示
+
+- **症状**(0.5.0 换图标复验):owner 报"桌面图标、任务栏图标没变,托盘里的变了"。快捷方式 IconLocation=`,0`(跟随目标程序)本身没指错,目标 exe 也确已更新(md5 与 updates 一致)。
+- **根因**:rename 自替换是静默换文件,①壳图标缓存按"路径+索引"存,不主动重抽;②**即便解析层已是新图,Explorer 桌面/任务栏已绘制的画面也不重画**——实测 SHChangeNotify(ASSOCCHANGED) 广播对这台 Win11 无效,唯一可靠手段=重启 explorer+清 `%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache_*.db`。
+- **判据/修法(分层验证,哪层坏修哪层)**:V1 `ExtractAssociatedIcon` 抽 exe 内嵌图标比色=证"新图进文件没";V2 `SHGetFileInfo(SHGFI_ICON)` 探针比色=证"解析层新不新";V3 全屏截屏+视觉复核=证"画出来了没"。三层对应修法:换文件/等缓存/重启 explorer。**凡发布含图标资产变更,update note 必写"重启资源管理器"提示(本次已写,owner 有预期)。**
+- **判定不做**:updater 换完文件后自动发 SHChangeNotify 刷新——此机实测广播无效,唯一有效手段(重启 explorer)不宜由应用代杀系统进程;换图标事件频率≈项目周期一两次,note 提示已覆盖。重评条件:图标类资产转为频繁发版。
+- **出处**:owner 0.5.0 复验报障,2026-10-10。

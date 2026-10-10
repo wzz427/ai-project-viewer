@@ -18,11 +18,12 @@ spec-005 + INFRA-001 已收口 **Done**(2026-10-10 owner 原话"0.4.1 已经过�
 
 ### 2026-10-10 · 换图标交付:0.5.0「项目检视」已发体验渠道,等 owner 复验
 
-> **下一步从哪接** —— owner 点 Update→Restart Now → 看任务栏/托盘/桌面快捷方式均显示新图标(橙底白文件夹+深蓝放大镜;任务栏若暂显示旧图=Windows 图标缓存,重启资源管理器即刷,非缺陷)→ 过则 SPEC-INFRA-002 Done,按 V1.5 §180 立 spec-006(Phase 6 HANDOFF)开工,发版 0.6.0 起。
+> **下一步从哪接** —— owner 眼见确认:桌面/任务栏/托盘三处均显示新图标(桌面/任务栏的显示缓存问题已现场修复,见下)→ 过则 SPEC-INFRA-002 Done,按 V1.5 §180 立 spec-006(Phase 6 HANDOFF)开工,发版 0.6.0 起。
 
 - owner 从 A/B/C 三候选选 B(原话"选B";视觉评审 B 小尺寸抗缩最佳、暖色在蓝紫任务栏中辨识度高,A 24px 以下糊被弃)。
 - 交付:母图 `src-tauri/icons/icon.png` + 生成脚本 `scripts/make-icon.py`(4096 超采样降 1024);`pnpm tauri icon` 全套重生成(顺手生成的 android/ios 移动端目录已删,纯 Windows 桌面用不上);托盘走 `default_window_icon` 随构建自动换;版本三处 0.5.0。
 - 验证:exe 内嵌图标抽取比色 4 点全中(255,140,0 橙 / 255,76,59 红 / 11,17,90 放大镜深蓝);update.json=[0.5.0|2026-10-10 12:56]。同轮 spec-005+INFRA-001 收口 Done(原话"0.4.1 已经过了")。
+- **复验报障已处置**(同日下午):owner 报"桌面/任务栏旧图、托盘已变"→ 分层诊断(exe 内嵌=新 / SHGetFileInfo 解析=新 / 画面=旧)= Explorer 显示缓存不重画;SHChangeNotify 广播实测无效,**重启 explorer+清 iconcache_*.db** 后截屏视觉复核三处全新。教训+判定不做(应用内自动刷新)入 **lessons L22**;凡发图标资产,update note 必带"重启资源管理器"提示。
 
 ### 2026-10-10 · 会话收尾交接(owner 将开新对话进下一需求)
 
