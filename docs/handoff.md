@@ -11,11 +11,18 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-008 InTest 返修已发 0.6.12,等 owner 复验**;**未结大案:内容区冻结 bug(owner 报"切换任何页签内容都不变",本机三路复刻未现)——已装诊断导出等 owner 触发时取证**:项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
+主线 = **spec-008 InTest 返修已发 0.6.13,等 owner 复验**;**未结大案:内容区冻结 bug(owner 报"切换任何页签内容都不变",本机三路复刻未现)——已装诊断导出等 owner 触发时取证**:项目信任门(新项目默认不可执行,首次运行确认框,持久/可撤销/不跨项目)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,持久宿主可见控制台=跑完留窗手动关——owner 拍板)+ EXE(左键信息卡/右键 Run)+ 项目菜单 Refresh/Trust/Untrust;顺带修 Phase 6 的 .url 协议白名单未接线。
 复验要点:右键项目标签 → Trust Project for Execution → 右键 hello.ps1(hello.bat)→ Run Script → 弹**可见控制台**(Win11=Windows Terminal 窗口),输出可读、跑完窗口留着;右键 demo.exe → Run;左键 demo.exe → 信息卡;右键项目标签 → Untrust 还原。过 → spec-008 Done → Phase 9(Watcher,§183,发版 0.6.10 起)。
 遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L30 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-11 · 0.6.13 返修:Run 反馈重做+诊断区清净(owner 两反馈)
+
+> **下一步从哪接** —— owner 更新 0.6.13 验:①Run 脚本/exe 成功时**不再有横幅**(控制台弹出即反馈);失败时**窗口正中弹错误框**、写明原因(OK/Esc 关)——可拿一个删掉的假路径试失败态;②Settings 诊断区只有一个 Export Diagnostics 按钮。连同 0.6.12 三件(右键高亮/demo.exe 真跑/信任文案)一起过 → spec-008 Done → Phase 9。
+
+- §119 修订+§164 增量(V1.5 §197 两行);ErrorDialog 单槽居中弹窗(errorDialogStore);phase3 p8_launch_failure_toast→p8_launch_failure_dialog(居中几何+原因+无 toast+Esc 关),58/58+全档绿。
+- **冻结 bug 仍未结**:诊断已装,owner 触发时点 Export 取证,同机直读。
 
 ### 2026-10-11 凌晨 · 0.6.12 返修:右键高亮+demo.exe 真程序+信任文案;新装诊断导出(为冻结 bug 取证)
 

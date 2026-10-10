@@ -12,6 +12,7 @@ import { toast } from "$lib/stores/toastStore.svelte";
 import { settings } from "$lib/stores/settingsStore.svelte";
 import { openFile } from "$lib/stores/tabsStore.svelte";
 import { isProjectTrusted, setProjectTrusted } from "$lib/stores/projectStore.svelte";
+import { showErrorDialog } from "$lib/stores/errorDialogStore.svelte";
 import { extOf, fileNameOf } from "$lib/services/viewerType";
 import { menuKindOf } from "$lib/services/menuKind";
 import {
@@ -103,10 +104,13 @@ export async function runWithTrust(
   const name = fileNameOf(rel);
   try {
     await launch();
-    toast(`✓ ${name} launched`);
+    // Success is its own feedback: the visible console/exe window IS the
+    // signal — no toast (owner 2026-10-11: "成功的话直接弹出来就行").
   } catch (err) {
     console.error("launch failed:", err);
-    toast(`Failed to launch ${name}`, { kind: "error" });
+    // Failure must be unmissable and state its reason (owner 2026-10-11):
+    // centered modal dialog, not the corner toast.
+    showErrorDialog(`Failed to launch ${name}`, String(err));
   }
 }
 

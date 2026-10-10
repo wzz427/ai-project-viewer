@@ -486,10 +486,9 @@ with sync_playwright() as p:
     exp_path = None
     deadline = time.time() + 8
     while time.time() < deadline:
-        t = page.evaluate(
-            "() => document.querySelector('.selectable')?.textContent ?? null")
-        if t and t.endswith(".txt"):
-            exp_path = t
+        t = page.locator(".toast").count() and page.locator(".toast").inner_text()
+        if t and t.startswith("Diagnostics exported: "):
+            exp_path = t[len("Diagnostics exported: "):].strip()
             break
         time.sleep(0.3)
     exported_ok = False
@@ -700,10 +699,28 @@ with sync_playwright() as p:
     page.wait_for_selector(".menu [data-menu-id='run-script']", timeout=4000)
     os.remove(fail_bat)               # target vanishes before launch
     page.locator(".menu [data-menu-id='run-script']").dispatch_event("click")
-    fail_toast = page.wait_for_selector(".toast").inner_text()
-    check("p8_launch_failure_toast",
-          fail_toast.startswith("Failed to launch"), fail_toast)
-    time.sleep(1.0)
+    # Owner 2026-10-11: failure = CENTERED modal dialog stating the reason
+    # (not a toast); success stays silent (the console is the feedback).
+    # let the earlier trust-toggle toast auto-hide so "no toast" is honest
+    t_toast = time.time()
+    while time.time() - t_toast < 5 and page.locator(".toast").count():
+        time.sleep(0.3)
+    dlg = page.wait_for_selector(".dialog", timeout=5000)
+    dlg_txt = dlg.inner_text()
+    ok_geom = page.evaluate("""() => {
+      const d = document.querySelector('.dialog').getBoundingClientRect();
+      return Math.abs((d.left + d.right) / 2 - innerWidth / 2) < 4
+          && Math.abs((d.top + d.bottom) / 2 - innerHeight / 2) < 4;
+    }""")
+    no_toast = page.locator(".toast").count() == 0
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    gone = page.locator(".dialog").count() == 0
+    check("p8_launch_failure_dialog",
+          "Failed to launch" in dlg_txt and "Not found" in dlg_txt
+          and ok_geom and no_toast and gone,
+          f"txt={dlg_txt!r} centered={ok_geom} toast={no_toast} closed={gone}")
+    time.sleep(0.6)
 
     # restore: untrust (leave the temp project state as it started)
     page.locator(".project-tabs .tab").first.click(button="right")

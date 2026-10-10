@@ -2911,19 +2911,14 @@ stdout / stderr visible
 
 ---
 
-# 119. Script Toast
+# 119. Run 反馈
 
-Launch Success：
+(2026-10-11 owner 修订)Launch **Success:无提示**——弹出的可见
+Console/程序窗口本身就是反馈,不再显示任何横幅。
 
-```text
-✓ start.ps1 launched
-```
-
-Launch Failure：
-
-```text
-Failed to launch start.ps1
-```
+Launch **Failure:窗口正中的醒目错误弹窗**,标题为
+`Failed to launch start.ps1`,正文写明具体错误原因(如路径不存在),
+一眼可见;关闭方式=OK 按钮或 Esc。
 
 Toast 不能替代 Console。
 
@@ -5577,4 +5572,6 @@ state.json 解析失败
 | 2026-10-10 | §54(增量) | Recent Commits 由纯展示改为可点击:点击提交 → 查看区打开提交详情(Message/作者/日期/Hash/涉及文件),文件可再点入该提交视角 diff;Git 查看区接管主区时隐藏普通文件页签行 | owner 0.6.7 验收:"点击以后没有任何反应……可以出一个弹窗,也可以在右侧展开" |
 | 2026-10-10 | §71(提前) | Side-by-side 并排 diff 由 P1 提前入 Phase 7:owner 0.6.7 验收对照 VS Code 指出单栏不满足;连带定稿 Git 面板视觉基调=对齐 VS Code Source Control(分段文件名/目录、字母右置、计数徽章、提交图形列) | owner 0.6.7 验收:"你先模仿 VSCode"+"VSCode 那个是并排窗口对比展示" |
 | 2026-10-10 | —(技术性) | 提交相对时间单位修正:git %ct 为秒,前端需毫秒,曾显示 "56y ago";已在 Rust 层 ×1000 并加测试 | owner 截图可见 "56y ago" |
+| 2026-10-11 | §119(修订) | Run 成功反馈由 "✓ x launched" Toast 改为**无提示**(可见控制台即反馈);失败由角落 Toast 改为**窗口正中的错误弹窗**(标题+具体原因,OK/Esc 关闭) | owner:"成功的话直接弹出来就行…不要再显示那个横幅。如果不成功,应该在窗口正中间弹出一个错误信息窗口,并且说清楚错误原因" |
+| 2026-10-11 | §164(增量) | Settings 诊断区撤下 Channel/Build/Startup/Shortcut 读数,**只留 Export Diagnostics 按钮**(读数仍进导出报告;测量本身不变) | owner:"这都是什么乱七八糟的信息啊…你不就留一个这个 Export 的按钮不就完了吗" |
 | 2026-10-10 | §27(增量) | 树高亮补充右键语义:某行的右键菜单打开期间,该行**独占**高亮(恰好一行常亮);菜单关闭即还原"唯一真源=激活页签"——不做粘滞右键选中,避免重造两套真值 | owner 0.6.11 复验:"右键 Example.url,Example 并没有高显,之前的 styles.css 反而高显" |

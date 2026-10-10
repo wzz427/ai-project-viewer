@@ -177,6 +177,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | phase3 58/58+git-suite 32/32+r3 8/8+pdf 19/19+vitest 39/39+cargo 86/86+check 0/0 |
 | 版本 | 0.6.12 三处已核 |
 
+#### 0.6.13 返修轮(2026-10-11,owner 两反馈;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| Run 反馈重做 | 成功无提示;失败=窗口正中 ErrorDialog(标题+原因,Esc/OK 关);phase3 p8_launch_failure_dialog(居中几何±4px+Not found 原因+无 toast+关闭) |
+| 诊断区清理 | Settings 只留 Export 按钮;导出路径改由 toast 呈现(e2e 同步改);读数仍进报告 |
+| 全档 | phase3 58/58+git 32/32+r3 8/8+pdf 19/19+vitest 39/39+cargo 86/86+check 0/0 |
+| 版本 | 0.6.13 三处已核 |
+
 实现期两教训(lessons L29/L30):release GUI 构建必须 `pnpm tauri build --no-bundle`(plain cargo build 缺 custom-protocol,页面 ERR_CONNECTION_REFUSED);Win11 默认终端=WindowsTerminal.exe,控制台窗不在 spawn 者进程树内,检测须系统级差集。
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)

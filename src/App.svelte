@@ -23,6 +23,7 @@
     setSidebarWidth,
   } from "$lib/stores/projectStore.svelte";
   import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
+  import ErrorDialog from "$lib/components/ErrorDialog.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
     activeTab,
@@ -311,6 +312,7 @@
     >Copy</button>
   {/if}
   <ToastHost />
+  <ErrorDialog />
 </div>
 
 <svelte:window onmousedown={closeCopyMenu} />

@@ -17,4 +17,4 @@
 | SPEC-INFRA-003 | 文本查看器统一操作栏(字号+Find)+ MD 文本铺满 | Done | owner 验收通过(2026-10-10 原话"收口吧");两轮返工全记录在本 SPEC(上限删除翻案/工具栏同高/断言对齐原话);冷却后搬 specs/archive/ |
 | spec-006 | Phase 6 Handoff:右键移交外部工具(记事本/VS Code/资源管理器/浏览器/复制路径) | Done | owner 验收通过(2026-10-10 原话"收口吧,我准备开新对话,做下一个需求");0.6.2–0.6.6 五版四轮返修全记录在本 SPEC §六;冷却后搬 specs/archive/ |
 | spec-007 | Phase 7 Git Review:改了什么、跟远端差多少,一眼看完(只看不改) | Done | 0.6.7 首发+0.6.8 返修轮(面板照 VS Code 重排/提交详情/并排 diff),owner 验收通过(2026-10-10,"这个需求通过了");打磨项(折叠条展开/行内高亮)记 §四 D17 |
-| spec-008 | Phase 8 RUN/Trust:脚本/EXE 可见控制台运行+项目信任门+Executable Info+URL 白名单接线 | InTest | 0.6.9 首发+0.6.10 守卫+0.6.11 页签归还+0.6.12(右键高亮/demo.exe 真程序/信任文案/诊断导出);phase3 58/git 32 其余全绿;内容区冻结 bug 未结(诊断已装,等 owner 触发取证) |
+| spec-008 | Phase 8 RUN/Trust:脚本/EXE 可见控制台运行+项目信任门+Executable Info+URL 白名单接线 | InTest | 0.6.9 首发+0.6.10 守卫+0.6.11 页签归还+0.6.12(右键高亮/demo.exe/诊断导出)+0.6.13(Run 成功静默/失败居中弹框+诊断区单按钮);phase3 58/git 32 其余全绿;内容区冻结 bug 未结(诊断已装,等触发取证) |

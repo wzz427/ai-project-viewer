@@ -38,7 +38,6 @@
   // reproduce → "增加一个诊断的按钮…生成运行信息"). The report carries a
   // LIVE cross-check: what the tab strip says is active vs. what the
   // viewer body is actually showing at export time.
-  let exportPath = $state<string | null>(null);
   let exporting = $state(false);
 
   async function exportDiagnostics() {
@@ -93,7 +92,6 @@
       const path = await invoke<string>("write_diagnostics", {
         text: lines.join("\r\n"),
       });
-      exportPath = path;
       diagEvent("diagnostics exported");
       toast(`Diagnostics exported: ${path}`);
     } catch (err) {
@@ -188,45 +186,14 @@
 
   <section>
     <h3>Diagnostics</h3>
-    <div class="row muted">
-      Channel:
-      <span class="mono">{channel}</span>
-      <span class="hint">(experience=体验版客户端;dev=开发构建)</span>
-    </div>
-    <div class="row muted">
-      Build:
-      {#if diagnostics.buildTime}
-        <span class="mono">{new Date(diagnostics.buildTime * 1000).toLocaleString()}</span>
-      {:else}
-        …
-      {/if}
-    </div>
-    <div class="row muted">
-      Startup time:
-      {#if diagnostics.startupMs !== null}
-        <span class="mono">{diagnostics.startupMs} ms</span>
-      {:else}
-        measuring…
-      {/if}
-    </div>
-    <div class="row muted">
-      Shortcut interceptions: <span class="mono">{diagnostics.shortcutInterceptions}</span>
-    </div>
-    {#if diagnostics.lastShortcut}
-      <div class="row muted">
-        Last shortcut: <span class="mono">{diagnostics.lastShortcut}</span>
-      </div>
-    {/if}
+    <!-- Owner 2026-10-11: "留一个 Export 的按钮不就完了吗" — the Channel/
+         Build/Startup/Shortcut readouts are gone from the panel; the
+         numbers still land in the exported report where they matter. -->
     <div class="row">
       <button class="export-diag" onclick={() => void exportDiagnostics()} disabled={exporting}>
         {exporting ? "Exporting…" : "Export Diagnostics"}
       </button>
     </div>
-    {#if exportPath}
-      <div class="row muted">
-        <span class="mono small selectable">{exportPath}</span>
-      </div>
-    {/if}
   </section>
 
   <p class="muted note">Git settings arrive with their feature (Phase 7).</p>
