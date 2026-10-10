@@ -16,4 +16,4 @@
 | SPEC-INFRA-002 | 应用图标:换掉 Tauri 默认 logo(「项目检视」:白文件夹+放大镜) | Done | owner 验收通过(2026-10-10 原话"收口吧";桌面/任务栏显示缓存问题当日已现场修复);冷却后搬 specs/archive/ |
 | SPEC-INFRA-003 | 文本查看器统一操作栏(字号+Find)+ MD 文本铺满 | Done | owner 验收通过(2026-10-10 原话"收口吧");两轮返工全记录在本 SPEC(上限删除翻案/工具栏同高/断言对齐原话);冷却后搬 specs/archive/ |
 | spec-006 | Phase 6 Handoff:右键移交外部工具(记事本/VS Code/资源管理器/浏览器/复制路径) | Done | owner 验收通过(2026-10-10 原话"收口吧,我准备开新对话,做下一个需求");0.6.2–0.6.6 五版四轮返修全记录在本 SPEC §六;冷却后搬 specs/archive/ |
-| spec-007 | Phase 7 Git Review:改了什么、跟远端差多少,一眼看完(只看不改) | InTest | 0.6.7 已发体验渠道(2026-10-10);全档自测绿(cargo 76/vitest 25/git-suite 24/phase3 44/r3 8/pdf 19);等 owner 复验后 Done |
+| spec-007 | Phase 7 Git Review:改了什么、跟远端差多少,一眼看完(只看不改) | InTest | 0.6.8 返修轮已发体验渠道(2026-10-10,owner 三反馈:面板照 VS Code 重排/提交详情可点/并排 diff+隐藏页签;顺带修 56y ago);全档自测绿(cargo 77/vitest 33/git-suite 30/phase3 44/r3 8/pdf 19);等 owner 复验后 Done |

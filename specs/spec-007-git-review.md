@@ -94,6 +94,10 @@
 | D12 | 版本 0.6.7(三处) | owner 2026-10-10 立规 0.6.x 固定递增不跳段(D7 于 INFRA-003);L23 段号纪律 | 0.7.0 | 明令不跳段 |
 | D13 | ↻ 与 Ctrl+R 都连带 git 刷新 | §73 Manual Refresh 两个可见入口都算;Promise.all 让 0.6.6 旋转动画如实覆盖全部工作 | 只刷树 | 两入口状态走岔必挨报障 |
 | D14 | Focus 只刷激活项目 | §78 字面 | focus 刷全项目 | 多项目 spawn 放大,owner 无感 |
+| D15 | 提交详情=查看区**单槽视图**(非弹窗),与 diff 共用 gitViewSlot | owner 授权"怎么做方便怎么来";弹窗盖内容、单槽可滚可跳转,与 VS Code 右侧展开体验同构;复用 D3 单槽释放语义 | 模态弹窗 | 挡内容+不可滚长文件列表 |
+| D16 | side-by-side=本地纯解析:unified hunk 头即折叠点,段内 del+add 拉链对齐 | 不引 diff 算法库/无 WASM;hunk 本就是 git 的折叠语义;拉链即 VS Code 视觉对齐 | 引 jsdiff 二次计算 | 多一算法层只为已免费的信息 |
+| D17 | 折叠条不可点击展开 | git 默认 `-U3` 上下文外内容本就不在输出里;可展开需改 `--unified` 重新请求;V1 视觉已达 VS Code 相似度;**未确认**(后续打磨项) | 点开向 git 追加大 diff | 每次点击一次 spawn+可能 2MB |
+| D18 | Git 视图接管主区期间**隐藏** FileTabs | 页签身份=relativePath(D3);造伪页签污染树高亮/持久化;隐藏一行最省;**未确认** | diff 伪页签 | D3 同款身份污染 |
 
 **内存账**:gitStore 每项目一份快照(文件条目+20 提交,纯数据,移除项目即 forget;不落盘);DiffViewer 单份 diff 文本 ≤2MB,
 关闭/切项目/刷新后文件不再变化时即释放;无轮询定时器,防抖 timer 触发即消;Rust 侧 diff 流式截断,大 diff 永不整块进内存。
@@ -105,10 +109,10 @@
 | R1/R7 | V1 | cargo:临时真仓库(init/commit/mv/冲突/clone 出 upstream)+手写 porcelain 夹具喂纯解析器 | cargo 临时目录(测试内自建 git 仓) | ✓ |
 | R1/R4 | V2 | cargo:§174 场景仓断言 scope 过滤/unique/log pathspec/branch 仓库级 | 同上 | ✓ |
 | R6/R7 | V3 | cargo:安全旗标 argv 断言+大 diff 截断 | 同上 | ✓ |
-| R2/R4/R5 | V4 | vitest:relativeTime/badgeText/treeMark | 无 | ✓ |
+| R2/R4/R5 | V4 | vitest:relativeTime/badgeText/treeMark(返修+diffSideBySide:分段/拉链/折叠计数/路径提取) | 无 | ✓ |
 | R1–R5 | V5 | phase3:BigRepo 根(正常)/apps/viewer(子目录)/AIV-TestProject(非 Git)三实例 | %TEMP%\aiv-p7-gitscope(套件内生成器自建 git 仓) | ✓ |
-| R4/R6 | V6 | phase3:三点击路径+关闭回原查看器 | 同上 | ✓ |
-| R2/R4 | V7 | phase3:同文件双组+badge 单计 | 同上 | ✓ |
+| R4/R6 | V6 | phase3:三点击路径+关闭回原查看器(返修+提交点击→详情→文件→提交视角 diff→‹ 返回/× 关闭;side-by-side 双栏+空侧+隐藏页签) | 同上 | ✓ |
+| R2/R4 | V7 | phase3:同文件双组+badge 单计(返修+分段排版 name/dir/letter、时间单位) | 同上 | ✓ |
 | R6 | V8 | phase3:超限 diff 文案+按钮 | 同上(生成大改文件) | ✓ |
 | R8 | V9 | phase3:改盘→↻→badge/标记变化;Switch/Focus 接线代码审查+owner 真机 | 同上 | ✓(部分 owner) |
 | R5 | V10 | phase3:字母与文件夹无标记+随刷新消失 | 同上 | ✓ |
@@ -120,3 +124,4 @@
 | 2026-10-10 | 立项 Draft→Ready(免审,workflow §五 A2:R/V 与 V1.5 §181/§43–§78/§152/§153/§174/§188 逐条对上,决策表 D1–D14 齐,无疑问需确认) | 测试覆盖矩阵 10 条 |
 | 2026-10-10 | Ready→InDev | — |
 | 2026-10-10 | InDev→InTest(0.6.7 已发体验渠道,等 owner 复验) | cargo **76/76**(新 13:porcelain v2/renamed TAB 实证/§174 scope/ahead-behind 真克隆/冲突双组/diff 守卫/空仓 detached/非 Git/消毒/旗标);vitest **25/25**(gitFormat 6 新);check 0/0;**git-suite 24/24**(V5–V10 全数:e2e 新脚本三实例);phase3 **44/44**+r3 8/8+pdf 19/19;0.6.7 三处版本号核毕。**实现期一项设计修订**:启动扫描改 refreshGitNow 直取(WebView2 隐藏窗口 timer 冻结,lessons L28;防抖仍留聚焦/手动/切换);V9 的 Switch/Focus 触发=接线审查+owner 真机顺手验(单项目夹具无法 e2e 切换) |
+| 2026-10-10 | **返修一轮**(owner 0.6.7 复验三反馈+一并发现的时间 bug):①面板视觉按 VS Code Source Control 重做(⎇ 分支行/分段文件名+目录灰/字母右置/分节折叠+计数徽章/提交图形列+hash 着色+HEAD 分支胶囊);②Recent Commits 可点击→查看区提交详情(Message/作者/日期/Hash/文件列表,文件再点入提交视角 diff);③diff 改 side-by-side(双栏行号+路径列头+红绿对置+空侧斜纹+折叠计数条),Git 查看区接管主区时隐藏文件页签行;④顺带修 "56y ago"(git %ct 秒→前端 ms,Rust 层 ×1000)。设计修订:单槽 gitViewSlot(diff/commit 两态)替代 diffSlot;FileTabs 隐藏而非伪页签(护 D3 身份)。需求增量:V1.5 §54 可点击、§71 side-by-side 提前(§197 已记)。测试:git-suite **30/30**(新 6:side_by_side 双侧/hides_file_tabs/name+dir+letter 分段/时间单位/提交详情钻取/返回与关闭);cargo **77/77**(+1 parse_commit_detail 改名/作者/文件;log 解析补 author);vitest **33/33**(+8 diffSideBySide 纯解析);phase3 44/44+r3 8/8+pdf 19/19;check 0/0;截图自评过(面板+并排各一张,视觉工具核:分段/徽章/图形列/行对齐/折叠条全落地,时间 "1m ago")。决策表新增 D15–D18 | 测试覆盖矩阵 V4/V6/V7 三行扩充(vitest diffSideBySide 8 用例、e2e 新 6 检查);D15 提交详情=右侧单槽视图;D16 side-by-side=unified hunk 折叠+del/add 行拉链(不引 diff 算法库);D17 折叠条不可点开(git 默认 3 行上下文,要可展开需 `diff --unified` 变更,后续打磨);D18 Git 视图期间隐藏 FileTabs(非伪页签) |

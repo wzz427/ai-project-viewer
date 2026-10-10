@@ -25,7 +25,7 @@ import {
 } from "$lib/services/viewerType";
 import { toast } from "$lib/stores/toastStore.svelte";
 import { revealInTree } from "$lib/stores/fileTreeStore.svelte";
-import { closeDiff } from "$lib/stores/gitStore.svelte";
+import { closeGitView } from "$lib/stores/gitStore.svelte";
 
 export type MarkdownMode = "rendered" | "source";
 
@@ -117,9 +117,9 @@ export function activeTab(rootPath: string): RuntimeTab | undefined {
 
 function addOrActivate(rootPath: string, tab: RuntimeTab) {
   const st = projectTabs(rootPath);
-  // A real file becoming the content closes the single-slot diff view
+  // A real file becoming the content closes the single-slot git view
   // (spec-007 D3): the viewer body shows one thing at a time.
-  closeDiff();
+  closeGitView();
   const existing = st.openFiles.find(
     (t) => t.relativePath === tab.relativePath,
   );
@@ -258,7 +258,7 @@ export function reorderTabs(
 export function activateFile(rootPath: string, rel: string) {
   const st = projectTabs(rootPath);
   if (st.openFiles.some((t) => t.relativePath === rel)) {
-    closeDiff();
+    closeGitView();
     st.activeFileRelativePath = rel;
     void revealInTree(rootPath, rel);
     void recheckDeleted(rootPath, rel);
@@ -285,7 +285,7 @@ export function cycleTab(rootPath: string, direction: 1 | -1) {
   );
   const next =
     st.openFiles[(idx + direction + st.openFiles.length) % st.openFiles.length];
-  closeDiff();
+  closeGitView();
   st.activeFileRelativePath = next.relativePath;
   void revealInTree(rootPath, next.relativePath);
 }

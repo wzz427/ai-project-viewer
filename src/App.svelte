@@ -33,8 +33,8 @@
   import { refreshProject } from "$lib/stores/fileTreeStore.svelte";
   import { tabsState } from "$lib/stores/tabsStore.svelte";
   import {
-    gitDiffSlot,
     gitNeedsInitialScan,
+    gitViewSlot,
     markGitSeen,
     refreshGit,
     refreshGitNow,
@@ -42,6 +42,7 @@
   import { badgeText } from "$lib/services/gitFormat";
   import { gitSnapshotOf } from "$lib/stores/gitStore.svelte";
   import DiffViewer from "$lib/components/Viewers/DiffViewer.svelte";
+  import CommitDetailView from "$lib/components/Viewers/CommitDetailView.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
 
   function tabsOf(rootPath: string) {
@@ -62,11 +63,11 @@
   const project = $derived(activeProject());
   const sidebarMode = $derived(project?.sidebarMode ?? "files");
 
-  // The single-slot diff view (spec-007 D3) takes over the viewer body
+  // The single-slot git view (spec-007 D3) takes over the viewer body
   // while set; opening/activating a file tab closes it (tabsStore).
-  const diffShowing = $derived(
-    !!gitDiffSlot.current && !!project
-    && gitDiffSlot.current.rootPath === project.rootPath,
+  const gitView = $derived(gitViewSlot.current);
+  const gitViewShowing = $derived(
+    !!gitView && !!project && gitView.rootPath === project.rootPath,
   );
 
   // Real P0 behaviors (V1.5 §146/§147). The dispatcher claims the keydown at
@@ -265,8 +266,10 @@
         <EmptyState />
       {:else if project}
         <div class="viewer-stack">
-          <FileTabs rootPath={project.rootPath} />
-          {#if tabsOf(project.rootPath).length > 0 || diffShowing}
+          {#if !gitViewShowing}
+            <FileTabs rootPath={project.rootPath} />
+          {/if}
+          {#if gitViewShowing || tabsOf(project.rootPath).length > 0}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="viewer-body"
@@ -274,7 +277,9 @@
                 aria-label="File content"
                 oncontextmenu={onViewerContextMenu}
               >
-                {#if diffShowing}
+                {#if gitViewShowing && gitView?.kind === "commit"}
+                  <CommitDetailView />
+                {:else if gitViewShowing}
                   <DiffViewer />
                 {:else}
                   <ActiveViewer rootPath={project.rootPath} />

@@ -85,7 +85,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
 | `phase3-suite.py` | 查看器+移交+树交互回归 44 项:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 | 凡动查看器、页签、右键菜单 |
-| `git-suite.py` | Phase 7 Git 检视 24 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记 |
+| `git-suite.py` | Phase 7 Git 检视 30 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + **0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
@@ -117,6 +117,20 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | acceptance-r3 | 8/8 |
 | pdf-suite | 19/19 |
 | 版本 | 0.6.7 三处已核 |
+
+#### 0.6.8 返修轮(2026-10-10,owner 0.6.7 复验三反馈;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| cargo | **77/77**(+1 parse_commit_detail:改名/作者/文件;log 解析补 author 字段) |
+| vitest | **33/33**(+8 diffSideBySide:分段/拉链对齐/折叠计数/路径提取) |
+| svelte-check | 0 错 0 警 |
+| git-suite | **30/30**(+6:side_by_side 双侧/hides_file_tabs/name_dir_letter_split/commit_time_unit_fixed/commit_detail_drill/commit_diff_back_close) |
+| phase3-suite | 44/44 防退化 |
+| acceptance-r3 | 8/8 |
+| pdf-suite | 19/19 |
+| 截图自评 | 面板+并排各一张(视觉工具核:分段/计数徽章/提交图形列/HEAD 胶囊/行对齐/折叠条落地,时间 "1m ago") |
+| 版本 | 0.6.8 三处已核 |
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 

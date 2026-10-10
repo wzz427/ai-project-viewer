@@ -22,20 +22,40 @@ export const gitState = $state({
   byRoot: {} as Record<string, ProjectGitState>,
 });
 
-/** Single-slot diff view (D3): the main viewer shows this instead of the
- *  active file while set. Runtime-only — never session-restored (§20).
- *  Wrapped in an object because Svelte 5 forbids exporting a reassigned
- *  $state binding (state_invalid_export). */
-export const gitDiffSlot = $state({
-  current: null as { rootPath: string; rel: string; staged: boolean } | null,
-});
+/** Single-slot git view (D3 + owner 2026-10-10 review): the main viewer
+ *  shows this instead of the active file while set — a file diff OR a
+ *  commit detail. Runtime-only, never session-restored (§20). Wrapped in
+ *  an object because Svelte 5 forbids exporting a reassigned $state
+ *  binding (state_invalid_export). */
+export type GitView =
+  | {
+      kind: "diff";
+      rootPath: string;
+      rel: string;
+      staged: boolean;
+      /** Drill-down from a commit detail: diff of this file inside that
+       *  commit (undefined = working-tree / staged diff). */
+      commitHash?: string;
+    }
+  | { kind: "commit"; rootPath: string; hash: string };
 
-export function openDiff(rootPath: string, rel: string, staged: boolean) {
-  gitDiffSlot.current = { rootPath, rel, staged };
+export const gitViewSlot = $state({ current: null as GitView | null });
+
+export function openDiff(
+  rootPath: string,
+  rel: string,
+  staged: boolean,
+  commitHash?: string,
+) {
+  gitViewSlot.current = { kind: "diff", rootPath, rel, staged, commitHash };
 }
 
-export function closeDiff() {
-  gitDiffSlot.current = null;
+export function openCommit(rootPath: string, hash: string) {
+  gitViewSlot.current = { kind: "commit", rootPath, hash };
+}
+
+export function closeGitView() {
+  gitViewSlot.current = null;
 }
 
 export function gitSnapshotOf(rootPath: string): GitSnapshot | null {
@@ -74,10 +94,15 @@ async function fetchInto(rootPath: string) {
     st.marks = marksByRel(snap);
     // A diff whose file left its group after the refresh (reverted,
     // staged, resolved) has nothing to show anymore — drop the slot.
-    const slot = gitDiffSlot.current;
-    if (slot && slot.rootPath === rootPath && snap.status === "ok") {
-      const group = slot.staged ? snap.staged : snap.changes;
-      if (!group.some((e) => e.rel === slot.rel)) closeDiff();
+    const slot = gitViewSlot.current;
+    if (
+      slot &&
+      slot.kind === "diff" &&
+      slot.rootPath === rootPath &&
+      snap.status === "ok"
+    ) {
+      const group = slot.commitHash ? null : slot.staged ? snap.staged : snap.changes;
+      if (group && !group.some((e) => e.rel === slot.rel)) closeGitView();
     }
   } catch (err) {
     st.snapshot = {
@@ -156,5 +181,5 @@ export function markGitSeen(rootPath: string) {
 export function forgetGit(rootPath: string) {
   seen.delete(rootPath);
   delete gitState.byRoot[rootPath];
-  if (gitDiffSlot.current?.rootPath === rootPath) closeDiff();
+  if (gitViewSlot.current?.rootPath === rootPath) closeGitView();
 }

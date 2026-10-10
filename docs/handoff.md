@@ -11,11 +11,19 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-007(Phase 7 Git Review)InTest,等 owner 复验 0.6.7**:侧栏 Git 面板/Branch+↑↓/CHANGES+STAGED/点文件开 diff/树字母标记/项目标签 ●✓/徽标 [N]/近期提交,子目录 Scope 与非 Git/未装 git 三态全备;刷新=打开/切换/聚焦/↻(Ctrl+R 连带)。
-复验要点:点侧栏 **Git** 看面板 → 点 CHANGES 里一个文件看 diff → 树里改过的文件行有彩色字母 → 顶栏项目名后 ●/✓;切回 VS Code 改个文件再点 ↻,徽标数字应变化。过 → spec-007 Done → Phase 8(RUN/Trust,§182,发版 0.6.8 起)。
+主线 = **spec-007(Phase 7 Git Review)InTest 返修一轮已发 0.6.8,等 owner 复验**:0.6.7 三反馈全重做——①Git 面板照 VS Code Source Control 重排(分段文件名/目录灰/字母右置/分节折叠+计数徽章/提交图形列+hash 着色);②Recent Commits 可点→查看区提交详情(再点文件进该提交视角 diff);③diff 改 side-by-side 并排双栏,Git 视图期间隐藏文件页签行;顺带修 "56y ago" 时间单位。
+复验要点:点 Git 看面板观感 → 点一条提交看详情 → 点 CHANGES 文件看并排红绿。过 → spec-007 Done → Phase 8(RUN/Trust,§182,发版 0.6.9 起)。
 遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L28 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 晚 · 0.6.8 返修:Git 面板照 VS Code 重排+提交详情+并排 diff(owner 0.6.7 复验三反馈)
+
+> **下一步从哪接** —— owner 点 Update(0.6.8)验:①Git 面板观感对齐 VS Code(文件名亮/目录灰分段、字母右侧、分节可折叠带计数、提交列表带圆点竖线+hash 黄字+首条 main 胶囊);②点 Recent Commits 任意一条 → 主区开提交详情(Message/作者/日期/Hash/文件列表),点文件进该提交视角 diff,‹ 返回 × 关闭;③点 CHANGES 文件 → 并排双栏 diff(左红右绿、行号、折叠计数条),期间文件页签行隐藏;④提交时间不再 "56y ago"。全过 → spec-007 Done → Phase 8(spec-008,§182)。
+
+- 需求增量入账:V1.5 §54 可点击+§71 side-by-side 提前(§197 审计三行);spec-007 §六 返修轮记录+决策表 D15–D18(单槽 gitViewSlot 两态/D16 纯解析不引 diff 库/D17 折叠条不可展开=未确认打磨项/D18 隐藏 FileTabs 非伪页签)。
+- 实现:Rust git_commit_detail(show 详情,hash 消毒);前端 CommitDetailView+diffSideBySide 纯解析(hunk 头=折叠点+del/add 拉链);git-suite 30/30+cargo 77/77+vitest 33/33+phase3 44/44+r3 8/8+pdf 19/19+check 0/0;截图自评过(分段/徽章/图形列/行对齐/折叠条落地)。
+- 打磨项记档(不做不阻塞):折叠条点击展开(需 --unified 请求)、行内字符级高亮、行悬停操作按钮(open-file 图标;stage/discard 属 §45 禁改范围永不做)。
 
 ### 2026-10-10 晚 · spec-007(Phase 7 Git Review)交付:0.6.7 已发体验渠道,等 owner 复验
 

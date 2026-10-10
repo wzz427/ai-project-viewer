@@ -71,8 +71,9 @@ def build_fixture():
     def w(rel, content):
         wf(os.path.join(BIG, *rel.split("/")), content)
 
-    # history: seed -> viewer change -> backend change
-    w("apps/viewer/a.ts", "1\n")
+    # history: seed -> viewer change -> backend change (a.ts keeps 20 lines
+    # so the later working diff folds a gap bar in the middle)
+    w("apps/viewer/a.ts", "".join(f"line {i}\n" for i in range(1, 21)))
     w("apps/viewer/both.ts", "base\n")
     w("apps/viewer/big-change.ts",
       "".join(f"line {i}\n" for i in range(30_000)))
@@ -80,7 +81,7 @@ def build_fixture():
     w("packages/c.ts", "1\n")
     sh(BIG, "add", "-A")
     sh(BIG, "commit", "-q", "-m", "seed")
-    w("apps/viewer/a.ts", "2\n")
+    w("apps/viewer/a.ts", "CHANGED 1\n" + "".join(f"line {i}\n" for i in range(2, 21)))
     sh(BIG, "add", "-A")
     sh(BIG, "commit", "-q", "-m", "viewer change")
     w("apps/backend/b.ts", "2\n")
@@ -91,7 +92,8 @@ def build_fixture():
     #   viewer scope = a.ts(M) staged.ts(A staged) both.ts(M+M)
     #                  untracked.ts(?) big-change.ts(M)   -> 5 unique
     #   outside scope = b.ts(M) c.ts(M)                   -> +2 at repo root
-    w("apps/viewer/a.ts", "3\n")
+    w("apps/viewer/a.ts", "CHANGED 1\n" + "".join(
+        ("EDITED 15\n" if i == 15 else f"line {i}\n") for i in range(2, 21)))
     w("apps/backend/b.ts", "3\n")
     w("packages/c.ts", "3\n")
     w("apps/viewer/staged.ts", "staged content\n")
@@ -162,9 +164,9 @@ def badge_becomes(page, expect, timeout_s=10):
 
 
 def entry_paths(page, section_hint):
-    """Visible entry paths in the panel (all sections; hint only for logs)."""
-    return [e.strip() for e in page.locator(".git-panel .entry .path")
-            .all_inner_texts()]
+    """Visible entry paths (row title carries the full project-relative rel)."""
+    return page.eval_on_selector_all(
+        ".git-panel .entry", "els => els.map(e => e.title)")
 
 
 def wait_git_panel(page, timeout_s=15):
@@ -208,49 +210,21 @@ def instance_a(page):
               "apps/viewer/a.ts", "apps/backend/b.ts",
               "packages/c.ts", "apps/viewer/untracked.ts")),
           str(paths))
-    # §53: both.ts sits in BOTH groups.
-    staged_txt = page.locator(".git-panel section", has_text="STAGED") \
-        .first.inner_text()
-    changes_txt = page.locator(".git-panel section", has_text="CHANGES") \
-        .filter(has_not_text="STAGED").first.inner_text()
+    # §53: both.ts sits in BOTH groups (row titles carry the full rel).
+    staged_titles = page.locator(
+        ".git-panel section", has_text="Staged Changes").first \
+        .locator(".entry").evaluate_all("els => els.map(e => e.title)")
+    changes_titles = page.locator(
+        ".git-panel section", has_text="Changes").filter(has_not_text="Staged").first \
+        .locator(".entry").evaluate_all("els => els.map(e => e.title)")
     check("git_same_file_two_groups",
-          "apps/viewer/both.ts" in staged_txt
-          and "apps/viewer/both.ts" in changes_txt
+          "apps/viewer/both.ts" in staged_titles
+          and "apps/viewer/both.ts" in changes_titles
           and badge == "[7]",  # counted ONCE (not 8)
-          f"staged={staged_txt!r} changes={changes_txt!r}")
-
-    # V6: clicking a CHANGES row opens the working-tree diff in the viewer.
-    page.locator(".git-panel .entry", has_text="apps/viewer/a.ts").first.click()
-    time.sleep(1.0)
-    head = page.locator(".diff-viewer .diff-head").inner_text()
-    adds = page.locator(".diff-viewer .diff-line.add").count()
-    dels = page.locator(".diff-viewer .diff-line.del").count()
-    check("git_click_changes_opens_wt_diff",
-          page.locator(".diff-viewer").count() == 1
-          and "Working Tree" in head and adds > 0 and dels > 0,
-          f"head={head!r} +{adds} -{dels}")
-
-    # V6: STAGED row -> staged diff for the same file (scope the locator to
-    # the staged section — both.ts also exists in CHANGES).
-    staged_section = page.locator(
-        ".git-panel section", has_text="STAGED").first
-    staged_section.locator(".entry", has_text="apps/viewer/both.ts").click()
-    time.sleep(1.0)
-    head = page.locator(".diff-viewer .diff-head").inner_text()
-    check("git_click_staged_opens_staged_diff",
-          "Staged" in head
-          and page.locator(".diff-viewer .diff-line.add").count() > 0,
-          head)
-
-    # V6: close returns to the previous viewer.
-    page.locator(".diff-viewer .close").click()
-    time.sleep(0.4)
-    check("git_diff_close_returns",
-          page.locator(".diff-viewer").count() == 0)
+          f"staged={staged_titles} changes={changes_titles}")
 
     # V6/D2: untracked row opens the FILE, not a diff.
-    page.locator(".git-panel .entry",
-                 has_text="apps/viewer/untracked.ts").first.click()
+    page.locator('.git-panel .entry[title="apps/viewer/untracked.ts"]').first.click()
     deadline = time.time() + 6
     ok = False
     while time.time() < deadline:
@@ -260,9 +234,44 @@ def instance_a(page):
         time.sleep(0.2)
     check("git_untracked_opens_file", ok)
 
+    # Rework V6 (owner 2026-10-10): side-by-side, and the file-tab strip
+    # must not show a stale tab while the diff owns the viewer.
+    page.locator('.git-panel .entry[title="apps/viewer/a.ts"]').first.click()
+    time.sleep(1.0)
+    head = page.locator(".diff-viewer .diff-head").inner_text()
+    adds = page.locator(".diff-viewer .cell.chg.new").count()
+    dels = page.locator(".diff-viewer .cell.chg.old").count()
+    gap = page.locator(".diff-viewer .gap").first.inner_text()         if page.locator(".diff-viewer .gap").count() else ""
+    check("git_click_changes_opens_side_by_side_diff",
+          page.locator(".diff-viewer").count() == 1
+          and "Working Tree" in head and adds > 0 and dels > 0
+          and "unchanged" in gap,
+          f"head={head!r} +{adds} -{dels} gap={gap!r}")
+    check("git_diff_hides_file_tabs",
+          page.locator(".file-tab").count() == 0,
+          f"file tabs visible: {page.locator('.file-tab').count()}")
+
+    # V6: STAGED row -> staged diff for the same file (scope the locator to
+    # the staged section — both.ts also exists in CHANGES).
+    staged_section = page.locator(
+        ".git-panel section", has_text="Staged Changes").first
+    staged_section.locator('.entry[title="apps/viewer/both.ts"]').click()
+    time.sleep(1.0)
+    head = page.locator(".diff-viewer .diff-head").inner_text()
+    check("git_click_staged_opens_staged_diff",
+          "Staged" in head
+          and page.locator(".diff-viewer .cell.chg.new").count() > 0,
+          head)
+
+    # V6: close restores the file-tab strip and the previous viewer.
+    page.locator(".diff-viewer .close").click()
+    time.sleep(0.4)
+    check("git_diff_close_returns",
+          page.locator(".diff-viewer").count() == 0
+          and page.locator(".file-tab").count() > 0)
+
     # V8: oversized diff -> §72 message + hand-off button (never clicked).
-    page.locator(".git-panel .entry",
-                 has_text="apps/viewer/big-change.ts").first.click()
+    page.locator('.git-panel .entry[title="apps/viewer/big-change.ts"]').first.click()
     time.sleep(1.5)
     too = page.locator(".diff-viewer .too-large")
     check("git_diff_guard_too_large",
@@ -284,6 +293,48 @@ def instance_a(page):
     }""")
     check("git_tree_marks_files_only",
           mark["file"] == "M" and mark["folder"] is None, str(mark))
+
+    # Rework V10: rows show bright filename + dim dirname (VS Code pattern).
+    open_git_panel(page)
+    row = page.locator('.git-panel .entry[title="apps/viewer/a.ts"]').first
+    nm = row.locator(".ename").inner_text()
+    dr = row.locator(".edir").inner_text()
+    lt = row.locator(".letter").inner_text()
+    check("git_entry_name_dir_letter_split",
+          nm == "a.ts" and dr == "apps/viewer" and lt == "M",
+          f"name={nm!r} dir={dr!r} letter={lt!r}")
+
+    # Rework V2: clicking a commit opens the detail view (author/date/
+    # message/files); a file there drills into that commit's diff with a
+    # back arrow.
+    when = page.locator(".git-panel .commit .cwhen").first.inner_text()
+    check("git_commit_time_unit_fixed", "56y" not in when, when)
+    # Second row = "viewer change" (the newest commit only touched backend).
+    page.locator(".git-panel .commit").nth(1).click()
+    time.sleep(1.2)
+    cv = page.locator(".commit-view").count() == 1
+    body = page.locator(".commit-view .c-body").inner_text()
+    check("git_commit_click_opens_detail",
+          cv and "Author" in body and "Hash" in body
+          and "FILES CHANGED" in body and "viewer change" in body
+          and page.locator(".file-tab").count() == 0,
+          body[:120])
+    page.locator('.commit-view .entry[title="apps/viewer/a.ts"]').first.click()
+    time.sleep(1.2)
+    head = page.locator(".diff-viewer .diff-head").inner_text()
+    check("git_commit_file_drills_into_diff",
+          page.locator(".diff-viewer").count() == 1
+          and page.locator(".diff-viewer .cell.chg.new").count() > 0,
+          head)
+    page.locator(".diff-viewer .back").click()
+    time.sleep(0.6)
+    check("git_commit_diff_back_returns",
+          page.locator(".commit-view").count() == 1)
+    page.locator(".commit-view .close").click()
+    time.sleep(0.4)
+    check("git_commit_view_closes",
+          page.locator(".commit-view").count() == 0
+          and page.locator(".file-tab").count() > 0)
 
     # V9/V10: manual refresh — disk change lands after ↻ (and reverts).
     probe = os.path.join(BIG, "zz-git-probe.txt")

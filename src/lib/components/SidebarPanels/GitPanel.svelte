@@ -1,20 +1,15 @@
 <script lang="ts">
   import { activeProject } from "$lib/stores/projectStore.svelte";
-  import {
-    gitState,
-    openDiff,
-    refreshGit,
-  } from "$lib/stores/gitStore.svelte";
+  import { gitState, openCommit, openDiff, refreshGit } from "$lib/stores/gitStore.svelte";
   import { openFile } from "$lib/stores/tabsStore.svelte";
   import { letterClass, relativeTime } from "$lib/services/gitFormat";
+  import { fileNameOf } from "$lib/services/viewerType";
   import type { GitChangeEntry } from "$lib/services/tauri";
 
   const project = $derived(activeProject());
-  const st = $derived(
-    project ? gitState.byRoot[project.rootPath] : undefined,
-  );
+  const st = $derived(project ? gitState.byRoot[project.rootPath] : undefined);
   const snap = $derived(st?.snapshot ?? null);
-  // §50: subdirectory mode surfaces the repository name + scope (§58).
+  // §50/§58: subdirectory mode surfaces the repository name + scope.
   const repoName = $derived(
     snap?.gitRoot
       ? snap.gitRoot.replace(/[\\/]+$/, "").split(/[\\/]/).pop()!
@@ -22,9 +17,19 @@
   );
   const now = $derived(Date.now());
 
-  type Row = GitChangeEntry & { stagedRow: boolean };
+  // VS Code-style collapsible sections (owner 2026-10-10 visual review).
+  let collapsed = $state<Record<string, boolean>>({});
 
-  function clickEntry(e: Row) {
+  function toggle(key: string) {
+    collapsed[key] = !collapsed[key];
+  }
+
+  function dirnameOf(rel: string): string {
+    const i = rel.lastIndexOf("/");
+    return i === -1 ? "" : rel.slice(0, i);
+  }
+
+  function clickEntry(e: GitChangeEntry & { stagedRow: boolean }) {
     if (!project) return;
     if (e.letter === "?") {
       // Untracked files have no diff — open the content (spec-007 D2).
@@ -34,8 +39,12 @@
     }
   }
 
+  function clickCommit(hash: string) {
+    if (project) openCommit(project.rootPath, hash);
+  }
+
   // Rows carry their group so one handler serves both lists.
-  function withGroup(list: GitChangeEntry[], stagedRow: boolean): Row[] {
+  function withGroup(list: GitChangeEntry[], stagedRow: boolean) {
     return list.map((e) => ({ ...e, stagedRow }));
   }
 </script>
@@ -65,10 +74,11 @@
 {:else if snap}
   <div class="git-panel">
     <!-- §50 branch row: name + §67 ahead/behind (omitted without upstream). -->
-    <div class="branch-row mono" title={snap.upstream ? `Upstream: ${snap.upstream}` : ""}>
+    <div class="branch-row" title={snap.upstream ? `Upstream: ${snap.upstream}` : ""}>
+      <span class="glyph">⎇</span>
       <span class="branch-name">{snap.branch}</span>
       {#if snap.ahead !== undefined || snap.behind !== undefined}
-        <span class="ab"> ↑{snap.ahead ?? 0} ↓{snap.behind ?? 0}</span>
+        <span class="ab">↑{snap.ahead ?? 0} ↓{snap.behind ?? 0}</span>
       {/if}
     </div>
     {#if snap.scopeRel}
@@ -79,50 +89,79 @@
     {/if}
 
     <section>
-      <h3>CHANGES {#if snap.changes.length}<span class="count">{snap.changes.length}</span>{/if}</h3>
-      {#each withGroup(snap.changes, false) as e (e.rel)}
-        <button
-          class="entry"
-          title={e.origRel ? `${e.origRel} → ${e.rel}` : e.rel}
-          onclick={() => clickEntry(e)}
-        >
-          <span class="letter {letterClass(e.letter)}">{e.letter}</span>
-          <span class="path">{e.rel}</span>
-        </button>
-      {/each}
-      {#if snap.changes.length === 0 && snap.staged.length === 0}
-        <p class="muted note">No changes.</p>
-      {/if}
-    </section>
-
-    {#if snap.staged.length > 0}
-      <section>
-        <h3>STAGED CHANGES <span class="count">{snap.staged.length}</span></h3>
-        {#each withGroup(snap.staged, true) as e (e.rel)}
+      <button class="sec-head" onclick={() => toggle("changes")} aria-expanded={!collapsed.changes}>
+        <span class="chev" class:open={!collapsed.changes}>›</span>
+        <span class="sec-title">Changes</span>
+        {#if snap.changes.length}<span class="sec-count">{snap.changes.length}</span>{/if}
+      </button>
+      {#if !collapsed.changes}
+        {#each withGroup(snap.changes, false) as e (e.rel)}
           <button
             class="entry"
             title={e.origRel ? `${e.origRel} → ${e.rel}` : e.rel}
             onclick={() => clickEntry(e)}
           >
+            <span class="ename">{fileNameOf(e.rel)}</span>
+            <span class="edir">{dirnameOf(e.rel)}</span>
             <span class="letter {letterClass(e.letter)}">{e.letter}</span>
-            <span class="path">{e.rel}</span>
           </button>
         {/each}
+        {#if snap.changes.length === 0 && snap.staged.length === 0}
+          <p class="muted note">No changes.</p>
+        {/if}
+      {/if}
+    </section>
+
+    {#if snap.staged.length > 0}
+      <section>
+        <button class="sec-head" onclick={() => toggle("staged")} aria-expanded={!collapsed.staged}>
+          <span class="chev" class:open={!collapsed.staged}>›</span>
+          <span class="sec-title">Staged Changes</span>
+          <span class="sec-count">{snap.staged.length}</span>
+        </button>
+        {#if !collapsed.staged}
+          {#each withGroup(snap.staged, true) as e (e.rel)}
+            <button
+              class="entry"
+              title={e.origRel ? `${e.origRel} → ${e.rel}` : e.rel}
+              onclick={() => clickEntry(e)}
+            >
+              <span class="ename">{fileNameOf(e.rel)}</span>
+              <span class="edir">{dirnameOf(e.rel)}</span>
+              <span class="letter {letterClass(e.letter)}">{e.letter}</span>
+            </button>
+          {/each}
+        {/if}
       </section>
     {/if}
 
     <section>
-      <h3>RECENT COMMITS</h3>
-      {#if snap.commits.length === 0}
-        <p class="muted note">No commits yet.</p>
+      <button class="sec-head" onclick={() => toggle("commits")} aria-expanded={!collapsed.commits}>
+        <span class="chev" class:open={!collapsed.commits}>›</span>
+        <span class="sec-title">Recent Commits</span>
+        {#if snap.commits.length}<span class="sec-count">{snap.commits.length}</span>{/if}
+      </button>
+      {#if !collapsed.commits}
+        {#if snap.commits.length === 0}
+          <p class="muted note">No commits yet.</p>
+        {/if}
+        {#each snap.commits as c, i (c.hash)}
+          {@const date = new Date(c.ts).toLocaleString()}
+          <button
+            class="commit"
+            title={`${c.subject}&#10;${c.author} · ${date}`}
+            onclick={() => clickCommit(c.hash)}
+          >
+            <span class="cgraph" class:head={i === 0}><span class="cdot"></span></span>
+            <span class="chash">{c.hash}</span>
+            <span class="csubj">{c.subject}</span>
+            {#if i === 0 && snap.branch && snap.branch !== "(detached)"}
+              <span class="cbadge">{snap.branch}</span>
+            {/if}
+            <span class="cwhen">{relativeTime(now, c.ts)}</span>
+          </button>
+        {/each}
       {/if}
-      {#each snap.commits as c (c.hash)}
-        <div class="commit" title={c.subject}>
-          <span class="hash mono">{c.hash}</span>
-          <span class="subject">{c.subject}</span>
-          <span class="when muted">{relativeTime(now, c.ts)}</span>
-        </div>
-      {/each}
     </section>
   </div>
 {:else}
@@ -174,13 +213,21 @@
   .git-panel {
     display: flex;
     flex-direction: column;
-    gap: 4px;
   }
 
   .branch-row {
-    padding: 2px 4px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px 8px;
     font-size: 12.5px;
     border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  .glyph {
+    color: var(--text-muted);
+    font-size: 12px;
   }
 
   .branch-name {
@@ -189,6 +236,7 @@
 
   .ab {
     color: var(--text-muted);
+    font-size: 11.5px;
   }
 
   /* §58: lightweight subdirectory-mode explainer. */
@@ -204,26 +252,65 @@
     color: var(--text-muted);
   }
 
-  section h3 {
-    margin: 10px 2px 4px;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+  .sec-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 5px 4px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .sec-head:hover {
+    background: var(--bg-hover);
+  }
+
+  .chev {
+    display: inline-block;
+    width: 14px;
+    text-align: center;
     color: var(--text-muted);
+    font-size: 11px;
+    transition: transform 0.1s ease;
   }
 
-  .count {
-    margin-left: 4px;
+  .chev.open {
+    transform: rotate(90deg);
   }
 
+  .sec-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex: 1;
+    text-align: left;
+  }
+
+  .sec-count {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--bg-active);
+    color: var(--text-muted);
+    font-size: 10.5px;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  /* File row (VS Code pattern): bright FILENAME, dim dirname after it,
+     status letter at the far right (owner 2026-10-10 visual review). */
   .entry {
     display: flex;
     align-items: center;
     gap: 6px;
     width: 100%;
-    padding: 2px 4px;
+    padding: 2px 6px 2px 22px;
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: 12.5px;
     text-align: left;
     cursor: pointer;
   }
@@ -232,47 +319,114 @@
     background: var(--bg-hover);
   }
 
+  .ename {
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .edir {
+    color: var(--text-muted);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 0;
+    min-width: 3em;
+  }
+
   .letter {
     flex-shrink: 0;
-    width: 10px;
+    margin-left: auto;
     font-weight: 700;
     font-size: 11px;
   }
 
-  .path {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
+  /* Commit row (VS Code Graph flavor): rail with a dot per commit, hash in
+     the accent color, subject, HEAD pill, dim relative time at the right. */
   .commit {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 6px;
-    padding: 2px 4px;
-    font-size: 12px;
+    width: 100%;
+    padding: 3px 6px 3px 8px;
     border-radius: var(--radius);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
   }
 
   .commit:hover {
     background: var(--bg-hover);
   }
 
-  .hash {
+  .cgraph {
+    position: relative;
+    width: 12px;
+    align-self: stretch;
     flex-shrink: 0;
-    color: var(--text-muted);
+  }
+
+  .cgraph::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .cdot {
+    position: absolute;
+    left: 2.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .cgraph.head .cdot {
+    background: transparent;
+    border: 1.5px solid var(--accent);
+    width: 5px;
+    height: 5px;
+  }
+
+  .chash {
+    flex-shrink: 0;
+    color: var(--git-m);
+    font-family: var(--font-mono);
     font-size: 11px;
   }
 
-  .subject {
+  .csubj {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
-  .when {
+  .cbadge {
+    flex-shrink: 0;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: var(--bg-active);
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 15px;
+  }
+
+  .cwhen {
     margin-left: auto;
     flex-shrink: 0;
     font-size: 10.5px;
+    color: var(--text-muted);
   }
 </style>

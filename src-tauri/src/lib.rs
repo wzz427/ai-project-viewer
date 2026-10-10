@@ -164,6 +164,7 @@ pub fn run() {
             file_inspect::read_binary_file,
             git::git_snapshot,
             git::git_diff,
+            git::git_commit_detail,
             handoff::edit_in_quick_editor,
             handoff::open_in_code_editor,
             handoff::reveal_in_explorer,

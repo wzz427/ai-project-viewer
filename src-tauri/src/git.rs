@@ -426,7 +426,11 @@ pub struct GitChangeEntry {
 #[serde(rename_all = "camelCase")]
 pub struct GitCommit {
     pub hash: String,
+    pub author: String,
     pub subject: String,
+    /// Committer time in MILLISECONDS (the frontend feeds it straight into
+    /// Date.now() deltas; feeding it seconds made every commit read "56y
+    /// ago" on the owner's machine, 2026-10-10).
     pub ts: u64,
 }
 
@@ -496,7 +500,7 @@ fn scoped_groups(
             .orig_path
             .as_deref()
             .filter(|o| in_scope(o, scope))
-            .map(|o| to_project_rel(o, scope));
+            .map(|o| to_project_rel(&o, scope));
         unique.insert(rel.clone());
         if let Some(letter) = e.staged_letter {
             staged.push(GitChangeEntry { rel: rel.clone(), letter, orig_rel: orig_rel.clone() });
@@ -512,11 +516,17 @@ fn parse_log(out: &str) -> Vec<GitCommit> {
     out.lines()
         .filter(|l| !l.is_empty())
         .filter_map(|l| {
-            let mut it = l.splitn(3, '\u{1f}');
+            let mut it = l.splitn(4, '\u{1f}');
             let hash = it.next()?.to_string();
-            let subject = it.next()?.to_string();
+            let author = it.next()?.to_string();
             let ts: u64 = it.next()?.parse().ok()?;
-            Some(GitCommit { hash, subject, ts })
+            let subject = it.next()?.to_string();
+            Some(GitCommit {
+                hash,
+                author,
+                subject,
+                ts: ts.saturating_mul(1000),
+            })
         })
         .collect()
 }
@@ -545,7 +555,7 @@ fn snapshot_inner(project: &Path) -> Result<GitSnapshot, SnapErr> {
     // touching the scope (pathspec is git-root-relative, matching §65).
     let mut log_args = with_args(
         &git_base_args(&git_root),
-        &["log", "-n", "20", "--pretty=format:%h%x1f%s%x1f%ct"],
+        &["log", "-n", "20", "--pretty=format:%h%x1f%an%x1f%ct%x1f%s"],
     );
     if !scope.is_empty() {
         log_args.push("--".into());
@@ -657,6 +667,7 @@ pub fn git_diff(
     root_path: String,
     rel: String,
     staged: bool,
+    commit_hash: Option<String>,
 ) -> Result<GitDiffResult, String> {
     let project = dunce::canonicalize(&root_path)
         .map_err(|e| format!("Project folder is not accessible: {e}"))?;
@@ -670,13 +681,130 @@ pub fn git_diff(
     let rel = sanitize_rel(&rel)?;
     let pathspec = if scope.is_empty() { rel } else { format!("{scope}/{rel}") };
 
-    let out = run_git_capped(&diff_argv(&git_root, &pathspec, staged), DIFF_MAX_BYTES, DIFF_MAX_LINES)
+    // A commit-scoped diff shows that file's change INSIDE the given
+    // commit (`git show --format=` drops the log header, keeps the diff —
+    // and works for root commits where `hash^` does not exist).
+    let argv = match commit_hash {
+        Some(hash) => {
+            let hash = sanitize_hash(&hash)?;
+            let mut args = git_base_args(&git_root);
+            args.push("show".into());
+            args.push("--format=".into());
+            args.push(hash);
+            args.push("--".into());
+            args.push(pathspec);
+            args
+        }
+        None => diff_argv(&git_root, &pathspec, staged),
+    };
+    let out = run_git_capped(&argv, DIFF_MAX_BYTES, DIFF_MAX_LINES)
         .map_err(run_err_string)?;
     Ok(GitDiffResult {
         text: out.text,
         truncated: out.truncated,
         lines: out.lines as u32,
     })
+}
+
+/// Revisions crossing the bridge must be plain hex (4–40 chars) — anything
+/// else (`HEAD~2^{…}`, ranges) is rev syntax we never meant to allow.
+fn sanitize_hash(hash: &str) -> Result<String, String> {
+    let h = hash.trim();
+    let ok = (4..=40).contains(&h.len()) && h.bytes().all(|b| b.is_ascii_hexdigit());
+    if ok {
+        Ok(h.to_ascii_lowercase())
+    } else {
+        Err("Invalid commit id.".into())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Commit detail (owner 2026-10-10: clicking a Recent Commit must open the
+// commit's information — author/date/message plus the files it touched).
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GitCommitFile {
+    pub rel: String,
+    pub letter: char,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub orig_rel: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitCommitDetail {
+    pub hash: String,
+    pub author: String,
+    /// ISO-8601 author date as git prints it (%aI).
+    pub date: String,
+    pub message: String,
+    pub files: Vec<GitCommitFile>,
+}
+
+/// `git show --name-status --format=<unit-separated>` — one header block,
+/// then one `XY\tpath` line per touched file (renames carry the old path).
+fn parse_commit_detail(out: &str, scope: &str) -> Option<GitCommitDetail> {
+    let mut lines = out.lines();
+    let header = lines.next()?;
+    let mut parts = header.splitn(4, '\u{1f}');
+    let hash = parts.next()?.to_string();
+    let author = parts.next()?.to_string();
+    let date = parts.next()?.to_string();
+    let message = parts.next().unwrap_or_default().trim_end().to_string();
+
+    let mut files = Vec::new();
+    for line in lines {
+        if line.is_empty() {
+            continue;
+        }
+        // R100<TAB>old<TAB>new / M<TAB>path — split on tabs, last is new.
+        let tabs: Vec<&str> = line.split('\t').collect();
+        let (status, path, orig) = match tabs.as_slice() {
+            [st, old, new] if !st.is_empty() && st.chars().all(|c| c.is_ascii_alphanumeric()) => {
+                (st, *new, Some(old.to_string()))
+            }
+            [st, p] => (st, *p, None),
+            _ => continue,
+        };
+        let letter = status.chars().next().unwrap_or('M');
+        if !in_scope(path, scope) {
+            continue;
+        }
+        let rel = to_project_rel(path, scope);
+        let orig_rel = orig
+            .filter(|o| in_scope(o, scope))
+            .map(|o| to_project_rel(&o, scope));
+        files.push(GitCommitFile { rel, letter, orig_rel });
+    }
+    Some(GitCommitDetail { hash, author, date, message, files })
+}
+
+#[tauri::command]
+pub fn git_commit_detail(root_path: String, hash: String) -> Result<GitCommitDetail, String> {
+    let project = dunce::canonicalize(&root_path)
+        .map_err(|e| format!("Project folder is not accessible: {e}"))?;
+    let root_out = run_git(&with_args(
+        &git_base_args(&project),
+        &["rev-parse", "--show-toplevel"],
+    ))
+    .map_err(run_err_string)?;
+    let git_root = PathBuf::from(root_out.trim());
+    let scope = scope_of(&project, &git_root).map_err(|e| run_err_string(RunError { missing: false, timeout: false, message: e }))?;
+    let hash = sanitize_hash(&hash)?;
+
+    let out = run_git(&with_args(
+        &git_base_args(&git_root),
+        &[
+            "show",
+            "--name-status",
+            "--format=%H%x1f%an%x1f%aI%x1f%B",
+            &hash,
+        ],
+    ))
+    .map_err(run_err_string)?;
+    parse_commit_detail(&out, &scope)
+        .ok_or_else(|| "Could not read commit details.".into())
 }
 
 /// git_diff rejects with a plain user-facing message (§153 wording for a
@@ -967,18 +1095,27 @@ mod tests {
         write_file(repo, "b.txt", "staged content\n");
         sh(repo, &["add", "b.txt"]);
 
-        let wt = git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false).unwrap();
+        let wt = git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false, None).unwrap();
         assert!(!wt.truncated);
         assert!(wt.text.contains("-two"));
         assert!(wt.text.contains("+TWO"));
         assert!(wt.text.contains("+three"));
 
-        let st = git_diff(repo.to_string_lossy().into_owned(), "b.txt".into(), true).unwrap();
+        let st = git_diff(repo.to_string_lossy().into_owned(), "b.txt".into(), true, None).unwrap();
         assert!(st.text.contains("+staged content"));
         assert!(st.text.contains("new file"));
 
         // Path escape is refused before any git spawn.
-        assert!(git_diff(repo.to_string_lossy().into_owned(), "../x".into(), false).is_err());
+        assert!(git_diff(repo.to_string_lossy().into_owned(), "../x".into(), false, None).is_err());
+        // Commit-scoped diff: the file's change inside one commit (works
+        // for the root commit too, where hash^ does not exist).
+        let head = run_git(&with_args(&git_base_args(repo), &["rev-parse", "--short", "HEAD"]))
+            .unwrap();
+        let cd = git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false, Some(head.trim().to_string())).unwrap();
+        assert!(cd.text.contains("+one"));
+        assert!(cd.text.contains("+two"));
+        assert!(cd.text.contains("new file"));
+        assert!(git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false, Some("HEAD~1^{tree}".into())).is_err());
     }
 
     #[test]
@@ -992,7 +1129,7 @@ mod tests {
         let changed: String = (0..30_000).map(|i| format!("changed {i}\n")).collect();
         write_file(repo, "big.txt", &changed);
 
-        let d = git_diff(repo.to_string_lossy().into_owned(), "big.txt".into(), false).unwrap();
+        let d = git_diff(repo.to_string_lossy().into_owned(), "big.txt".into(), false, None).unwrap();
         assert!(d.truncated);
         assert!(d.lines <= DIFF_MAX_LINES as u32);
         assert!(d.text.len() <= DIFF_MAX_BYTES + 8);
@@ -1024,5 +1161,67 @@ mod tests {
         std::fs::create_dir_all(tmp.path().join("plain")).unwrap();
         let snap = snapshot(&tmp.path().join("plain"));
         assert_eq!(snap.status, "nonGit");
+    }
+
+    #[test]
+    fn real_commit_detail_and_log_author() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "a.txt", "alpha
+bravo
+charlie
+delta
+");
+        write_file(repo, "sub/b.txt", "1
+");
+        write_file(repo, "sub/keep.txt", "k
+");
+        commit_all(repo, "first commit");
+        // modify ONE word of four lines: similarity stays high enough for
+        // git to detect the later mv as a rename (R), not A+D.
+        write_file(repo, "a.txt", "alpha
+bravo
+charlie
+DELTA
+");
+        sh(repo, &["rm", "sub/b.txt"]);
+        sh(repo, &["mv", "a.txt", "renamed.txt"]);
+        write_file(repo, "new.txt", "n
+");
+        commit_all(repo, "second commit");
+
+        let head = run_git(&with_args(&git_base_args(repo), &["rev-parse", "HEAD"])).unwrap();
+        let d = git_commit_detail(
+            repo.to_string_lossy().into_owned(),
+            head.trim().to_string(),
+        )
+        .unwrap();
+        assert_eq!(d.author, "T");
+        assert_eq!(d.message.trim(), "second commit");
+        assert!(d.date.contains('T') && d.date.len() >= 20, "date={}", d.date);
+        let find = |rel: &str| d.files.iter().find(|f| f.rel == rel).cloned().unwrap();
+        assert_eq!(find("renamed.txt").letter, 'R');
+        assert_eq!(find("renamed.txt").orig_rel.as_deref(), Some("a.txt"));
+        assert_eq!(find("sub/b.txt").letter, 'D');
+        assert_eq!(find("new.txt").letter, 'A');
+
+        // Log rows carry the author and a MILLISECOND ts.
+        let snap = snapshot(repo);
+        let c = snap.commits.first().unwrap();
+        assert_eq!(c.author, "T");
+        assert!(c.ts > 1_000_000_000_000, "ts={}", c.ts);
+
+        // Subdirectory scope filters the file list (keep.txt untouched,
+        // b.txt deleted — only b.txt is in scope for sub/).
+        let d2 = git_commit_detail(
+            repo.join("sub").to_string_lossy().into_owned(),
+            head.trim().to_string(),
+        )
+        .unwrap();
+        assert_eq!(d2.files.len(), 1);
+        assert_eq!(d2.files[0].rel, "b.txt");
+
+        assert!(git_commit_detail(repo.to_string_lossy().into_owned(), "zz~1".into()).is_err());
     }
 }

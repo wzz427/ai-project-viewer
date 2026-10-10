@@ -203,8 +203,26 @@ export interface GitChangeEntry {
 
 export interface GitCommit {
   hash: string;
+  author: string;
   subject: string;
+  /** Milliseconds since epoch (owner's "56y ago" bug: seconds leaked
+   *  through once — never again). */
   ts: number;
+}
+
+export interface GitCommitFile {
+  rel: string;
+  letter: GitLetter;
+  origRel?: string;
+}
+
+export interface GitCommitDetail {
+  hash: string;
+  author: string;
+  /** ISO-8601 author date, as git prints it. */
+  date: string;
+  message: string;
+  files: GitCommitFile[];
 }
 
 /** §20 RuntimeGitState basis — runtime truth only, never persisted. */
@@ -236,11 +254,27 @@ export function gitSnapshot(rootPath: string): Promise<GitSnapshot> {
   return invoke<GitSnapshot>("git_snapshot", { rootPath });
 }
 
-/** Unified diff for one file (§71); §72 caps already applied in Rust. */
+/** Unified diff for one file (§71); §72 caps already applied in Rust.
+ *  `commitHash` scopes the diff to that file's change inside one commit
+ *  (Recent Commits drill-down, owner 2026-10-10). */
 export function gitDiff(
   rootPath: string,
   relPath: string,
   staged: boolean,
+  commitHash?: string,
 ): Promise<GitDiffResult> {
-  return invoke<GitDiffResult>("git_diff", { rootPath, rel: relPath, staged });
+  return invoke<GitDiffResult>("git_diff", {
+    rootPath,
+    rel: relPath,
+    staged,
+    commitHash: commitHash ?? null,
+  });
+}
+
+/** One commit's information: author/date/message + touched files. */
+export function gitCommitDetail(
+  rootPath: string,
+  hash: string,
+): Promise<GitCommitDetail> {
+  return invoke<GitCommitDetail>("git_commit_detail", { rootPath, hash });
 }

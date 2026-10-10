@@ -1,21 +1,32 @@
 <script lang="ts">
-  import { closeDiff, gitDiffSlot } from "$lib/stores/gitStore.svelte";
-  import { gitDiff, openInCodeEditor, type GitDiffResult } from "$lib/services/tauri";
+  import { closeGitView, gitViewSlot, openCommit } from "$lib/stores/gitStore.svelte";
+  import {
+    gitDiff,
+    openInCodeEditor,
+    type GitDiffResult,
+  } from "$lib/services/tauri";
   import { fileNameOf } from "$lib/services/viewerType";
+  import {
+    diffPathOf,
+    parseUnifiedDiff,
+    type DiffRow,
+  } from "$lib/services/diffSideBySide";
 
-  const diff = $derived(gitDiffSlot.current);
+  const view = $derived(
+    gitViewSlot.current?.kind === "diff" ? gitViewSlot.current : null,
+  );
 
   let result = $state<GitDiffResult | null>(null);
   let error = $state<string | null>(null);
 
   // Load per slot change; a cancelled load never overwrites the next one.
   $effect(() => {
-    const cur = diff;
+    const cur = view;
     result = null;
     error = null;
     if (!cur) return;
     let cancelled = false;
-    gitDiff(cur.rootPath, cur.rel, cur.staged)
+    gitDiff(cur.rootPath, cur.rel, cur.staged, cur.commitHash)
       .then((r) => {
         if (!cancelled) result = r;
       })
@@ -27,34 +38,48 @@
     };
   });
 
-  // 20k lines render as 20k light rows — a plain per-line <div> is the
-  // cheapest thing that stays scrollable (no virtualization for V1).
-  const lines = $derived(result ? result.text.split("\n") : []);
+  const segments = $derived(result ? parseUnifiedDiff(result.text) : []);
 
-  function lineClass(line: string): string {
-    if (line.startsWith("+")) return "add";
-    if (line.startsWith("-")) return "del";
-    if (line.startsWith("@@")) return "hunk";
-    if (line.startsWith("diff ") || line.startsWith("index ")) return "meta";
-    if (line.startsWith("---") || line.startsWith("+++")) return "meta";
-    return "ctx";
+  const kindLabel = $derived(
+    view?.commitHash
+      ? `(${view.commitHash.slice(0, 7)})`
+      : view?.staged
+        ? "(Staged)"
+        : "(Working Tree)",
+  );
+
+  // Which sides carry change paint: del rows paint the old cell, add rows
+  // the new cell, mod rows both; the opposite cell gets a hatch.
+  function sideClass(row: DiffRow, side: "old" | "new"): string {
+    if (row.kind === "ctx") return "";
+    if (row.kind === "mod") return "chg";
+    const painted = row.kind === "del" ? "old" : "new";
+    return side === painted ? "chg" : "hole";
   }
 
   function handOffToVSCode() {
-    if (diff) void openInCodeEditor(diff.rootPath, diff.rel, true).catch(() => {});
+    if (view) void openInCodeEditor(view.rootPath, view.rel, true).catch(() => {});
+  }
+
+  function backToCommit() {
+    if (view?.commitHash) openCommit(view.rootPath, view.commitHash);
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && closeDiff()} />
+<svelte:window onkeydown={(e) => e.key === "Escape" && closeGitView()} />
 
 <div class="diff-viewer">
   <div class="diff-head">
-    <span class="title" title={diff?.rel}>
-      {diff ? fileNameOf(diff.rel) : ""}
-      <span class="kind">{diff?.staged ? "(Staged)" : "(Working Tree)"}</span>
+    {#if view?.commitHash}
+      <button class="back" onclick={backToCommit} title="Back to commit">‹</button>
+    {/if}
+    <span class="title" title={view?.rel}>
+      <span class="pair">⇄</span>
+      {view ? fileNameOf(view.rel) : ""}
+      <span class="kind">{kindLabel}</span>
     </span>
-    <span class="path mono">{diff?.rel}</span>
-    <button class="close" onclick={closeDiff} title="Close diff" aria-label="Close diff">×</button>
+    <span class="path mono">{view?.rel}</span>
+    <button class="close" onclick={closeGitView} title="Close diff" aria-label="Close diff">×</button>
   </div>
   <div class="diff-body">
     {#if error}
@@ -67,10 +92,36 @@
         <p>Diff is too large to display.</p>
         <button onclick={handOffToVSCode}>Open in VS Code</button>
       </div>
-    {:else if result.text.trim().length === 0}
-      <p class="muted pad">No textual changes.</p>
+    {:else if segments.length === 0}
+      <p class="muted pad">
+        No textual changes{result.text.includes("Binary files") ? " (binary file)." : "."}
+      </p>
     {:else}
-      <pre class="mono">{#each lines as line, i (i)}<span class="diff-line {lineClass(line)}">{line || " "}</span>{/each}</pre>
+      <div class="table" role="table">
+        <div class="thead">
+          <span class="ln"></span><span class="cell">{diffPathOf(result.text, "old") ?? "(new file)"}</span>
+          <span class="ln"></span><span class="cell">{diffPathOf(result.text, "new") ?? "(deleted)"}</span>
+        </div>
+        {#each segments as seg, si (si)}
+          {#if seg.type === "gap"}
+            <div class="gap">
+              <span>⋯ {seg.count} unchanged line{seg.count > 1 ? "s" : ""}</span>
+              {#if seg.context}<span class="ctx-info">{seg.context}</span>{/if}
+            </div>
+          {:else}
+            {#each seg.rows as row, ri (ri)}
+              <!-- One grid row = old side | new side (side-by-side like VS
+                   Code, owner 2026-10-10 review). -->
+              <div class="trow">
+                <span class="ln">{row.leftNo ?? ""}</span>
+                <span class="cell old {sideClass(row, 'old')}" class:filled={row.left !== null}>{row.left ?? ""}</span>
+                <span class="ln">{row.rightNo ?? ""}</span>
+                <span class="cell new {sideClass(row, 'new')}" class:filled={row.right !== null}>{row.right ?? ""}</span>
+              </div>
+            {/each}
+          {/if}
+        {/each}
+      </div>
     {/if}
   </div>
 </div>
@@ -85,16 +136,22 @@
   .diff-head {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 4px 10px;
     border-bottom: 1px solid var(--viewer-border);
     background: var(--bg-raised);
     font-size: 12.5px;
+    flex-shrink: 0;
   }
 
   .title {
     font-weight: 600;
     white-space: nowrap;
+  }
+
+  .pair {
+    color: var(--text-muted);
+    font-weight: 400;
   }
 
   .kind {
@@ -111,6 +168,7 @@
     color: var(--text-muted);
   }
 
+  .back,
   .close {
     padding: 0 8px;
     font-size: 15px;
@@ -118,6 +176,12 @@
     border-radius: var(--radius);
   }
 
+  .back {
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  .back:hover,
   .close:hover {
     background: var(--bg-hover);
     color: var(--text);
@@ -127,35 +191,95 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    font-size: var(--viewer-font-size);
   }
 
-  pre {
-    margin: 0;
-    display: block;
+  /* Side-by-side grid: line numbers hug their text column, sides split the
+     width. Long lines wrap; a shared grid row keeps the old/new pair on
+     one visual row even then. */
+  .table {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 18px;
+    width: 100%;
   }
 
-  .diff-line {
-    display: block;
-    white-space: pre;
-    min-height: 1em;
+  .thead,
+  .trow {
+    display: grid;
+    grid-template-columns: 3.2em 1fr 3.2em 1fr;
   }
 
-  .diff-line.add {
-    background: var(--git-add-bg);
+  .thead {
+    position: sticky;
+    top: 0;
+    background: var(--viewer-bg);
+    border-bottom: 1px solid var(--viewer-border);
+    color: var(--text-muted);
+    font-size: 11px;
+    z-index: 1;
   }
 
-  .diff-line.del {
+  .thead .cell {
+    padding: 3px 8px;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ln {
+    padding-right: 6px;
+    text-align: right;
+    color: var(--text-muted);
+    opacity: 0.7;
+    font-size: 10.5px;
+    user-select: none;
+    border-right: 1px solid var(--viewer-border);
+  }
+
+  .cell {
+    padding: 0 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-width: 0;
+  }
+
+  .cell.chg.old {
     background: var(--git-del-bg);
   }
 
-  .diff-line.hunk {
-    color: var(--text-muted);
+  .cell.chg.new {
+    background: var(--git-add-bg);
   }
 
-  .diff-line.meta {
+  .cell.hole {
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 6px,
+      color-mix(in srgb, var(--text-muted) 10%, transparent) 6px,
+      color-mix(in srgb, var(--text-muted) 10%, transparent) 12px
+    );
+  }
+
+  .gap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 12px;
+    background: color-mix(in srgb, var(--bg-raised) 60%, transparent);
     color: var(--text-muted);
-    font-style: italic;
+    font-size: 10.5px;
+    font-family: var(--font-ui);
+    border-block: 1px solid var(--viewer-border);
+    user-select: none;
+  }
+
+  .gap .ctx-info {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.8;
   }
 
   .muted.pad,
