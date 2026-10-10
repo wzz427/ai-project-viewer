@@ -11,11 +11,18 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-007(Phase 7 Git Review)InTest 返修一轮已发 0.6.8,等 owner 复验**:0.6.7 三反馈全重做——①Git 面板照 VS Code Source Control 重排(分段文件名/目录灰/字母右置/分节折叠+计数徽章/提交图形列+hash 着色);②Recent Commits 可点→查看区提交详情(再点文件进该提交视角 diff);③diff 改 side-by-side 并排双栏,Git 视图期间隐藏文件页签行;顺带修 "56y ago" 时间单位。
-复验要点:点 Git 看面板观感 → 点一条提交看详情 → 点 CHANGES 文件看并排红绿。过 → spec-007 Done → Phase 8(RUN/Trust,§182,发版 0.6.9 起)。
+主线 = **spec-008(Phase 8 RUN/Trust)开工,发版 0.6.9 起**:Project Trust(新项目默认不可执行,首次运行弹确认,可持久可撤销不跨项目,§128–129)+ 脚本运行(.ps1/.cmd/.bat 右键 Run Script,可见外部控制台+stdout/stderr+快结束可读+成败 Toast,§116–121;**进程创建策略按 §118 由本轮实验定**)+ EXE(.exe 左键 Executable Info 查看器+右键 Run 绝对路径不拼 cmd,§122–124)+ 项目菜单 Trust/Untrust 与 Refresh Project(§141)。HTML/URL→Browser 已在 Phase 6 交付。
 遗留小披露(2026-10-10 spec-006 真机轮):owner 记事本里的 README.md 标签仍留(手动关);教训 L25–L28 在档。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 晚 · spec-007(Phase 7 Git Review)收口 Done;主线移交 Phase 8
+
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → 立 spec-008(Phase 8 RUN/Trust,§182+§115–§129+§136–§144;§118 控制台策略先实验)→ 免审开工。**发版 0.6.9 起。**
+
+- owner 验收原话"这个需求通过了,进入下一个需求吧"→ spec-007 Done(0.6.7 首发+0.6.8 返修轮:面板照 VS Code 重排/提交详情可点/并排 diff+隐藏页签/修 56y ago)。
+- 打磨项记档(带去处):折叠条点击展开+行内字符级高亮(spec-007 §四 D17,后续打磨;stage/discard 按钮属"只看不改"边界永不做)。
+- Phase 7 期间修的基建:发版独立 target-exp+发版后反向验证 dev 二进制(lessons L27);WebView2 隐藏窗口 timer 冻结→启动直取(lessons L28)。
 
 ### 2026-10-10 晚 · 0.6.8 返修:Git 面板照 VS Code 重排+提交详情+并排 diff(owner 0.6.7 复验三反馈)
 
