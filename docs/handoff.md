@@ -11,8 +11,8 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **0.6.1 InTest**:MD 铺满+操作栏同高已发,等 owner 点更新复验 → 过则连同 INFRA-002(图标)一并转 Done → **Phase 6 HANDOFF(V1.5 §180)**,立 spec-006 开工。**发版固定 0.6.x 递增,不跳段,直到 owner 另有指令(2026-10-10 owner 立规)。**
-"最大化后切换空白"案已收口未复现(错误哨在);验证教训 L23/L24 在档。纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
+主线 = **Phase 6 HANDOFF(V1.5 §180)待开工**:owner 已放行收口(2026-10-10 原话"收口吧"),他操作 compact 后新上下文第一件事 = 按 docs/workflow.md 立 **spec-006**(右键移交:Show in Explorer / Copy 绝对与相对路径 / Edit in Notepad / VS Code 三档 / System Default App / Default PDF App / Browser;后端保留 ExternalEditor 抽象,前端不获任意执行权限)→ 免审开工。**发版固定 0.6.x 递增(下一发 0.6.2),不跳段,直到 owner 另有指令。**
+INFRA-002(图标)/INFRA-003(操作栏)已 Done;"切换空白"案收口未复现(错误哨在,再犯必留名);教训 L22–L24 在档。纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
 
@@ -21,7 +21,7 @@
 > **下一步从哪接** —— owner 点 Update(0.6.1)复验:①MD 最大化文本铺满、右侧无空白带;②所有查看器操作栏同高(MD/代码/JSON/PDF);③上轮工具栏字号/Find/Ctrl+F。过则 INFRA-002+003 一并 Done → Phase 6(V1.5 §180)立 spec-006。**发版从此固定 0.6.x 递增(0.6.1 已用),不跳段,直到 owner 另有指令(D7)。**
 
 - owner 打回两条:①MD 右侧空白仍明显(0.6.0 只做了"860 列居中",断言也是"居中"——修法自证,教训 **L24**:断言必须对着 owner 原话写,"空白明显"的判定=文本块铺满文本区);②操作栏高度不一致=code-host/.host/.source-host 旧 8px 垫高(L24 判据②:统一类 UI 需求断言必须跨组件比 y/高)。
-- 0.6.1:MD 上限删除铺满 + 三处垫高删除 + 断言 `md_text_fills_area`/`toolbar_aligned_md_vs_code`;phase3 26/26、r3 8/8。
+- 0.6.1:MD 上限删除铺满 + 三处垫高删除 + 断言 `md_text_fills_area`/`toolbar_aligned_md_vs_code`;phase3 26/26、r3 8/8。→ **owner 同日"收口吧"放行,INFRA-002+003 转 Done(验收原话记入 INDEX);architecture §3 代码地图已补 ViewerToolbar/activeFind;V1.5 §197 已加 0.6.1 翻案行(上限删除)并在旧行留指针。**
 
 ### 2026-10-10 · "最大化后切换空白"排查收口(未复现)+ 0.6.0 统一操作栏交付,等 owner 复验
 
