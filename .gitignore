@@ -14,6 +14,7 @@ node_modules/
 
 # Rust / Tauri
 src-tauri/target/
+src-tauri/target-exp/
 src-tauri/gen/schemas/
 
 # 构建产物(可由构建命令重新生成)
