@@ -11,11 +11,17 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **Phase 5 PDF.js Spike 已交付 InTest,等 owner 验收**(spec-005;1 分钟路径 testing.md §2e 末尾)。
-过则 Done → 下一批 **Phase 6 HANDOFF(V1.5 §180)**,先立 spec-006。
-Phase 4 已全闭环(Done+侧栏拖拽)。纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
+主线 = **换应用图标**(owner 2026-10-10 指令:现 Tauri 默认图标"不显眼、看不清、难看";流程=3 候选给他选 → 选定后 `tauri icon` 重生成全量+发版 **0.5.0**,图标本身算一个需求段,Phase 6 起则 0.6.0)→ 然后 **Phase 6 HANDOFF(V1.5 §180)**,先立 spec-006。
+spec-005 + INFRA-001 已收口 **Done**(2026-10-10 owner 原话"0.4.1 已经过了")。纪律不变:一次只做当前 Phase,完成即停等 owner 验收;**动笔前有疑问/要变化先确认**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 · spec-005+INFRA-001 收口 Done;新任务=换应用图标(进 Phase 6 前插入)
+
+> **下一步从哪接** —— 3 个图标候选(多尺寸对比图)给 owner 选;选定后 `pnpm tauri icon <1024 母图>` 重生成 src-tauri/icons 全量(托盘用 `default_window_icon`,随之换)、发版 **0.5.0**。之后按 V1.5 §180 立 spec-006(Phase 6 HANDOFF)开工,发版 0.6.0 起。
+
+- owner 原话"0.4.1 已经过了"= spec-005 与 INFRA-001 双验收,INDEX 已转 Done。
+- 现图标=Tauri 默认 logo(蓝),owner 评"不显眼、看不清、难看";新图标验收判据=**16/24px 仍可辨 + 深色任务栏/托盘上显眼**。候选生成脚本在 %TEMP%(pywork+PIL,4096 超采样降 1024)。
 
 ### 2026-10-10 · 会话收尾交接(owner 将开新对话进下一需求)
 

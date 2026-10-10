@@ -11,5 +11,5 @@
 | spec-002 | 文件树、收藏置顶、文件识别怎么做? | Done | owner 验收通过(2026-10-01 原话"可以了,做spec003");冷却后搬 specs/archive/ |
 | spec-003 | 文件打开与查看器:点一个文件能看到什么?(File Tabs / Markdown / Text / Code / JSON / Image / SVG + 五快捷键) | Done | owner 验收通过(2026-10-01 原话"这个就算过了吧");三轮返工全记录在本 SPEC §六;冷却后搬 specs/archive/ |
 | spec-004 | Session & Settings:关掉再开,一切还在?(会话恢复+设置持久化+防抖原子写盘) | Done | owner 验收通过(2026-10-01 原话"通过了");Done 后同日补侧栏拖拽(owner 拍板"要拖拽",D6 翻案留痕,回归 7/7);冷却后搬 specs/archive/ |
-| spec-005 | PDF.js Spike:点一个 PDF 能看到什么?(验证→首页→完整查看器→Benchmark) | InTest | 代码侧全毕(**0.4.0 划词终版**:锚点钉死+全程自驱,四轮收口 155/色块/蔓选/反选);余 owner 亲手复验(点更新到 0.4.0 后)→ 过则 Done |
-| SPEC-INFRA-001 | 体验版客户端与更新机制:开发永远不碰 owner 正在用的程序(更新按钮置灰/高亮/一点更新) | InTest | 全链落地+已装机(updates 发至 v6,回归 8/8);**等 owner 首次点更新+重启复验**(他说"更新机制建起来了"即 Done) |
+| spec-005 | PDF.js Spike:点一个 PDF 能看到什么?(验证→首页→完整查看器→Benchmark) | Done | owner 验收通过(2026-10-10 原话"0.4.1 已经过了");四轮划词收口(155 升级/色块/蔓选/反选)全毕;冷却后搬 specs/archive/ |
+| SPEC-INFRA-001 | 体验版客户端与更新机制:开发永远不碰 owner 正在用的程序(更新按钮置灰/高亮/一点更新) | Done | owner 验收通过(2026-10-10;v6→0.4.1 十余轮更新按钮实走,原话"0.4.1 已经过了");冷却后搬 specs/archive/ |
