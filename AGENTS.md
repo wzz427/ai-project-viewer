@@ -78,6 +78,7 @@
 | 要提交了,跑哪几档测试 | 🔴 【docs/testing.md】(唯一真值,别处只挂指针;Phase 验收清单在 V1.5 §188) |
 | 线上/用户现场出问题 | ⚡ **第一动作是取现场/取日志**,不是翻账本猜(本项目=应用崩溃时先取日志/复现步骤) |
 | 记"查清了还没修"的坑 | 【bugs 账/lessons.md】——必须写"去处" |
+| **要动 PDF 查看/划词/文本选择,或排查 PDF 相关报障** | 【docs/pdf-guide.md】(2026-10-10 建,owner 指令;pdf.js 集成+选择机理+验证规程+六轮战史——先读它,lessons L13~L21 是细则) |
 | **改完东西,该更新哪些文档** | 🔴 【docs/doc-maintenance.md】同步总表,收口时逐行对照 |
 | **要建任何新文档/目录/编号体系** | 🔴 先开【docs/AI-Project-Guide/00-doc-map.md】+【templates/】对号:有明文的**照用**;要偏离,把差异+理由写进本项目对应文档(如 docs/workflow.md §五),**不许静默自创**(lessons L9) |
 | 查 AI-Project-Guide 方法论原文/模板 | 【docs/AI-Project-Guide/】(2026-10-01 owner 指令入库的副本;test-run 示例项目因含嵌套 .git 未搬) |
