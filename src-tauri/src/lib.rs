@@ -1,5 +1,6 @@
 mod file_inspect;
 mod file_tree;
+mod handoff;
 mod project;
 mod state;
 mod updater;
@@ -160,6 +161,11 @@ pub fn run() {
             file_inspect::read_text_file,
             file_inspect::read_media_file,
             file_inspect::read_binary_file,
+            handoff::edit_in_quick_editor,
+            handoff::open_in_code_editor,
+            handoff::reveal_in_explorer,
+            handoff::open_with_default_app,
+            handoff::open_in_browser,
             state::load_state,
             state::save_state,
             updater::check_update,

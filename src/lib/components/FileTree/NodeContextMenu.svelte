@@ -1,12 +1,6 @@
 <script lang="ts">
-  import {
-    pin,
-    unpin,
-    treeState,
-  } from "$lib/stores/fileTreeStore.svelte";
-  import { openWithDefaultApp } from "$lib/services/tauri";
-  import { toast } from "$lib/stores/toastStore.svelte";
-  import { joinRel } from "$lib/stores/fileTreeStore.svelte";
+  import { pin, unpin, treeState, joinRel } from "$lib/stores/fileTreeStore.svelte";
+  import { fileHandoffGroups } from "$lib/services/handoffMenu";
 
   let {
     rootPath,
@@ -28,6 +22,15 @@
 
   const st = $derived(treeState.byRoot[rootPath]!);
   const pinned = $derived(st.pinnedItems[parentRel]?.includes(name) ?? false);
+
+  // Entry.run() may still be settling after onclose unmounts this menu —
+  // the built groups carry plain-string snapshots, never live props
+  // (lessons L12). Derived for lint-cleanliness; props are fixed per open.
+  const groups = $derived(
+    fileHandoffGroups(rootPath, joinRel(parentRel, name), name, isDir, {
+      includeOpen: true,
+    }),
+  );
 
   let el = $state<HTMLElement | null>(null);
 
@@ -55,24 +58,25 @@
   <div class="menu-path mono muted">
     {isDir ? "folder" : "file"} · {name}
   </div>
+  {#each groups as group, gi}
+    {#if gi > 0}
+      <div class="sep"></div>
+    {/if}
+    {#each group as entry (entry.id)}
+      <button
+        class="menu-item"
+        data-menu-id={entry.id}
+        onclick={() => {
+          void entry.run();
+          onclose();
+        }}
+      >{entry.label}</button>
+    {/each}
+  {/each}
+  <div class="sep"></div>
   <button class="menu-item" onclick={togglePin}>
     {pinned ? "Unpin" : "Pin to Top"}
   </button>
-  {#if !isDir}
-    <button
-      class="menu-item"
-      onclick={() => {
-        // Snapshot props BEFORE onclose (lessons L12): reading a live prop
-        // after the menu unmounts throws and silently swallows the handler
-        // — this exact bug made "Open with Default App" do nothing.
-        const root = rootPath;
-        const rel = joinRel(parentRel, name);
-        void openWithDefaultApp(root, rel)
-          .catch((err) => toast(`Cannot open: ${err}`, { kind: "error" }))
-          .finally(() => onclose());
-      }}
-    >Open with Default App</button>
-  {/if}
 </div>
 
 <style>
@@ -106,5 +110,11 @@
 
   .menu-item:hover {
     background: var(--bg-hover);
+  }
+
+  .sep {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 6px;
   }
 </style>

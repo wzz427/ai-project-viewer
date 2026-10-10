@@ -60,6 +60,8 @@ export interface PersistedSettings {
   theme: Theme;
   viewer: { fontSize: number };
   fileTree: { showSystemGeneratedFolders: boolean };
+  /** Optional since spec-006 (§134); absent in older state files = true. */
+  external?: { vsCodeNewWindow: boolean };
 }
 
 export interface AppStateV1 {
@@ -263,12 +265,19 @@ function parseSettings(v: unknown): PersistedSettings {
     typeof s.fileTree === "object" && s.fileTree !== null
       ? (s.fileTree as Record<string, unknown>)
       : {};
+  const external =
+    typeof s.external === "object" && s.external !== null
+      ? (s.external as Record<string, unknown>)
+      : {};
   const themeRaw = asString(s.theme, "system");
   return {
     theme: THEMES.includes(themeRaw as Theme) ? (themeRaw as Theme) : "system",
     viewer: { fontSize: Math.min(20, Math.max(11, asNum(viewer.fontSize, 13))) },
     fileTree: {
       showSystemGeneratedFolders: asBool(fileTree.showSystemGeneratedFolders, false),
+    },
+    external: {
+      vsCodeNewWindow: asBool(external.vsCodeNewWindow, true),
     },
   };
 }

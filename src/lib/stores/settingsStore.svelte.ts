@@ -13,6 +13,10 @@ export const settings = $state({
   fileTree: {
     showSystemGeneratedFolders: false,
   },
+  external: {
+    /** §134 VS Code Mode — window behavior when handing off. */
+    vsCodeNewWindow: true,
+  },
 });
 
 let media: MediaQueryList | null = null;
@@ -47,6 +51,10 @@ export function setFontSize(px: number) {
 
 export function setShowSystemFolders(value: boolean) {
   settings.fileTree.showSystemGeneratedFolders = value;
+}
+
+export function setVsCodeNewWindow(value: boolean) {
+  settings.external.vsCodeNewWindow = value;
 }
 
 export function initTheme() {

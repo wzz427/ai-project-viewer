@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
 
 export interface ResolvedProject {
   rootPath: string;
@@ -100,13 +99,60 @@ export function readBinaryFile(
 /**
  * Hand a project-relative file to its OS-associated application — the
  * media player directly, never the file manager (owner 2026-10-01 item 10).
+ * Rust-side since spec-006: the target is canonicalize-validated inside
+ * the project first (§143/§144); the old JS string concat bypassed that.
  */
 export function openWithDefaultApp(
   rootPath: string,
   relPath: string,
 ): Promise<void> {
-  const abs = `${rootPath}\\${relPath.replace(/\//g, "\\")}`;
-  return openPath(abs).then(() => undefined);
+  return invoke<void>("open_with_default_app", { rootPath, rel: relPath });
+}
+
+// --- External handoff (V1.5 §130–§144, spec-006) ---
+
+/** §130 Quick Edit: open the file in Notepad. */
+export function editInQuickEditor(
+  rootPath: string,
+  relPath: string,
+): Promise<void> {
+  return invoke<void>("edit_in_quick_editor", { rootPath, rel: relPath });
+}
+
+/**
+ * §131/§140/§131 Full Edit in VS Code. `rel = null` hands over the whole
+ * project root (§141 Open Project in VS Code). Window mode comes from the
+ * persisted §134 setting — a mode arg, never an executable (§133).
+ */
+export function openInCodeEditor(
+  rootPath: string,
+  relPath: string | null,
+  newWindow: boolean,
+): Promise<void> {
+  return invoke<void>("open_in_code_editor", {
+    rootPath,
+    rel: relPath,
+    newWindow,
+  });
+}
+
+/**
+ * Show a node selected in its parent (§135). `rel = null` = the project
+ * itself (§141 "Open in File Explorer"), which opens the folder window.
+ */
+export function revealInExplorer(
+  rootPath: string,
+  relPath: string | null,
+): Promise<void> {
+  return invoke<void>("reveal_in_explorer", { rootPath, rel: relPath });
+}
+
+/** §111/§115: .html/.htm via file URL, .url via its http(s) URL line. */
+export function openInBrowser(
+  rootPath: string,
+  relPath: string,
+): Promise<void> {
+  return invoke<void>("open_in_browser", { rootPath, rel: relPath });
 }
 
 /** Milliseconds from Rust process start to the moment this is called. */

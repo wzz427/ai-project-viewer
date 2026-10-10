@@ -5,6 +5,7 @@
     type ProjectTab,
   } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
+  import { projectHandoffGroups } from "$lib/services/handoffMenu";
 
   let {
     project,
@@ -21,6 +22,9 @@
   // The close listener runs in the capture phase on window, i.e. BEFORE any
   // bubbling handler on the menu itself — closings must spare the menu.
   let el = $state<HTMLElement | null>(null);
+
+  // §141 handoff block — built with plain-string snapshots (lessons L12).
+  const handoff = $derived(projectHandoffGroups(project.rootPath));
 
   function close(e?: Event) {
     if (e && e.target instanceof Node && el?.contains(e.target)) return;
@@ -50,6 +54,22 @@
 
 <div class="menu" bind:this={el} style="left: {x}px; top: {y}px">
   <div class="menu-path mono muted">{project.rootPath}</div>
+  {#each handoff as group, gi}
+    {#if gi > 0}
+      <div class="sep"></div>
+    {/if}
+    {#each group as entry (entry.id)}
+      <button
+        class="menu-item"
+        data-menu-id={entry.id}
+        onclick={() => {
+          void entry.run();
+          onclose();
+        }}
+      >{entry.label}</button>
+    {/each}
+  {/each}
+  <div class="sep"></div>
   <button class="menu-item" onclick={confirmRemove}>Remove Project</button>
 </div>
 
@@ -84,5 +104,11 @@
 
   .menu-item:hover {
     background: var(--bg-hover);
+  }
+
+  .sep {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 6px;
   }
 </style>

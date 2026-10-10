@@ -1,10 +1,9 @@
 <script lang="ts">
   /**
-   * File-tab context menu (owner 2026-10-01 items 5/8/10): view-mode toggle
-   * for Markdown/JSON lives here instead of a floating overlay; Keep Open
-   * (pin) stops preview replacement; Open with Default App hands media (or
-   * anything not viewable in-app) to the OS-associated player directly —
-   * never the file manager.
+   * File-tab context menu: view-mode toggles for Markdown/JSON (owner
+   * 2026-10-01, §197 revision), Keep Open (pin), and the spec-006 handoff
+   * block (Notepad / VS Code / Explorer / Copy paths — same shared builder
+   * as the tree menu so the two surfaces cannot drift).
    */
   import {
     closeFile,
@@ -13,8 +12,8 @@
     setTabPinned,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
-  import { openWithDefaultApp } from "$lib/services/tauri";
-  import { toast } from "$lib/stores/toastStore.svelte";
+  import { fileHandoffGroups } from "$lib/services/handoffMenu";
+  import { fileNameOf } from "$lib/services/viewerType";
 
   let {
     rootPath,
@@ -29,6 +28,18 @@
     y: number;
     onclose: () => void;
   } = $props();
+
+  // Snapshot semantics (lessons L12): the built groups carry plain strings,
+  // so entries keep running safely after onclose unmounts this menu.
+  const groups = $derived(
+    fileHandoffGroups(
+      rootPath,
+      tab.relativePath,
+      fileNameOf(tab.relativePath),
+      false,
+      { includeOpen: false },
+    ),
+  );
 
   let el = $state<HTMLElement | null>(null);
 
@@ -49,12 +60,6 @@
     // order silently swallowed every mode-toggle click (2026-10-01 round).
     fn();
     onclose();
-  }
-
-  function openDefault() {
-    openWithDefaultApp(rootPath, tab.relativePath).catch((err) =>
-      toast(`Cannot open: ${err}`, { kind: "error" }),
-    );
   }
 </script>
 
@@ -93,9 +98,19 @@
   <button class="menu-item" onclick={() => act(() => setTabPinned(rootPath, tab.relativePath, !tab.pinned))}>
     {tab.pinned ? "Unpin Tab" : "Pin Tab"}
   </button>
-  <button class="menu-item" onclick={() => act(openDefault)}>
-    Open with Default App
-  </button>
+  {#each groups as group, gi}
+    <div class="sep"></div>
+    {#each group as entry (entry.id)}
+      <button
+        class="menu-item"
+        data-menu-id={entry.id}
+        onclick={() => {
+          void entry.run();
+          onclose();
+        }}
+      >{entry.label}</button>
+    {/each}
+  {/each}
   <div class="sep"></div>
   <button class="menu-item" onclick={() => act(() => closeFile(rootPath, tab.relativePath))}>
     Close Tab

@@ -69,6 +69,21 @@ def scan_pdf(path, pages, seed=42):
     c.save()
 
 
+def handoff_fixtures(project_root):
+    """spec-006 menu fixtures — created only when absent (static, tiny):
+    example.url (http(s) InternetShortcut) and demo.exe (fake PE header)."""
+    url = os.path.join(project_root, "example.url")
+    if not os.path.exists(url):
+        with open(url, "w", encoding="ascii", newline="\r\n") as f:
+            f.write("[InternetShortcut]\r\n"
+                    "URL=https://example.com/aiv-handoff\r\n"
+                    "IconIndex=1\r\n")
+    exe = os.path.join(project_root, "demo.exe")
+    if not os.path.exists(exe):
+        with open(exe, "wb") as f:
+            f.write(b"MZ" + b"\x00" * 510 + b"fake fixture, never run")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target",
@@ -77,6 +92,8 @@ def main():
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
     os.makedirs(args.target, exist_ok=True)
+
+    handoff_fixtures(os.path.dirname(args.target.rstrip("\\/")))
 
     jobs = ([f"sample-{n}p-text.pdf" for n in (10, 100)]
             + [f"tab-{i}.pdf" for i in range(1, 6)])

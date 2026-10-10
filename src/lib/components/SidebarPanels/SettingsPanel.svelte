@@ -4,6 +4,7 @@
     setFontSize,
     setShowSystemFolders,
     setTheme,
+    setVsCodeNewWindow,
     type Theme,
   } from "$lib/stores/settingsStore.svelte";
   import { diagnostics } from "$lib/stores/diagnosticsStore.svelte";
@@ -79,6 +80,32 @@
   </section>
 
   <section>
+    <h3>External Editors</h3>
+    <div class="row">
+      <span>Open in VS Code</span>
+      <span class="spacer"></span>
+      <label class="row inline">
+        <input
+          type="radio"
+          name="vscode-mode"
+          checked={settings.external.vsCodeNewWindow}
+          onchange={() => setVsCodeNewWindow(true)}
+        />
+        New Window
+      </label>
+      <label class="row inline">
+        <input
+          type="radio"
+          name="vscode-mode"
+          checked={!settings.external.vsCodeNewWindow}
+          onchange={() => setVsCodeNewWindow(false)}
+        />
+        Reuse Existing Window
+      </label>
+    </div>
+  </section>
+
+  <section>
     <h3>Theme</h3>
     {#each themes as t (t.value)}
       <label class="row">
@@ -127,7 +154,7 @@
     {/if}
   </section>
 
-  <p class="muted note">Editor, PDF and Git settings arrive with their features (Phase 5–7).</p>
+  <p class="muted note">Git settings arrive with their feature (Phase 7).</p>
 </div>
 
 <style>
@@ -167,6 +194,10 @@
 
   .spacer {
     flex: 1;
+  }
+
+  .row.inline {
+    padding: 0;
   }
 
   .step {

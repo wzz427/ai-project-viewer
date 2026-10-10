@@ -53,6 +53,7 @@ function sampleInput(): BuildInput {
       theme: "dark",
       viewer: { fontSize: 15 },
       fileTree: { showSystemGeneratedFolders: true },
+      external: { vsCodeNewWindow: true },
     },
   };
 }
@@ -155,6 +156,8 @@ describe("parseAppState", () => {
       theme: "system",
       viewer: { fontSize: 13 },
       fileTree: { showSystemGeneratedFolders: false },
+      // Absent in older state files → §134 default (New Window).
+      external: { vsCodeNewWindow: true },
     });
   });
 

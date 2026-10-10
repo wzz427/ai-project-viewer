@@ -29,6 +29,8 @@ export async function restoreAppState(): Promise<void> {
   settings.fontSize = state.settings.viewer.fontSize;
   settings.fileTree.showSystemGeneratedFolders =
     state.settings.fileTree.showSystemGeneratedFolders;
+  settings.external.vsCodeNewWindow =
+    state.settings.external?.vsCodeNewWindow ?? true;
 
   for (const persisted of state.projects) {
     const tab = await restoreProject(persisted);

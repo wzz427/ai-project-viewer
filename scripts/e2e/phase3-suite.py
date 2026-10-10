@@ -18,7 +18,7 @@ import time
 EXE = os.path.join(os.path.dirname(__file__), "..", "..",
                    "src-tauri", "target", "release", "ai-project-viewer.exe")
 PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
-STATE = os.path.expandvars(r"%TEMP%iv-p3suite.json")
+STATE = os.path.join(os.environ["TEMP"], "aiv-p3suite.json")
 CDP = 9257
 
 if os.path.exists(STATE):
@@ -324,6 +324,107 @@ with sync_playwright() as p:
     check("resize_then_cross_type_switch", ok_json and ok_md,
           f"json={ok_json} md={ok_md}")
     cdp.send("Emulation.clearDeviceMetricsOverride")
+
+    # --- spec-006 (Phase 6 HANDOFF): typed context menus + copy feedback ---
+    def menu_ids_of(open_fn):
+        open_fn()
+        page.wait_for_selector(".menu [data-menu-id]", timeout=4000)
+        ids = page.eval_on_selector_all(
+            ".menu [data-menu-id]", "els => els.map(e => e.dataset.menuId)")
+        page.mouse.click(400, 250)  # outside-mousedown closes (capture)
+        time.sleep(0.25)
+        return set(ids)
+
+    def tree_menu(row_name):
+        return lambda: tree_row(row_name).click(button="right")
+
+    expand("pdf")
+    expand("edge-cases")
+
+    m_md = menu_ids_of(tree_menu("README.md"))
+    check("handoff_tree_textlike", m_md >= {"open", "notepad", "vscode",
+          "reveal", "copy-abs", "copy-rel"} and "default-app" not in m_md,
+          str(sorted(m_md)))
+    m_dir = menu_ids_of(tree_menu("src"))
+    check("handoff_tree_folder", m_dir == {"open", "reveal", "copy-abs",
+          "copy-rel", "vscode-folder"}, str(sorted(m_dir)))
+    m_pdf = menu_ids_of(tree_menu("tab-1.pdf"))
+    check("handoff_tree_pdf", m_pdf == {"open", "pdf-app", "reveal",
+          "copy-abs", "copy-rel"}, str(sorted(m_pdf)))
+    m_img = menu_ids_of(tree_menu("photo.jpg"))
+    check("handoff_tree_image", m_img == {"open", "default-app", "reveal",
+          "copy-abs", "copy-rel"}, str(sorted(m_img)))
+    m_exe = menu_ids_of(tree_menu("demo.exe"))
+    check("handoff_tree_exe", m_exe == {"reveal", "copy-abs", "copy-rel"},
+          str(sorted(m_exe)))
+    m_html = menu_ids_of(tree_menu("index.html"))
+    m_url = menu_ids_of(tree_menu("example.url"))
+    check("handoff_tree_browser", "browser" in m_html and "browser" in m_url
+          and m_html >= {"notepad", "vscode"} and m_url >= {"notepad", "vscode"},
+          f"html={sorted(m_html)} url={sorted(m_url)}")
+
+    # V10: the tab menu is fed by the SAME builder — entry sets must match
+    # (tab never carries the in-app "open").
+    open_file("README.md")
+    m_tab = menu_ids_of(
+        lambda: page.locator(".file-tab.active").click(button="right"))
+    check("handoff_tab_same_as_tree", m_tab == (m_md - {"open"}),
+          f"tree={sorted(m_md)} tab={sorted(m_tab)}")
+    page.locator(".file-tab.active").click(button="right")
+    # README is in rendered mode here, so the toggle reads "View Source"
+    # ("View Rendered" only appears while in source mode).
+    legacy = (page.locator(".menu button", has_text="View Source").count() == 1
+              and page.locator(".menu button", has_text="Pin Tab").count() == 1
+              and page.locator(".menu button", has_text="Close Tab").count() == 1)
+    page.mouse.click(400, 250)
+    check("handoff_tab_legacy_kept", legacy, "View Source/Pin Tab/Close Tab missing")
+
+    # Project tab menu (§141)
+    m_proj = menu_ids_of(
+        lambda: page.locator(".project-tabs .tab.active").click(button="right"))
+    check("handoff_project_menu", m_proj == {"project-explorer",
+          "copy-project-path", "project-vscode"}, str(sorted(m_proj)))
+    page.locator(".project-tabs .tab.active").click(button="right")
+    has_remove = page.locator(".menu button", has_text="Remove Project").count() == 1
+    page.mouse.click(400, 250)
+    check("handoff_project_remove_kept", has_remove, "Remove Project missing")
+
+    # Copy feedback (V6): the toast names what landed on the clipboard.
+    # (No clipboard readback here: WebView2 may raise a native permission
+    #  prompt that blocks the evaluate call — the toast IS the oracle.)
+    tree_row("chinese-gb18030.txt").click(button="right")
+    # dispatch_event, not click(): this suite earlier used CDP viewport
+    # emulation (resize test) and Playwright's cached viewport then
+    # misjudges position:fixed menu items as "outside of the viewport"
+    # even when the DOM rect is inside. Menu logic is the test target,
+    # not pointer hit-testing.
+    page.locator(".menu [data-menu-id='copy-rel']").dispatch_event("click")
+    rel_toast = page.wait_for_selector(".toast").inner_text()
+    check("copy_rel_feedback",
+          "edge-cases/chinese-gb18030.txt" in rel_toast, repr(rel_toast))
+    time.sleep(1.0)  # let the toast clear
+    # A top row: the menu opens AT the click point, so a bottom row would
+    # place its items below the viewport (unclickable).
+    tree_row("README.md").click(button="right")
+    page.locator(".menu [data-menu-id='copy-abs']").dispatch_event("click")
+    abs_toast = page.wait_for_selector(".toast").inner_text()
+    check("copy_abs_feedback", "AIV-TestProject" in abs_toast
+          and "\\README.md" in abs_toast, abs_toast)
+
+    # §134 VS Code Mode: default New Window + persisted on toggle (V5)
+    page.click('button[title="Settings"]')
+    time.sleep(0.3)
+    radios = page.locator('input[name="vscode-mode"]')
+    default_new = radios.nth(0).is_checked()
+    radios.nth(1).check()
+    time.sleep(1.4)  # save debounce is 800ms
+    with open(STATE, encoding="utf-8") as f:
+        persisted = json.load(f)
+    page.click('button[title="Settings"]')
+    check("vscode_mode_setting",
+          default_new
+          and persisted["settings"]["external"]["vsCodeNewWindow"] is False,
+          f"default_new={default_new} persisted={persisted.get('settings', {}).get('external')}")
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")
