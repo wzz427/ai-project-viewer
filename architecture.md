@@ -105,13 +105,14 @@ ProjectViewer/(仓库根)
 │       ├── stores/settingsStore.svelte.ts(AppSettings:theme/fontSize/全局 showSystemFolders;Phase 4 起持久化)
 │       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据)
 │       ├── stores/toastStore.svelte.ts
-│       ├── stores/fileTreeStore.svelte.ts(每项目树态:expanded/pinned/foldersFirst,相对路径身份;恢复入口 restoreTreeState/restoreExpandedFolders)
+│       ├── stores/fileTreeStore.svelte.ts(每项目树态:expanded/pinned/foldersFirst,相对路径身份;恢复入口 restoreTreeState/restoreExpandedFolders;0.6.4+:展开/重展开/根一律强制重读,revealInTree 自动展开祖先链)
 │       ├── stores/tabsStore.svelte.ts(每项目 FileTabState+内容缓存(SvelteMap——$state 深代理不包 Map,lessons L13);恢复入口 restoreTabs/ensureContentLoaded)
 │       ├── services/appState.ts(持久化纯函数:白名单序列化+自愈解析)+ sessionRestore.svelte.ts(启动恢复编排:resolve 校验,失效项目跳过)+ stateSync.svelte.ts($effect.root 防抖 800ms 保存+pagehide flush)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家,功能 Phase 9)/
-│           viewerType.ts(扩展名→查看器路由)/ handoffMenu.ts(Phase 6:右键移交分型菜单构建,树/页签同源+剪贴板 toast)
+│           viewerType.ts(扩展名→查看器路由)/ handoffMenu.ts(Phase 6:右键移交分型菜单构建,树/页签同源+剪贴板 toast)/
+│           ContextMenu/menuPosition.ts(右键菜单视口钳制,0.6.3)
 └── src-tauri/ —— Rust 后端
     ├── tauri.conf.json(窗口 1280×800/CSP/NSIS/dragDropEnabled:false——HTML5 拖拽必需,lessons L10)
     ├── capabilities/default.json(core:default + dialog:default)
@@ -129,7 +130,7 @@ ProjectViewer/(仓库根)
 | 项目增/删/去重逻辑 | src/lib/stores/projectStore.svelte.ts + src-tauri/src/project/manager.rs |
 | 顶栏标签 UI / 右键菜单 | src/lib/components/ProjectTabs/ProjectTabs.svelte |
 | 右键移交条目(树/页签/项目,§135–141 分型唯一真源) | src/lib/services/handoffMenu.ts(菜单构建+剪贴板)+ src-tauri/src/handoff.rs(命令) |
-| 侧栏 Files/Git/Settings | src/lib/components/SidebarHeader + SidebarPanels |
+| 侧栏 Files/Git/Settings(含头部 ↻ Refresh 图标,0.6.5/0.6.6) | src/lib/components/SidebarHeader + SidebarPanels |
 | 主题/外观 tokens | src/app.css + stores/settingsStore.svelte.ts |
 | 快捷键拦截/新组合注册 | src/lib/services/shortcuts.ts(禁用浏览器加速键在 src-tauri/src/lib.rs) |
 | 窗口/安全策略 | src-tauri/tauri.conf.json |

@@ -1,6 +1,6 @@
 # SPEC-006-Handoff —— 右键把文件交出去:记事本 / VS Code / 资源管理器 / 浏览器 / 复制路径
 
-> 状态:InTest(跃迁记录见 INDEX.md 那一行,本页不抄第二份)
+> 状态:Done(跃迁记录见 INDEX.md 那一行,本页不抄第二份)
 > 创建:2026-10-10;Pre-Draft 结论出处 = V1.5 §180(Phase 6 清单)+ §130–§142(分型菜单规格)+
 > §188 HANDOFF 验收块;owner 放行开工(2026-10-10 原话"收口吧,然后我操作compact,你再开始phase6"→"启动phase6")。
 > 本 Phase 免审依据 docs/workflow.md §五 A2(动笔前疑问清单:无阻塞项;细节默认已标"未确认"于决策表)。
@@ -96,3 +96,4 @@
 | 2026-10-10 | InTest 返修二轮(0.6.4):真因=loadDir 缓存短路(重展开永不读盘,空文件夹整场会话无法自救)→ toggleExpand/loadRoot 强制重读;排查途中揪出发版基建事故(publish 覆盖 target\release 为 exp 二进制→测试实例单实例移交秒退/静默测错渠道,lessons L27)→ publish 独立 target-exp + aivlaunch 拒 exp 守卫;phase3 42/42(reexpand_relisa_after_disk_add 对 owner 原话);边界:新顶层目录仍需 Refresh/切项目(Phase 7/9) |
 | 2026-10-10 | InTest 返修三轮(0.6.5):Refresh 迁侧栏头部 ⚙ 左侧图标按钮(无文字,owner 指令),Settings 文字版撤销;phase3 43/43(header_refresh_icon) |
 | 2026-10-10 | InTest 返修四轮(0.6.6):Refresh 点击必有可见反馈——图标旋转≥600ms+aria-busy+忙碌防连点(owner'点击时应有明显效果');phase3 44/44(refresh_click_feedback) |
+| 2026-10-10 | InTest→Done | **owner 验收原话:"收口吧,我准备开新对话,做下一个需求"**(0.6.2–0.6.6 五版:移交本体+三轮返修+Refresh 交互两轮);遗留零——四轮返修全部闭环,Phase 9  watcher 边界已在 update note 与 §197 注明 |

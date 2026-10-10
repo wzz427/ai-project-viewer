@@ -11,10 +11,20 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-006 InTest 等 owner 复验(0.6.6)**:0.6.3 三修+0.6.4 树重展开重读+0.6.5 Refresh 图标+0.6.6 点击反馈(图标旋转≥600ms)都已发;owner 点 Update 后一并验。**过则 spec-006 转 Done → Phase 7 Git Review(§181)立 spec-007;下一发 0.6.7。**发版基建已修(publish 独立 target-exp,aivlaunch 拒 exp 二进制,L27)。
+主线 = **Phase 7 Git Review(V1.5 §181)待开工**:owner 已放行收口(2026-10-10 原话"收口吧,我准备开新对话,做下一个需求"),spec-006 转 Done。
+新会话第一件事 = 按 docs/workflow.md 立 **spec-007**(Git 侧栏:检测/Root-Scope/子目录 Scope/徽标/Branch/Ahead-Behind/Changes/Staged/Diff/Limit/近期提交/安全命令层;**§65 已合入 git -C 统一执行基准**;刷新触发=Project Open/Switch/Window Focus/Manual)。免审开工;**发版 0.6.7 起,0.6.x 固定递增不跳段**。
 遗留小披露(见下条):owner 记事本里留了一个 AIV-TestProject 的 README.md 标签(真机轮所开,手动关即可);教训 L25 已入档(真机轮价值/单实例应用验证法/全局按键红线/phase3 STATE 路径 BEL 事故)。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-10 晚 · spec-006(Phase 6 HANDOFF)收口 Done;主线移交 Phase 7
+
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → 立 spec-007(Phase 7 Git Review,§181;§65 已合入 git -C 基准)→ 免审开工。**发版 0.6.7 起。**
+
+- owner 验收原话"收口吧,我准备开新对话,做下一个需求"→ spec-006 Done(0.6.2–0.6.6 五版:移交本体+高亮/定位/菜单钳制+树重读+Refresh 两轮交互,返修四轮全记录 SPEC §六)。
+- 收口动作:V1.5 增量修订三处(§30 Refresh 迁移/§27 树交互/§65 附注 A 合入)+ §197 审计三行;**挂账销一笔**(§196 附注 A,原定 Phase 7 前);architecture §3/testing.md 计数同步;教训 L25–L27 在档。
+- 纪律提醒(给新会话):发版走 publish-experience.ps1(已独立 target-exp,**发版后 dev 位二进制不动**);e2e 一律 aivlaunch(PID 限定);测试期间 owner 可正常用客户端。
+
 
 ### 2026-10-10 晚 · 0.6.6:Refresh 点击反馈(图标旋转)
 
@@ -372,6 +382,6 @@ elease → 复现时测试实例 111ms 秒退(single-instance 移交给 owner �
 | 事 | 去处(归谁·什么时候) | 提出日期 |
 |---|---|---|
 | 建异地备份 remote(私有库,SSH 认证),建好当天首推+核 0;建立之前仓库只有本地一份 | owner 亲手(方法:仓内 docs/AI-Project-Guide/07-backup-secrets.md)·**V1 全部完成后、owner 验收时**(2026-10-01 owner 拍板改期,不着急) | 2026-10-01 |
-| V1.5 §196 附注 A(git -C 统一执行基准)合入 §65 正文 | agent·Phase 7 前 | 2026-10-01 |
+| ~~V1.5 §196 附注 A(git -C 统一执行基准)合入 §65 正文~~ 已销账(2026-10-10 收口时合入,§197 审计行在档) | — | 2026-10-01 |
 | ~~**WebView2 划词阻塞:owner 选 A(升级 Runtime,推荐)/B(自实现选择层)**~~ 已闭环(2026-10-09 选 A,Runtime 143→155,实测全绿,见"现在在哪"首条;余 owner 复验) | owner 复验(重启 app 后划词)· ASAP | 2026-10-09 |
 | ~~Playwright 回归脚本正式化入库~~ 已销账(2026-10-10 owner 点头,scripts/e2e/ 入库+testing.md §1.2/§1.3 正典化) | — | 2026-10-01 |

@@ -82,7 +82,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交回归 38 项:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 | 凡动查看器、页签、右键菜单 |
+| `phase3-suite.py` | 查看器+移交+树交互回归 44 项:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 | 凡动查看器、页签、右键菜单 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
