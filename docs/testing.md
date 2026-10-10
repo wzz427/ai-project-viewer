@@ -84,8 +84,8 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **56 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + **Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败 toast+**底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust |
-| `git-suite.py` | Phase 7 Git 检视 32 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + **0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换 |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **58 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + **Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败 toast+**底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust |
+| `git-suite.py` | Phase 7 Git 检视 32 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + **0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换;0.6.12 增诊断导出 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
@@ -165,6 +165,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | git-suite | **32/32**(+1:git_return_to_files_restores_tabs=owner 原流程复现:开页签→Git 点条目→回 Files→页签+激活页+内容回来) |
 | 其余档 | phase3 56/56+r3 8/8+pdf 19/19+vitest 39/39+cargo 86/86+check 0/0 |
 | 版本 | 0.6.11 三处已核 |
+
+#### 0.6.12 返修轮(2026-10-11,owner 两 bug+诊断能力;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 树右键高亮 | contextMenuTarget 瞬态独占(NodeContextMenu 挂载设/卸载清);phase3 +1 right_click_row_owns_highlight |
+| demo.exe 夹具 | 假 PE(535B)→rustc 编译真程序(打印+回车退出);make-fixtures 重建,产品路径真机 launch+toast 实证 ✓ |
+| 信任 toast 文案 | $derived 先写后读翻案(lessons L32);phase3 p8_trust_toggle 断言加硬到分支词 |
+| 诊断导出(新) | 日志环(600 条:全局错误+boot/tab/project/git/viewer 事件)+Settings Export Diagnostics(含 live-check 页签↔主区对照+项目/页签状态+日志)→app_config_dir/diagnostics/*.txt;phase3 +1 diagnostics_export_writes_report |
+| 全档 | phase3 58/58+git-suite 32/32+r3 8/8+pdf 19/19+vitest 39/39+cargo 86/86+check 0/0 |
+| 版本 | 0.6.12 三处已核 |
 
 实现期两教训(lessons L29/L30):release GUI 构建必须 `pnpm tauri build --no-bundle`(plain cargo build 缺 custom-protocol,页面 ERR_CONNECTION_REFUSED);Win11 默认终端=WindowsTerminal.exe,控制台窗不在 spawn 者进程树内,检测须系统级差集。
 

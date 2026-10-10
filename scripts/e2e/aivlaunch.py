@@ -94,12 +94,15 @@ def _assert_dev_binary(exe):
             "publishing now outputs to src-tauri/target-exp.")
 
 
-def launch(exe, project, state, cdp, hidden=True, stdout=None):
+def launch(exe, project, state, cdp, hidden=True, stdout=None,
+           keep_state=False):
     """Standard test launch: straggler sweep (repo tree only), fresh state
-    file, env for zero-foreground + CDP. Returns the Popen handle."""
+    file, env for zero-foreground + CDP. Returns the Popen handle.
+    keep_state=True preserves a pre-existing state file (restart-restore
+    scenarios); the fresh-file deletion stays the default."""
     _assert_dev_binary(exe)
     kill_strays()
-    if os.path.exists(state):
+    if os.path.exists(state) and not keep_state:
         os.remove(state)
     env = {**os.environ, "AIV_TEST_PROJECT": project, "AIV_STATE_FILE": state,
            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS":

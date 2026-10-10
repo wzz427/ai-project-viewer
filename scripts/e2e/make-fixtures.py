@@ -69,9 +69,22 @@ def scan_pdf(path, pages, seed=42):
     c.save()
 
 
+DEMO_EXE_SRC = """// demo.exe fixture — a REAL tiny console program so the owner's
+// right-click "Run" verification actually runs something (0.6.11: the old
+// fixture was a fake PE header and the OS rightly refused to launch it).
+fn main() {
+    println!("Hello from demo.exe - AI Project Viewer run test.");
+    println!("This window stays open until you press Enter.");
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line).ok();
+}
+"""
+
+
 def handoff_fixtures(project_root):
     """spec-006 menu fixtures — created only when absent (static, tiny):
-    example.url (http(s) InternetShortcut) and demo.exe (fake PE header)."""
+    example.url (http(s) InternetShortcut) and demo.exe (a real, tiny
+    rustc-compiled console app: prints two lines, waits for Enter)."""
     url = os.path.join(project_root, "example.url")
     if not os.path.exists(url):
         with open(url, "w", encoding="ascii", newline="\r\n") as f:
@@ -80,8 +93,16 @@ def handoff_fixtures(project_root):
                     "IconIndex=1\r\n")
     exe = os.path.join(project_root, "demo.exe")
     if not os.path.exists(exe):
-        with open(exe, "wb") as f:
-            f.write(b"MZ" + b"\x00" * 510 + b"fake fixture, never run")
+        import shutil
+        import subprocess
+        import tempfile
+        rustc = shutil.which("rustc") or os.path.expandvars(
+            r"%USERPROFILE%\.cargo\bin\rustc.exe")
+        with tempfile.TemporaryDirectory() as td:
+            src = os.path.join(td, "demo_exe.rs")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write(DEMO_EXE_SRC)
+            subprocess.run([rustc, "-O", "-o", exe, src], check=True)
 
 
 def main():

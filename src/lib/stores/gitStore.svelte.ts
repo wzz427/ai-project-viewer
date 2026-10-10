@@ -39,6 +39,8 @@ export type GitView =
     }
   | { kind: "commit"; rootPath: string; hash: string };
 
+import { diagEvent } from "$lib/stores/diagnosticsStore.svelte";
+
 export const gitViewSlot = $state({ current: null as GitView | null });
 
 export function openDiff(
@@ -47,14 +49,17 @@ export function openDiff(
   staged: boolean,
   commitHash?: string,
 ) {
+  diagEvent(`git-view diff ${rel}${staged ? " (staged)" : ""}`);
   gitViewSlot.current = { kind: "diff", rootPath, rel, staged, commitHash };
 }
 
 export function openCommit(rootPath: string, hash: string) {
+  diagEvent(`git-view commit ${hash}`);
   gitViewSlot.current = { kind: "commit", rootPath, hash };
 }
 
 export function closeGitView() {
+  if (gitViewSlot.current) diagEvent("git-view close");
   gitViewSlot.current = null;
 }
 

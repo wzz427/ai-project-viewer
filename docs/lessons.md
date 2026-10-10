@@ -258,3 +258,11 @@
 - **修法**:setSidebarMode 离开 git 即 closeGitView;activateProject 切项目即 closeGitView(同族隐患一并堵:项目 A 的 diff 会在项目 B 的 Files 界面继续占着主区)。git-suite 增 git_return_to_files_restores_tabs(owner 原流程复现)。
 - **为什么没测出来**:git-suite 的 diff 测试都以显式关闭(×)收尾,从未"不关就切走"——覆盖视图的测试矩阵必须含"不关而切上下文"这条路。
 - **出处**:owner 报障原话"再返回到 Files 时,会发现 Files 的文件区那些页签全都丢了,显示的还是 Git 区域的内容",2026-10-10。
+
+
+### L32:同一处理器里"先改状态再读派生值",读到的是新值——文案/分支先取快照
+
+- **症状**(0.6.9 起存在,0.6.12 修):项目菜单信任切换,状态翻转正确,toast 文案却总是反的("now trusted"显成"no longer")。e2e 断言用了双方都含的子串("trusted for execution"),三轮真机探针都放过了它。
+- **机理**:`const trusted = $derived(...)`;处理器里 `setProjectTrusted(root, !trusted)` 执行后,下一行 `trusted ? A : B` 的读取会**同步求值到新值**——先写后读,读到的已是被自己改过的状态。
+- **判据**:凡是"翻转语义"的处理器(取反/切换),改前先 `const was = x;` 存快照,文案与逻辑都用快照;review 时看见 `$derived` 出现在 `set` 调用之后的同一函数里就停。测试侧:文案断言必须精确到分支词("is now trusted"),子串断言对"双向文案"是假绿。
+- **出处**:owner 真机点 Trust 时 toast 文案与动作相反,时间线探针(t=433 错文案/t=1694 正确 launch)定位,2026-10-10。

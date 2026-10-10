@@ -101,9 +101,12 @@
     class="menu-item"
     data-menu-id={trusted ? "untrust-project" : "trust-project"}
     onclick={() => {
-      setProjectTrusted(project.rootPath, !trusted);
+      // Capture BEFORE mutating: `trusted` is a derived and re-reads the
+      // NEW value synchronously, which flipped the toast text (0.6.12).
+      const wasTrusted = trusted;
+      setProjectTrusted(project.rootPath, !wasTrusted);
       toast(
-        trusted
+        wasTrusted
           ? `“${project.name}” is no longer trusted for execution.`
           : `“${project.name}” is now trusted for execution.`,
       );

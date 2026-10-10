@@ -16,6 +16,7 @@
   import ExecutableInfoViewer from "./ExecutableInfoViewer.svelte";
   import UnsupportedViewer from "./UnsupportedViewer.svelte";
   import { extOf } from "$lib/services/viewerType";
+  import { diagEvent } from "$lib/stores/diagnosticsStore.svelte";
 
   let { rootPath }: { rootPath: string } = $props();
 
@@ -38,6 +39,20 @@
     if (t.viewerType === "executable") return; // stat card, no content
     if (!cachedContent(rootPath, t.relativePath)) {
       void ensureContentLoaded(rootPath, t.relativePath);
+    }
+  });
+
+  // Runtime trace (0.6.12): one line per viewer swap — the tab strip and
+  // the viewer body must move together; if they ever diverge, this log
+  // shows exactly where the chain broke (owner's freeze bug 2026-10-10).
+  let lastViewerKey = "";
+  $effect(() => {
+    const t = tab;
+    if (!t) return;
+    const key = `${t.viewerType}:${t.relativePath}`;
+    if (key !== lastViewerKey) {
+      lastViewerKey = key;
+      diagEvent(`viewer ${key}`);
     }
   });
 </script>

@@ -4,6 +4,7 @@ import { toast } from "$lib/stores/toastStore.svelte";
 import { forgetTree } from "$lib/stores/fileTreeStore.svelte";
 import { forgetTabs } from "$lib/stores/tabsStore.svelte";
 import { closeGitView, forgetGit } from "$lib/stores/gitStore.svelte";
+import { diagEvent } from "$lib/stores/diagnosticsStore.svelte";
 
 /** §17: "files" | "git"; "settings" is the third state since the §30
  *  revision made ⚙ a sidebar entry (spec-004 D6). */
@@ -42,6 +43,7 @@ export function activateProject(id: string) {
   if (projectState.tabs.some((t) => t.id === id)) {
     const switching = projectState.activeId !== id;
     projectState.activeId = id;
+    if (switching) diagEvent(`project-active ${projectState.tabs.find((t) => t.id === id)?.name ?? id}`);
     // The git view belongs to the panel/project that opened it; a stale
     // one from project A would keep hiding project B's file tabs and
     // own its viewer body (owner 2026-10-10, same bug family as leaving
@@ -53,6 +55,7 @@ export function activateProject(id: string) {
 export function setSidebarMode(rootPath: string, mode: SidebarMode) {
   const tab = projectState.tabs.find((t) => t.rootPath === rootPath);
   if (tab) tab.sidebarMode = mode;
+  diagEvent(`sidebar-mode ${mode}`);
   // Leaving the Git panel hands the viewer body back to the file tabs —
   // the git view never persists past its panel (owner 2026-10-10: "切回
   // Files 后页签全都丢了,显示的还是 Git 的内容").

@@ -2,6 +2,7 @@
   import type { TreeEntry } from "$lib/services/tauri";
   import { visibleSorted } from "$lib/services/treeSort";
   import {
+    contextMenuTarget,
     dragState,
     isPinned,
     joinRel,
@@ -52,7 +53,15 @@
   // Highlight derives from the ACTIVE TAB (owner 2026-10-10: the old
   // click-scoped selection drifted from the tab strip — tree and file area
   // ended up highlighting different files).
-  const selected = $derived(activeRelOf(rootPath) === rel);
+  // While a context menu is open on some row of THIS project, that row
+  // OWNS the highlight exclusively (exactly one lit row at any time,
+  // owner 2026-10-10: right-clicking example.url must light example.url,
+  // not the previously-active file); the override vanishes with the menu.
+  const selected = $derived(
+    contextMenuTarget.rootPath === rootPath
+      ? contextMenuTarget.rel === rel
+      : activeRelOf(rootPath) === rel,
+  );
   // §46 third layer: single git letter on FILE rows only — folders never
   // aggregate (§47/§48); collapsed-folder blind spots are accepted (§49).
   const gitMark = $derived(entry.isDir ? null : gitMarkOf(rootPath, rel));

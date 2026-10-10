@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pin, unpin, treeState, joinRel } from "$lib/stores/fileTreeStore.svelte";
+  import { pin, unpin, treeState, joinRel, contextMenuTarget } from "$lib/stores/fileTreeStore.svelte";
   import { fileHandoffGroups } from "$lib/services/handoffMenu";
 
   let {
@@ -41,6 +41,19 @@
   $effect(() => {
     if (!el) return;
     ({ left, top } = clampMenu(el, x, y));
+  });
+
+  // While this menu is open, its row owns the tree highlight (owner
+  // 2026-10-10: right-clicked row must light up, not the old active
+  // file). Unmount cleanup clears it for EVERY close path — so the
+  // lasting highlight truth stays "active tab".
+  $effect(() => {
+    contextMenuTarget.rootPath = rootPath;
+    contextMenuTarget.rel = joinRel(parentRel, name);
+    return () => {
+      contextMenuTarget.rootPath = null;
+      contextMenuTarget.rel = null;
+    };
   });
 
   function close(e?: Event) {

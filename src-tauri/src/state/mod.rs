@@ -54,6 +54,35 @@ fn state_path(app: &tauri::AppHandle) -> Result<Option<PathBuf>, String> {
     }
 }
 
+/// App version from tauri.conf.json — for the diagnostics export header.
+#[tauri::command]
+pub fn app_version(app: tauri::AppHandle) -> String {
+    app.config()
+        .version
+        .clone()
+        .unwrap_or_else(|| "unknown".into())
+}
+
+/// Write a diagnostics report under the app config dir (0.6.12, owner
+/// 2026-10-10: "在客户端 setting 中增加一个诊断的按钮…生成运行信息").
+/// Returns the absolute path for the UI to show/copy.
+#[tauri::command]
+pub fn write_diagnostics(app: tauri::AppHandle, text: String) -> Result<String, String> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| e.to_string())?
+        .join("diagnostics");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_secs();
+    let path = dir.join(format!("aiv-diagnostics-{ts}.txt"));
+    std::fs::write(&path, text.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 pub fn load_state(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let Some(path) = state_path(&app)? else {

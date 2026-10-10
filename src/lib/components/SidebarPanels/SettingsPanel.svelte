@@ -9,7 +9,10 @@
   } from "$lib/stores/settingsStore.svelte";
   import { diagnostics } from "$lib/stores/diagnosticsStore.svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { activeProject } from "$lib/stores/projectStore.svelte";
+  import { activeProject, projectState } from "$lib/stores/projectStore.svelte";
+  import { tabsState } from "$lib/stores/tabsStore.svelte";
+  import { toast } from "$lib/stores/toastStore.svelte";
+  import { diagEvent } from "$lib/stores/diagnosticsStore.svelte";
   import {
     setFoldersFirst,
     treeState,
@@ -30,6 +33,74 @@
   $effect(() => {
     void invoke<string>("channel").then((c) => (channel = c)).catch(() => {});
   });
+
+  // 0.6.12 (owner 2026-10-10: a viewer-freeze bug replicas could not
+  // reproduce → "增加一个诊断的按钮…生成运行信息"). The report carries a
+  // LIVE cross-check: what the tab strip says is active vs. what the
+  // viewer body is actually showing at export time.
+  let exportPath = $state<string | null>(null);
+  let exporting = $state(false);
+
+  async function exportDiagnostics() {
+    exporting = true;
+    try {
+      const lines: string[] = [];
+      const [version] = await Promise.all([
+        invoke<string>("app_version").catch(() => "?"),
+      ]);
+      lines.push(`AI Project Viewer diagnostics`);
+      lines.push(
+        `version=${version} channel=${channel} startup=${diagnostics.startupMs ?? "?"}ms ` +
+          `build=${diagnostics.buildTime ? new Date(diagnostics.buildTime * 1000).toISOString() : "?"} ` +
+          `exported=${new Date().toISOString()}`,
+      );
+      const activeTabDom = document
+        .querySelector(".file-tab.active")
+        ?.textContent?.trim() ?? null;
+      const viewerDom = document.querySelector(".markdown-viewer")
+        ? "markdown-viewer"
+        : document.querySelector(".code-host")
+          ? "code-viewer"
+          : document.querySelector(".exe-info")
+            ? "exe-info"
+            : document.querySelector(".diff-viewer")
+              ? "diff-viewer"
+              : document.querySelector(".commit-detail")
+                ? "commit-detail"
+                : document.querySelector(".unsupported")
+                  ? "unsupported"
+                  : "(none)";
+      lines.push(`live-check: dom-active-tab=${activeTabDom} dom-viewer=${viewerDom}`);
+      for (const p of projectState.tabs) {
+        const st = tabsState.byRoot[p.rootPath];
+        lines.push(
+          `project "${p.name}" mode=${p.sidebarMode} trusted=${p.trustedForExecution} ` +
+            `active=${st?.activeFileRelativePath ?? "(none)"}`,
+        );
+        lines.push(
+          `  tabs: ${(st?.openFiles ?? [])
+            .map((t) => t.relativePath + (t.deleted ? " (deleted)" : ""))
+            .join(" | ")}`,
+        );
+      }
+      lines.push("--- runtime log (oldest first) ---");
+      for (const e of diagnostics.log) {
+        const ms = String(e.t % 1000).padStart(3, "0");
+        lines.push(
+          `${new Date(e.t).toLocaleTimeString()}.${ms} [${e.kind}] ${e.text}`,
+        );
+      }
+      const path = await invoke<string>("write_diagnostics", {
+        text: lines.join("\r\n"),
+      });
+      exportPath = path;
+      diagEvent("diagnostics exported");
+      toast(`Diagnostics exported: ${path}`);
+    } catch (err) {
+      toast(`Export failed: ${err}`, { kind: "error" });
+    }
+    exporting = false;
+  }
 </script>
 
 <div class="settings-panel">
@@ -144,6 +215,16 @@
     {#if diagnostics.lastShortcut}
       <div class="row muted">
         Last shortcut: <span class="mono">{diagnostics.lastShortcut}</span>
+      </div>
+    {/if}
+    <div class="row">
+      <button class="export-diag" onclick={() => void exportDiagnostics()} disabled={exporting}>
+        {exporting ? "Exporting…" : "Export Diagnostics"}
+      </button>
+    </div>
+    {#if exportPath}
+      <div class="row muted">
+        <span class="mono small selectable">{exportPath}</span>
       </div>
     {/if}
   </section>

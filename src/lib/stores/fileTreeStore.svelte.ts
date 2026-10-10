@@ -55,6 +55,16 @@ export const dragState = $state({
   name: null as string | null,
 });
 
+/** Tree row whose context menu is OPEN (owner 2026-10-10: right-clicking a
+ * row must highlight it, not the previously-active file). Transient by
+ * design: the highlight override lives only while the menu is mounted —
+ * the lasting highlight truth stays "active tab" (0.6.3 rule, single
+ * source; a sticky right-click selection would re-create the drift bug). */
+export const contextMenuTarget = $state({
+  rootPath: null as string | null,
+  rel: null as string | null,
+});
+
 export function treeFor(rootPath: string): ProjectTreeState {
   let st = treeState.byRoot[rootPath];
   if (!st) {

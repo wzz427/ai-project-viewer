@@ -477,6 +477,53 @@ with sync_playwright() as p:
       }, 350));
     }""")
     check("menu_clamped_to_viewport", bool(clamped.get("ok")), str(clamped))
+    # --- 0.6.12 diagnostics export (owner: viewer-freeze bug needed a
+    # client-side trace): Settings -> Export Diagnostics writes a file and
+    # shows its path; the report must include the live cross-check line. ---
+    page.locator('.sidebar-header .settings').click()
+    page.wait_for_selector(".export-diag", timeout=4000)
+    page.locator(".export-diag").click()
+    exp_path = None
+    deadline = time.time() + 8
+    while time.time() < deadline:
+        t = page.evaluate(
+            "() => document.querySelector('.selectable')?.textContent ?? null")
+        if t and t.endswith(".txt"):
+            exp_path = t
+            break
+        time.sleep(0.3)
+    exported_ok = False
+    if exp_path and os.path.isfile(exp_path):
+        body = open(exp_path, encoding="utf-8", errors="replace").read()
+        exported_ok = ("live-check:" in body and "runtime log" in body
+                       and "version=" in body)
+    check("diagnostics_export_writes_report",
+          bool(exp_path) and exported_ok, f"path={exp_path}")
+    page.locator('.sidebar-header .header-tab', has_text="Files").first.click()
+
+    # --- 0.6.12 bug (owner: "右键 example.url,Example 没有高显,之前的
+    # styles.css 反而高显"): while a row's context menu is open, THAT row
+    # owns the tree highlight exclusively; closing reverts to active tab. ---
+    hl = page.evaluate(r"""() => {
+      const row = [...document.querySelectorAll('.file-tree .row')]
+        .find(r => r.title === 'sample.msi');
+      if (!row) return { ok: false, why: 'row not in DOM' };
+      row.dispatchEvent(new MouseEvent('contextmenu', {
+        clientX: 200, clientY: 200, bubbles: true, cancelable: true }));
+      return new Promise(res => setTimeout(() => {
+        const lit = [...document.querySelectorAll('.file-tree .row.selected')]
+          .map(r => r.getAttribute('title'));
+        const msiLit = row.classList.contains('selected');
+        document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        setTimeout(() => {
+          const after = [...document.querySelectorAll('.file-tree .row.selected')]
+            .map(r => r.getAttribute('title'));
+          res({ msiLit, lit, after,
+                ok: msiLit && lit.length === 1 && !after.includes('sample.msi') });
+        }, 400);
+      }, 350));
+    }""")
+    check("right_click_row_owns_highlight", bool(hl.get("ok")), str(hl))
 
     # --- Phase 8 growth guard (owner 2026-10-10 晚: "新菜单项加了以后,
     # 底部右键出来的列表还是一定能够全部显示") — the clamp must adapt to
@@ -631,7 +678,7 @@ with sync_playwright() as p:
     time.sleep(0.6)
     trust_toast = page.locator(".toast").inner_text()
     check("p8_trust_toggle",
-          "trusted for execution" in trust_toast, trust_toast)
+          "is now trusted for execution." in trust_toast, trust_toast)
     page.locator(".project-tabs .tab").first.click(button="right")
     page.wait_for_selector(".menu [data-menu-id='untrust-project']", timeout=4000)
     untrust_ids = page.eval_on_selector_all(

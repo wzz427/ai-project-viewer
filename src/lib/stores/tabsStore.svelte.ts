@@ -24,6 +24,7 @@ import {
   type ViewerType,
 } from "$lib/services/viewerType";
 import { toast } from "$lib/stores/toastStore.svelte";
+import { diagError, diagEvent } from "$lib/stores/diagnosticsStore.svelte";
 import { revealInTree } from "$lib/stores/fileTreeStore.svelte";
 import { closeGitView } from "$lib/stores/gitStore.svelte";
 
@@ -126,6 +127,7 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
     (t) => t.relativePath === tab.relativePath,
   );
   if (existing) {
+    diagEvent(`tab-activate ${tab.relativePath}`);
     // Re-open keeps position and per-tab state, refreshes the verdicts.
     Object.assign(existing, tab, {
       markdownMode: existing.markdownMode ?? tab.markdownMode,
@@ -166,6 +168,7 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
   } else {
     st.openFiles.push(tab);
   }
+  diagEvent(`tab-open ${tab.relativePath}`);
   st.activeFileRelativePath = tab.relativePath;
   void revealInTree(rootPath, tab.relativePath);
 }
@@ -261,6 +264,7 @@ export function activateFile(rootPath: string, rel: string) {
   const st = projectTabs(rootPath);
   if (st.openFiles.some((t) => t.relativePath === rel)) {
     closeGitView();
+    diagEvent(`tab-activate ${rel}`);
     st.activeFileRelativePath = rel;
     void revealInTree(rootPath, rel);
     void recheckDeleted(rootPath, rel);

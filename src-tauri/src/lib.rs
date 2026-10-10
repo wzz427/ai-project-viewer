@@ -173,6 +173,8 @@ pub fn run() {
             handoff::open_in_browser,
             run::run_project_script,
             run::run_project_executable,
+            state::app_version,
+            state::write_diagnostics,
             state::load_state,
             state::save_state,
             updater::check_update,
