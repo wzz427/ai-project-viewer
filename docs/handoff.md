@@ -11,18 +11,41 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-009 InTest:Phase 9 Watcher 已发 0.7.0,等 owner 复验**(复验清单见 §一 首条);
-过了 → **Phase 10(性能/安全/发版准备,§184,spec-010)——本阶段禁新增产品功能**(九类泄漏
-审查+安全审查+V1 收口)。**版本段 0.7.x**(owner 2026-10-11 指令"版本升到0.7";固定递增不跳段)。
+主线 = **两件已发等 owner 复验,可一并验**:① **spec-010 Open Recent(0.7.3)**——点 Update 后验 + 号菜单/
+最近列表/空白页列表(清单见 §一 首条);② **spec-009 Watcher(0.7.2)**——开着真实项目正常用,确认不再卡死
++监听功能本身(清单见 §一 spec-009 条)。两件都过 → **Phase 10(性能/安全/发版准备,§184,spec-011——
+原 spec-010 号被 Open Recent 占用,顺延)——本阶段禁新增产品功能**(九类泄漏审查+安全审查+V1 收口)。
+**版本段 0.7.x**(owner 2026-10-11 指令"版本升到0.7";固定递增不跳段)。
 **未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断
 已装)——复现时 Settings → Export Diagnostics,文件在 %APPDATA%\com.aiprojectviewer.app.exp\
 diagnostics\aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。注意:Phase 9 的自动重读
 ({#key}=rel+contentRev 重挂载)恰好重写了查看器换装链路——若冻结 bug 根因在那一段,owner 复验
-0.7.0 时可能直接消失或变形,留意复验反馈。
-协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律
-aivlaunch(PID 限定)+**park_offscreen(L34)**。
+0.7.x 时可能直接消失或变形,留意复验反馈。
+协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律 aivlaunch(PID 限定)+
+**park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-11 · spec-010(Open Recent)交付:0.7.3 已发体验渠道,等 owner 复验
+
+> **下一步从哪接** —— owner 点 Update(0.7.3)验:①开过至少一个项目后点项目栏 + 号 → 弹菜单
+> (Browse for Folder… 永远第一项,其下最近列表,底部 Clear Recent;**从未记过任何文件夹时 + 仍是
+> 直接开选框,老行为不变**);②列表点没开过的项目=直接打开;点已开的=切到它页签+提示;
+> ③行悬停出 ✕ 删单条,Clear 清空;④已删/挪走的文件夹置灰,点了给错误提示;⑤把所有项目都移除后的
+> 空白欢迎页,Open Folder 按钮下方有同一份 Recent 列表。过 → spec-010 Done,主线回 spec-009 复验。
+
+- owner 增量需求原话"我需要像 VS Code 一样,在增加新项目时有一个 Open Recent,记录最近打开的文件夹
+  (比如最多 10 个不同的文件夹)";交互设计当面过目后拍板"开工"。V1.5 §198 增量节+§197 审计行,
+  spec-010 立项(Phase 10 顺延 spec-011)。
+- 交付:+ 号两段式菜单+空白页只读列表+失效置灰(`paths_exist` async+spawn_blocking 守 L35);记录=用户
+  主动打开成功(含切换到已开),**会话恢复不记录**(D1,防重启洗掉 MRU);身份=canonical 路径(与项目
+  去重同真值);cap=10 写读双侧夹(插入截断+解析自愈截断)。内存账:常驻仅 ≤10 个字符串,零新增定时器。
+- 测试:新 e2e **recent-suite 15/15**(预置状态文件+自动加两路驱动,原生选框绝不碰)+phase3 63+git 33+
+  r3 8+pdf 19+vitest 60(recentList 10 新/appState 2 新)+cargo 96+check 0;freeze-guard 免跑(watcher 链
+  零改动)。发版后三二进制核验:dev 完好(dev 标识)、updates=exp 标识——**标识字节在 4MB 窗口外,须全文件
+  扫**(连带修 swap-experience-client.py 同款窗口误判)。
+- e2e 定位器两坑(已写进套件注释):Playwright `has=`+`:text-is` 组合不解析(用 `filter(has_text=)`);CSS
+  属性选择器把 Windows 路径反斜杠当转义(按文件夹名定位,别按路径属性)。
 
 ### 2026-10-11 · 0.7.2 返修二轮:启动卡死的第二层根因(0.7.1 仍冻,owner"升级都点不了"→我代换装)
 

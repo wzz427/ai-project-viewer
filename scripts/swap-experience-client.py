@@ -101,7 +101,7 @@ def main() -> int:
         staged.unlink(missing_ok=True)
         print("[abort] md5 mismatch after copy, no files touched")
         return 1
-    if EXP_IDENTIFIER not in staged.read_bytes()[: 1 << 22]:
+    if EXP_IDENTIFIER not in staged.read_bytes():
         staged.unlink(missing_ok=True)
         print("[abort] staged binary is not an exp build, no files touched")
         return 1

@@ -114,3 +114,4 @@
 |---|---|---|
 | 2026-10-11 | Draft→Ready | 自核:R1–R9 与 owner 过目方案逐条对上(菜单结构/记录规则/空态页/置灰/✕+Clear);矩阵 9/9 ✓;疑问零(交互已当面拍板) |
 | 2026-10-11 | Ready→InDev | 依赖零新增(全部现有基建);开工原话见页首 |
+| 2026-10-11 | InDev→InTest | 三步曲(c)①②③:全档绿(recent-suite **15/15**+phase3 63+git 33+r3 8+pdf 19+vitest 60+cargo 96+check 0;freeze-guard 免跑=watcher 链零改动)、截图目检(菜单+空态页)、**0.7.3 已发体验渠道**;等 owner 复验 |

@@ -19,4 +19,4 @@
 | spec-007 | Phase 7 Git Review:改了什么、跟远端差多少,一眼看完(只看不改) | Done | 0.6.7 首发+0.6.8 返修轮(面板照 VS Code 重排/提交详情/并排 diff),owner 验收通过(2026-10-10,"这个需求通过了");打磨项(折叠条展开/行内高亮)记 §四 D17 |
 | spec-008 | Phase 8 RUN/Trust:脚本/EXE 可见控制台运行+项目信任门+Executable Info+URL 白名单接线 | Done | owner 验收通过(2026-10-11 原话"这期收口,进下一个需求,版本升到0.7");0.6.9 首发+0.6.10–0.6.13 四轮返修全记录在本 SPEC §六;内容区冻结 bug 未结→handoff 挂账(诊断已装等取证);冷却后搬 specs/archive/ |
 | spec-009 | Phase 9 Watcher:文件变了自动刷(树/正在看的文件/Git),删改名的页签与置顶跟着走 | InTest | 0.7.0 首发+0.7.1 返修(启动卡死:git_snapshot 同步命令被监听放大,L35;已修+常驻抗冻守卫)均已发体验渠道等 owner 复验;复验清单见 handoff |
-| spec-010 | Open Recent:加项目时一键找回最近打开过的文件夹(owner 2026-10-11 增量需求,V1.5 §198;Phase 10 §184 顺延为 spec-011) | InDev | 0.7.3 首发体验渠道;交互已与 owner 对齐(原话"开工") |
+| spec-010 | Open Recent:加项目时一键找回最近打开过的文件夹(owner 2026-10-11 增量需求,V1.5 §198;Phase 10 §184 顺延为 spec-011) | InTest | 0.7.3 已发体验渠道等 owner 复验(点 Update;清单见 handoff 首条);过 → spec-010 Done,主线回 spec-009 复验 → Phase 10(spec-011) |
