@@ -3,11 +3,11 @@ import { recordShortcutInterception } from "$lib/stores/diagnosticsStore.svelte"
 /**
  * Application shortcut dispatcher (V1.5 §146/§147).
  *
- * WebView2 browser accelerators are disabled in tauri.conf.json
- * (`browserAcceleratorKeys: false`), so P0 combos reach the DOM as keydown
- * events. This capture-phase listener claims them before any page default
- * behavior, then fans out to registered handlers. Phase 1 wires placeholder
- * handlers; the real behaviors land with their features (V1.5 §177).
+ * WebView2 browser accelerators are disabled at runtime through the
+ * WebView2 COM settings (lib.rs disable_browser_accelerators, lessons L5 —
+ * Tauri 2 has no tauri.conf.json field for this), so P0 combos reach the
+ * DOM as keydown events. This capture-phase listener claims them before
+ * any page default behavior, then fans out to registered handlers.
  */
 
 export type Combo =

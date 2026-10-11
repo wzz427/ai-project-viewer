@@ -1,8 +1,8 @@
 <script lang="ts">
   /**
    * Terminal viewer states: binary guard, >20 MB guard, deleted file
-   * (V1.5 §83/§104/§106, spec-003 D4). The two external actions for huge
-   * files arrive with Phase 6's command set.
+   * (V1.5 §83/§104/§106, spec-003 D4). Hand-off actions for such files live
+   * on the tree's right-click menu (spec-006, delivered).
    */
   import { closeFile, type RuntimeTab } from "$lib/stores/tabsStore.svelte";
 
@@ -34,7 +34,8 @@
       <p>File is larger than 20 MB and will not be opened in the viewer.</p>
       <p class="muted">{sizeMb} MB</p>
       <p class="muted small">
-        Show in File Explorer / Open with System Default App arrive in Phase 6.
+        Right-click this file in the tree to hand it off (File Explorer,
+        system default app, external editors).
       </p>
     </div>
   {:else}

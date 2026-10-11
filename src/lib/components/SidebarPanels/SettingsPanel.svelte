@@ -64,8 +64,8 @@
             ? "exe-info"
             : document.querySelector(".diff-viewer")
               ? "diff-viewer"
-              : document.querySelector(".commit-detail")
-                ? "commit-detail"
+              : document.querySelector(".commit-view")
+                ? "commit-view"
                 : document.querySelector(".unsupported")
                   ? "unsupported"
                   : "(none)";

@@ -15,7 +15,6 @@
       ? snap.gitRoot.replace(/[\\/]+$/, "").split(/[\\/]/).pop()!
       : null,
   );
-  const now = $derived(Date.now());
 
   // VS Code-style collapsible sections (owner 2026-10-10 visual review).
   let collapsed = $state<Record<string, boolean>>({});
@@ -149,7 +148,7 @@
           {@const date = new Date(c.ts).toLocaleString()}
           <button
             class="commit"
-            title={`${c.subject}&#10;${c.author} · ${date}`}
+            title={`${c.subject}\n${c.author} · ${date}`}
             onclick={() => clickCommit(c.hash)}
           >
             <span class="cgraph" class:head={i === 0}><span class="cdot"></span></span>
@@ -158,7 +157,7 @@
             {#if i === 0 && snap.branch && snap.branch !== "(detached)"}
               <span class="cbadge">{snap.branch}</span>
             {/if}
-            <span class="cwhen">{relativeTime(now, c.ts)}</span>
+            <span class="cwhen">{relativeTime(Date.now(), c.ts)}</span>
           </button>
         {/each}
       {/if}

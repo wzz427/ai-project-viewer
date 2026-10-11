@@ -35,12 +35,14 @@
   import { tabsState } from "$lib/stores/tabsStore.svelte";
   import { initWatcher } from "$lib/stores/watcherStore.svelte";
   import {
+    closeGitView,
     gitNeedsInitialScan,
     gitViewSlot,
     markGitSeen,
     refreshGit,
     refreshGitNow,
   } from "$lib/stores/gitStore.svelte";
+  import { clampMenu } from "$lib/components/ContextMenu/menuPosition";
   import { badgeText } from "$lib/services/gitFormat";
   import { gitSnapshotOf } from "$lib/stores/gitStore.svelte";
   import DiffViewer from "$lib/components/Viewers/DiffViewer.svelte";
@@ -130,6 +132,19 @@
     copyMenu = null;
   }
 
+  // Viewport clamp, same rule as every other context menu (spec-012 L-f1:
+  // a right-click near the bottom edge put "Copy" half outside the window).
+  // Runs as an action so the real size is measurable before positioning.
+  function placeCopyMenu(el: HTMLElement, pos: { x: number; y: number }) {
+    const apply = (p: { x: number; y: number }) => {
+      const { left, top } = clampMenu(el, p.x, p.y);
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
+    };
+    apply(pos);
+    return { update: apply };
+  }
+
   // Keyboard resize: ←/→ nudges by 16px (a11y for the separator handle).
   function resizeViaKeyboard(e: KeyboardEvent) {
     const proj = project;
@@ -146,6 +161,13 @@
   function wireShortcuts() {
     const unsubs = [
       onShortcut("ctrl+w", () => {
+        // The git view owns the viewer body: Ctrl+W must close what the
+        // user SEES (the diff/commit view), not the invisible file tab
+        // behind it (spec-012 L-f1).
+        if (gitViewShowing) {
+          closeGitView();
+          return;
+        }
         const root = project?.rootPath;
         const tab = root ? activeTab(root) : undefined;
         if (root && tab) closeFile(root, tab.relativePath);
@@ -270,7 +292,7 @@
       role="slider"
       aria-orientation="vertical"
       aria-label="Sidebar width"
-      aria-valuemin={200}
+      aria-valuemin={180}
       aria-valuemax={600}
       aria-valuenow={project?.sidebarWidth ?? 260}
       tabindex="0"
@@ -315,7 +337,7 @@
   {#if copyMenu}
     <button
       class="copy-menu"
-      style="left: {copyMenu.x}px; top: {copyMenu.y}px"
+      use:placeCopyMenu={copyMenu}
       onmousedown={(e) => {
         e.preventDefault();
         e.stopPropagation();

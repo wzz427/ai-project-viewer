@@ -134,6 +134,13 @@ button {
   user-select: none;
 }
 
+/* Inputs ARE copy targets — the dual of the button rule above (spec-012
+   L-c7): body's user-select:none had silenced double-click word selection
+   in every settings/sidebar input since L40's global body rule. */
+input {
+  user-select: text;
+}
+
 .mono {
   font-family: var(--font-mono);
 }

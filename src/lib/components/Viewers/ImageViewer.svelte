@@ -125,6 +125,10 @@
     padding: 6px 12px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    /* The size readout span is not a copy target — same L40 family as the
+       0.7.7 button fix (spec-012 L-f6: double-click on the toolbar
+       word-selected the readout in native blue). */
+    user-select: none;
   }
 
   .toolbar button {
