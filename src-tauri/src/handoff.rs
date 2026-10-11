@@ -19,7 +19,6 @@ use tauri_plugin_opener::{open_path, open_url, reveal_item_in_dir};
 // future editors extend this trait without a plugin system).
 
 trait ExternalEditor {
-    fn id(&self) -> &'static str;
     fn name(&self) -> &'static str;
     fn open_file(&self, path: &Path) -> Result<(), String>;
     fn open_folder(&self, _path: &Path) -> Result<(), String> {
@@ -30,9 +29,6 @@ trait ExternalEditor {
 struct NotepadEditor;
 
 impl ExternalEditor for NotepadEditor {
-    fn id(&self) -> &'static str {
-        "notepad"
-    }
     fn name(&self) -> &'static str {
         "Notepad"
     }
@@ -55,9 +51,6 @@ struct VSCodeEditor {
 }
 
 impl ExternalEditor for VSCodeEditor {
-    fn id(&self) -> &'static str {
-        "vscode"
-    }
     fn name(&self) -> &'static str {
         "VS Code"
     }

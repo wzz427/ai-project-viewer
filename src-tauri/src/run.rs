@@ -22,7 +22,9 @@ use std::path::{Path, PathBuf};
 use crate::handoff::resolve_target;
 
 const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
-/// Test-only stand-in: same host semantics, no window on the desktop.
+/// Test-only stand-in (windowless host semantics): lives under cfg(test)
+/// so production builds don't carry an unused constant.
+#[cfg(test)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 pub const SCRIPT_EXTENSIONS: [&str; 3] = ["ps1", "cmd", "bat"];

@@ -162,7 +162,9 @@
       page: currentPage,
       zoom: scale,
       zoomMode,
-      scrollPosition: scroller?.scrollTop,
+      // ?? only rescues the null-scroller teardown case (M9): a live
+      // scroller legitimately reads 0 at the very top.
+      scrollPosition: scroller?.scrollTop ?? lastScrollTop,
     });
   }
 
@@ -457,8 +459,15 @@
 
   // ---------- scroll bookkeeping ----------
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+  // Last scroll offset seen while the scroller was alive (spec-012 M9):
+  // Svelte nulls the bind:this BEFORE the unmount cleanup runs, so
+  // cleanup-time persistState reads scroller===null and used to save
+  // scrollPosition: undefined — every quick switch then restored to the
+  // page top. The plain variable survives teardown.
+  let lastScrollTop = 0;
   function onScroll() {
     if (!scroller) return;
+    lastScrollTop = scroller.scrollTop;
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       persistState();
@@ -584,6 +593,7 @@
     } else if (tab.pdfState?.page) {
       scroller.scrollTop = (tab.pdfState.page - 1) * pxH;
     }
+    lastScrollTop = scroller.scrollTop; // seed the teardown-survivor (M9)
     updateCurrentPageFromScroll();
   });
 

@@ -169,6 +169,66 @@ def main():
         check("pdf state restored on return (page)", abs(int(restored) - int(deep_page)) <= 1,
               f"left {deep_page}, back {restored}")
 
+        # --- spec-012 M8: aborting a running search by switching tabs must
+        # not raise (getPage rejections on the destroyed doc used to land in
+        # the global unhandledrejection sentinel) ---
+        err_before = len([c for c in CONSOLE if c.startswith("PAGEERROR")])
+        pg.fill("input.search", "Page")
+        pg.press("input.search", "Enter")
+        # switch away IMMEDIATELY, mid-walk over 100 pages
+        pg.locator(".file-tabs .file-tab:has-text('README.md')").click()
+        pg.wait_for_timeout(2500)
+        new_errors = [c for c in CONSOLE[err_before:] if c.startswith("PAGEERROR")]
+        check("mid-search tab switch raises no page errors (M8)", len(new_errors) == 0,
+              "\n".join(new_errors[:3]))
+        # ...and the engine still searches cleanly after the aborted run
+        pg.locator(".file-tabs .file-tab:has-text('sample-100p-text.pdf')").click()
+        pg.wait_for_selector(".pdf-viewer canvas", timeout=20000)
+        pg.fill("input.search", "Page")
+        pg.press("input.search", "Enter")
+        try:
+            pg.wait_for_selector(".toolbar:has-text('1 /')", timeout=15000)
+            check("search works again after aborted run (M8)", True)
+        except Exception as e:
+            check("search works again after aborted run (M8)", False, str(e))
+
+        # --- spec-012 M9: switching tabs <300ms after a scroll must keep the
+        # mid-page position (a late scroll timer used to overwrite the saved
+        # scrollPosition with undefined -> restore degraded to page top) ---
+        scroller.evaluate("el => el.scrollTop = 0.65 * el.scrollHeight")
+        # no wait: the 300ms scroll debounce is still pending right now
+        pg.locator(".file-tabs .file-tab:has-text('README.md')").click()
+        pg.wait_for_timeout(900)
+        pg.locator(".file-tabs .file-tab:has-text('sample-100p-text.pdf')").click()
+        pg.wait_for_selector(".pdf-viewer canvas", timeout=20000)
+        pg.wait_for_timeout(700)
+        pos = pg.evaluate("""() => {
+            const sc = document.querySelector('.pdf-viewer .scroller');
+            return { top: sc.scrollTop, sh: sc.scrollHeight };
+        }""")
+        frac = (pos["top"] / pos["sh"]) if pos["sh"] else 0.0
+        # 0.65 = where we scrolled to; the restored position must land back
+        # at that fraction of the document (page gaps make per-page math
+        # unreliable — slots are 16px apart).
+        check("quick switch after scroll keeps mid-page position (M9)",
+              abs(frac - 0.65) < 0.02, str(pos))
+
+        # --- spec-012 M7: a zoom storm must settle with exactly one canvas
+        # per visible page, all painted at the same (final) scale ---
+        for _ in range(10):
+            pg.click("button[aria-label='Zoom in']")
+        pg.wait_for_timeout(1800)
+        storm = pg.evaluate("""() => {
+            const slots = [...document.querySelectorAll('.pdf-viewer .page-slot')];
+            const painted = slots.filter(s => s.querySelector('canvas'));
+            const widths = [...new Set(painted.map(s => s.querySelector('canvas').style.width))];
+            const stacked = painted.filter(s => s.querySelectorAll('canvas').length !== 1).length;
+            return { painted: painted.length, widths, stacked };
+        }""")
+        check("zoom storm settles: one canvas per page at one scale (M7)",
+              storm["stacked"] == 0 and len(storm["widths"]) == 1 and 0 < storm["painted"] <= 6,
+              str(storm))
+
         # 18.4 MB scanned pdf loads through the bytes channel.
         tree_click(pg, "sample-100p-scan.pdf")
         pg.wait_for_selector(".pdf-viewer canvas", timeout=30000)

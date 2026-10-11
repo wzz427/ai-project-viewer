@@ -53,6 +53,9 @@ const STORM_LIMIT: usize = 200;
 /// the kernel's From/To paths instead (L33), so the file-ID cache buys
 /// nothing here.
 pub struct WatchSlot {
+    /// Held for its Drop side effect only (dropping the debouncer stops the
+    /// watch and joins its thread) — never read directly.
+    #[allow(dead_code)]
     debouncer: Debouncer<notify::RecommendedWatcher, NoCache>,
 }
 
