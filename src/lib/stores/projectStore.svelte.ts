@@ -63,11 +63,13 @@ export function setSidebarMode(rootPath: string, mode: SidebarMode) {
   if (mode !== "git") closeGitView();
 }
 
-/** Drag-resize write (owner 2026-10-01); clamped to the same 200–600 range
- *  the state parser enforces, and picked up by the debounced save loop. */
+/** Drag-resize write (owner 2026-10-01); clamped to the same 180–600 range
+ *  the state parser enforces (L-f12: this side said 200 while appState
+ *  accepted 180 — a restored 180-wide sidebar could then never be dragged
+ *  back once moved), and picked up by the debounced save loop. */
 export function setSidebarWidth(rootPath: string, width: number) {
   const tab = projectState.tabs.find((t) => t.rootPath === rootPath);
-  if (tab) tab.sidebarWidth = Math.min(600, Math.max(200, Math.round(width)));
+  if (tab) tab.sidebarWidth = Math.min(600, Math.max(180, Math.round(width)));
 }
 
 /** §129: Trust reads/writes are per project root; never inherited. */

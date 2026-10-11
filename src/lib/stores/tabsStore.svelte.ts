@@ -135,11 +135,15 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
   if (existing) {
     diagEvent(`tab-activate ${tab.relativePath}`);
     // Re-open keeps position and per-tab state, refreshes the verdicts.
+    // pdfState rides the same keep-list (spec-012 M1): openFile's PDF
+    // branch constructs `page: 1` defaults, which used to reset the
+    // reading position of an ALREADY-OPEN pdf tab on every tree re-open.
     Object.assign(existing, tab, {
       markdownMode: existing.markdownMode ?? tab.markdownMode,
       jsonMode: existing.jsonMode ?? tab.jsonMode,
       scrollPosition: existing.scrollPosition,
       pinned: existing.pinned,
+      pdfState: existing.pdfState ?? tab.pdfState,
     });
     st.activeFileRelativePath = tab.relativePath;
     void revealInTree(rootPath, tab.relativePath);
@@ -541,13 +545,21 @@ export function applyTabRenames(
   const moved: string[] = [];
   for (const tab of st.openFiles) {
     const next = renamedRel(tab.relativePath, renames);
-    if (next) {
-      const prev = contentCache.get(cacheKey(rootPath, tab.relativePath));
+    if (!next) continue;
+    // Rename target colliding with another open tab (L33 phantom-rename
+    // leftovers, git-style del+add pairs) used to produce two tabs with
+    // one rel and two cache entries overwriting each other — the losing
+    // tab now dies in place instead (spec-012 M14).
+    if (st.openFiles.some((t) => t.relativePath === next)) {
       contentCache.delete(cacheKey(rootPath, tab.relativePath));
-      if (prev) contentCache.set(cacheKey(rootPath, next), prev);
-      tab.relativePath = next;
-      moved.push(next);
+      tab.deleted = true;
+      continue;
     }
+    const prev = contentCache.get(cacheKey(rootPath, tab.relativePath));
+    contentCache.delete(cacheKey(rootPath, tab.relativePath));
+    if (prev) contentCache.set(cacheKey(rootPath, next), prev);
+    tab.relativePath = next;
+    moved.push(next);
   }
   if (st.activeFileRelativePath) {
     st.activeFileRelativePath =
@@ -596,6 +608,10 @@ export async function ensureContentLoaded(rootPath: string, rel: string) {
   );
   if (!tab || tab.deleted) return;
   if (tab.viewerType === "binary" || tab.viewerType === "unsupported") return;
+  // §122 stat-only card: no content channel to fill (spec-012 L-f11 — the
+  // "mirrors openFile" claim now actually holds; falling through to
+  // readTextFile used to mark a healthy .exe tab deleted).
+  if (tab.viewerType === "executable") return;
   if (contentCache.has(cacheKey(rootPath, rel))) return;
 
   if (tab.viewerType === "image") {
@@ -621,10 +637,24 @@ export async function ensureContentLoaded(rootPath: string, rel: string) {
     return;
   }
 
-  const content = await readTextFile(rootPath, rel).catch(() => null);
+  let content: Awaited<ReturnType<typeof readTextFile>> | null = null;
+  let readErr = "";
+  try {
+    content = await readTextFile(rootPath, rel);
+  } catch (e) {
+    readErr = String(e);
+  }
   if (!content) {
-    // Vanished since the last run — same deleted-state contract as §83.
-    tab.deleted = true;
+    if (readErr.includes("20 MB")) {
+      // Grew past the never-send-whole cap since the last run — the huge
+      // placeholder is the honest verdict; the deleted state is not
+      // (spec-012 L-f11附带).
+      tab.viewerType = "unsupported";
+      tab.unsupportedReason = "huge";
+    } else {
+      // Vanished since the last run — same deleted-state contract as §83.
+      tab.deleted = true;
+    }
     return;
   }
   contentCache.set(cacheKey(rootPath, rel), {

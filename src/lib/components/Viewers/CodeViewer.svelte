@@ -4,6 +4,7 @@
    * (V1.5 §100/§107): line numbers, syntax highlight, Ctrl+F (via the app
    * dispatcher + search registry), scroll restore on remount (§160.5).
    */
+  import { untrack } from "svelte";
   import { EditorState, Compartment, type Extension } from "@codemirror/state";
   import { EditorView, lineNumbers } from "@codemirror/view";
   import { search } from "@codemirror/search";
@@ -36,11 +37,14 @@
 
   const themeComp = new Compartment();
 
-  function isDark(): boolean {
+  // Effective dark mode (spec-012 M13): derived off the settings store.
+  // The matchMedia read is NOT reactive — the OS-flip case is covered by
+  // the listener in the reconfigure effect below, not by this derivation.
+  const dark = $derived.by(() => {
     if (settings.theme === "dark") return true;
     if (settings.theme === "light") return false;
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  }
+  });
 
   function langExtensions(): Extension[] {
     if (fixedLanguage) return [fixedLanguage];
@@ -61,6 +65,7 @@
   // Scroll survives via the existing save/restore pair.
   $effect(() => {
     void settings.fontSize;
+    const startDark = untrack(() => dark); // theme must NOT rebuild (M13)
     const v = new EditorView({
       state: EditorState.create({
         doc: text,
@@ -71,7 +76,7 @@
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
           search({ top: true }),
           ...langExtensions(),
-          themeComp.of(isDark() ? oneDark : []),
+          themeComp.of(startDark ? oneDark : []),
           EditorView.theme({
             "&": { backgroundColor: "transparent", height: "100%" },
             ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
@@ -93,7 +98,10 @@
       parent: host!,
     });
     view = v;
-    v.scrollDOM.scrollTop = tab.scrollPosition ?? 0;
+    // Restoring reads tab.scrollPosition OUTSIDE the dependency set (M13):
+    // the cleanup below writes that very field, and a tracked read turned
+    // every mount into a save→re-run→rebuild chain.
+    v.scrollDOM.scrollTop = untrack(() => tab.scrollPosition) ?? 0;
     setActiveSearchView(v);
 
     return () => {
@@ -104,10 +112,21 @@
     };
   });
 
-  // Follow app theme changes without rebuilding the document.
+  // Follow app theme changes without rebuilding the document (M13): the
+  // derived tracks the settings store; with theme="system" an OS dark/light
+  // flip has no reactive source, so the matchMedia change listener
+  // reconfigures through the same compartment.
   $effect(() => {
-    const dark = isDark();
+    dark;
     view?.dispatch({ effects: themeComp.reconfigure(dark ? oneDark : []) });
+    if (settings.theme !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () =>
+      view?.dispatch({
+        effects: themeComp.reconfigure(mq.matches ? oneDark : []),
+      });
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   });
 
   // ---- toolbar find (SPEC-INFRA-003): one doc scan feeds both count and

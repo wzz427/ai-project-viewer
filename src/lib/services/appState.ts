@@ -247,7 +247,10 @@ function parseProject(v: unknown): PersistedProject | null {
   const pinnedItems: Record<string, string[]> = {};
   if (typeof prefs.pinnedItems === "object" && prefs.pinnedItems !== null) {
     for (const [k, val] of Object.entries(prefs.pinnedItems as Record<string, unknown>)) {
-      const list = asStrArray(val);
+      // Dedup, order-preserving (spec-012 L-f13): a hand-edited state with
+      // duplicate names rendered duplicate pin rows — every other field
+      // heals, this one didn't.
+      const list = [...new Set(asStrArray(val))];
       if (list.length > 0) pinnedItems[k] = list;
     }
   }

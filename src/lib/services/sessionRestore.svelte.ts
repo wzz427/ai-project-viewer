@@ -69,6 +69,13 @@ export async function restoreAppState(): Promise<void> {
 async function restoreProject(p: PersistedProject): Promise<ProjectTab | null> {
   try {
     const resolved = await resolveProject(p.rootPath);
+    // Two persisted entries resolving to ONE root (hand-edited state,
+    // short-name junctions) used to restore twice — removeProject on either
+    // then forgot the SHARED tree/tabs/git state under that root, killing
+    // the twin's UI (spec-012 L-f10). First entry wins.
+    if (projectState.tabs.some((t) => t.rootPath === resolved.rootPath)) {
+      return null;
+    }
     const tab: ProjectTab = {
       id: p.id,
       name: resolved.name,

@@ -6,7 +6,7 @@
    * the app, http(s) go to the default browser (§89); local images are
    * swapped to cached data URLs after render (D3).
    */
-  import { onMount } from "svelte";
+  import { untrack } from "svelte";
   import MarkdownIt from "markdown-it";
   import taskLists from "markdown-it-task-lists";
   import { openUrl } from "@tauri-apps/plugin-opener";
@@ -43,6 +43,11 @@
     rendered; // re-run whenever the source changes
     const el = container;
     if (!el) return;
+    // Cancel semantics (spec-012 L-f8): a watcher reload re-runs this
+    // effect while the previous round's readMediaFile promises may still be
+    // in flight; without the flag their callbacks kept writing to detached
+    // old <img> elements (wasted IPC, stale bitmaps).
+    let live = true;
     for (const img of [...el.querySelectorAll<HTMLImageElement>("img")]) {
       const src = img.getAttribute("src");
       if (!src || /^[a-z]+:/i.test(src) || src.startsWith("/")) continue;
@@ -50,9 +55,16 @@
         ? tab.relativePath.slice(0, tab.relativePath.lastIndexOf("/"))
         : TREE_ROOT;
       void readMediaFile(rootPath, joinRel(dir, src))
-        .then((m) => img.setAttribute("src", m.dataUrl))
-        .catch(() => img.setAttribute("alt", `[missing image: ${src}]`));
+        .then((m) => {
+          if (live) img.setAttribute("src", m.dataUrl);
+        })
+        .catch(() => {
+          if (live) img.setAttribute("alt", `[missing image: ${src}]`);
+        });
     }
+    return () => {
+      live = false;
+    };
   });
 
   function onLinkClick(e: MouseEvent) {
@@ -75,11 +87,19 @@
     }
   }
 
-  onMount(() => {
+  // Scroll save/restore for the RENDERED pane (spec-012 M3). It must live
+  // in an effect keyed on markdownMode+container: a mode switch rebinds a
+  // NEW element (the old onMount closure kept the first one forever), so
+  // Rendered→Source→back restored nothing — and switching away while in
+  // Source mode wrote the dead element's scrollTop 0 over the position
+  // CodeViewer had just saved. Source mode saves its own via CodeViewer.
+  $effect(() => {
+    if (tab.markdownMode !== "rendered") return;
     const el = container;
-    if (el) el.scrollTop = tab.scrollPosition ?? 0;
+    if (!el) return;
+    el.scrollTop = untrack(() => tab.scrollPosition) ?? 0;
     return () => {
-      if (el) saveScrollPosition(rootPath, tab.relativePath, el.scrollTop);
+      saveScrollPosition(rootPath, tab.relativePath, el.scrollTop);
     };
   });
 
