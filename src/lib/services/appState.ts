@@ -19,6 +19,12 @@ import { RECENT_CAP } from "$lib/services/recentList";
 
 export const STATE_VERSION = 1;
 
+/** Viewer font knob range (§22; max raised 20→32, owner 2026-10-11
+ *  "字体怎么最大加到20px就到头了"). The parse-side clamp doubles as the
+ *  persistence guard against hand-edited state files. */
+export const FONT_SIZE_MIN = 11;
+export const FONT_SIZE_MAX = 32;
+
 const VIEWER_TYPES = new Set([
   "markdown", "pdf", "text", "code", "json", "image", "executable", "binary",
   "unsupported",
@@ -286,7 +292,9 @@ function parseSettings(v: unknown): PersistedSettings {
   const themeRaw = asString(s.theme, "system");
   return {
     theme: THEMES.includes(themeRaw as Theme) ? (themeRaw as Theme) : "system",
-    viewer: { fontSize: Math.min(20, Math.max(11, asNum(viewer.fontSize, 13))) },
+    viewer: {
+      fontSize: Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, asNum(viewer.fontSize, 13))),
+    },
     fileTree: {
       showSystemGeneratedFolders: asBool(fileTree.showSystemGeneratedFolders, false),
     },

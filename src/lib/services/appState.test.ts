@@ -186,7 +186,7 @@ describe("parseAppState", () => {
     });
   });
 
-  it("clamps viewer font size into the UI range", () => {
+  it("clamps viewer font size into the UI range (max 32 since 0.7.5)", () => {
     const parsed = parseAppState(
       JSON.stringify({
         version: STATE_VERSION,
@@ -194,7 +194,7 @@ describe("parseAppState", () => {
         settings: { viewer: { fontSize: 99 } },
       }),
     );
-    expect(parsed!.settings.viewer.fontSize).toBe(20);
+    expect(parsed!.settings.viewer.fontSize).toBe(32);
   });
 
   it("heals recentFolders: drops non-strings, caps at 10, absent stays absent (§198)", () => {

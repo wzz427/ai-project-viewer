@@ -1,3 +1,5 @@
+import { FONT_SIZE_MAX, FONT_SIZE_MIN } from "$lib/services/appState";
+
 export type Theme = "system" | "light" | "dark";
 
 /**
@@ -45,7 +47,7 @@ function applyFontSize() {
 }
 
 export function setFontSize(px: number) {
-  settings.fontSize = Math.min(20, Math.max(11, px));
+  settings.fontSize = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, px));
   applyFontSize();
 }
 
