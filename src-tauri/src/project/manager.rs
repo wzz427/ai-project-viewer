@@ -59,6 +59,26 @@ pub fn resolve_project(raw_path: String) -> Result<ResolvedProject, String> {
     })
 }
 
+/// Inner sync core so the existence rules are unit-testable.
+fn paths_exist_blocking(paths: &[String]) -> Vec<bool> {
+    paths
+        .iter()
+        .map(|p| std::fs::metadata(p).map(|m| m.is_dir()).unwrap_or(false))
+        .collect()
+}
+
+/// Batch staleness check for the Open Recent menu (V1.5 §198-b): true iff
+/// the path is still a directory (a file or a missing path both gray out).
+/// Async + spawn_blocking — filesystem access never runs on the native
+/// main thread (lessons L35, spec-010 D3).
+#[tauri::command]
+pub async fn paths_exist(paths: Vec<String>) -> Vec<bool> {
+    let n = paths.len();
+    tauri::async_runtime::spawn_blocking(move || paths_exist_blocking(&paths))
+        .await
+        .unwrap_or_else(|_| vec![false; n])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,5 +148,19 @@ mod tests {
     #[test]
     fn rejects_empty() {
         assert!(resolve_root("   ").is_err());
+    }
+
+    #[test]
+    fn paths_exist_flags_dirs_files_and_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("f.txt");
+        std::fs::write(&file, "x").unwrap();
+        let gone = dir.path().join("nope");
+        let flags = paths_exist_blocking(&[
+            dir.path().to_string_lossy().into_owned(),
+            file.to_string_lossy().into_owned(),
+            gone.to_string_lossy().into_owned(),
+        ]);
+        assert_eq!(flags, vec![true, false, false]);
     }
 }

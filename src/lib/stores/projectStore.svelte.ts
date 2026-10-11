@@ -4,6 +4,7 @@ import { toast } from "$lib/stores/toastStore.svelte";
 import { forgetTree } from "$lib/stores/fileTreeStore.svelte";
 import { forgetTabs } from "$lib/stores/tabsStore.svelte";
 import { closeGitView, forgetGit } from "$lib/stores/gitStore.svelte";
+import { recordRecentFolder } from "$lib/stores/recentStore.svelte";
 import { diagEvent } from "$lib/stores/diagnosticsStore.svelte";
 
 /** §17: "files" | "git"; "settings" is the third state since the §30
@@ -83,6 +84,10 @@ export function setProjectTrusted(rootPath: string, trusted: boolean) {
 export async function addProjectFromPath(rawPath: string) {
   try {
     const resolved = await resolveProject(rawPath);
+    // Open Recent (V1.5 §198-a, spec-010 D1): every successful open —
+    // new add AND switch-to-already-open — moves the folder to the MRU
+    // front, so the record sits before the dedup branch, not inside it.
+    recordRecentFolder(resolved.rootPath);
 
     const existing = projectState.tabs.find((t) => t.rootPath === resolved.rootPath);
     if (existing) {

@@ -12,6 +12,7 @@ import { loadState, resolveProject } from "$lib/services/tauri";
 import { parseAppState, type PersistedProject } from "$lib/services/appState";
 import { settings } from "$lib/stores/settingsStore.svelte";
 import { projectState, type ProjectTab } from "$lib/stores/projectStore.svelte";
+import { restoreRecentFolders } from "$lib/stores/recentStore.svelte";
 import {
   restoreExpandedFolders,
   restoreTreeState,
@@ -31,6 +32,10 @@ export async function restoreAppState(): Promise<void> {
     state.settings.fileTree.showSystemGeneratedFolders;
   settings.external.vsCodeNewWindow =
     state.settings.external?.vsCodeNewWindow ?? true;
+
+  // Open Recent adopts the persisted list but never records the restore
+  // itself (spec-010 D1): restart replay must not reorder the MRU.
+  restoreRecentFolders(state.recentFolders ?? []);
 
   for (const persisted of state.projects) {
     const tab = await restoreProject(persisted);

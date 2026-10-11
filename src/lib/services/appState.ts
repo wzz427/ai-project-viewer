@@ -15,6 +15,7 @@
 
 import type { Theme } from "$lib/stores/settingsStore.svelte";
 import type { SidebarMode } from "$lib/stores/projectStore.svelte";
+import { RECENT_CAP } from "$lib/services/recentList";
 
 export const STATE_VERSION = 1;
 
@@ -70,6 +71,9 @@ export interface AppStateV1 {
   projects: PersistedProject[];
   activeProjectId?: string;
   settings: PersistedSettings;
+  /** Open Recent MRU (V1.5 §198-a); optional so pre-spec-010 state files
+   * parse unchanged — absence simply heals to an empty list. */
+  recentFolders?: string[];
 }
 
 /** What buildAppState needs; structural subsets of the live stores. */
@@ -111,6 +115,8 @@ export interface BuildInput {
   trees: Record<string, TreeLike>;
   tabs: Record<string, TabsLike>;
   settings: PersistedSettings;
+  /** Open Recent MRU (V1.5 §198); already capped by insertRecent. */
+  recentFolders: string[];
 }
 
 /** Snapshots the app state for persistence. */
@@ -161,6 +167,11 @@ export function buildAppState(input: BuildInput): AppStateV1 {
     settings: structuredClone(input.settings),
   };
   if (input.activeProjectId) state.activeProjectId = input.activeProjectId;
+  // Written only when non-empty: pre-spec-010 files stay byte-identical
+  // after a no-recent session.
+  if (input.recentFolders.length > 0) {
+    state.recentFolders = [...input.recentFolders];
+  }
   return state;
 }
 
@@ -309,5 +320,9 @@ export function parseAppState(json: string): AppStateV1 | null {
   };
   const active = asString(v.activeProjectId);
   if (active) state.activeProjectId = active;
+  // Recent heals read-side too (spec-010 D5): non-strings drop, hard cap
+  // RECENT_CAP so a hand-edited file cannot smuggle an over-long list.
+  const recent = asStrArray(v.recentFolders).slice(0, RECENT_CAP);
+  if (recent.length > 0) state.recentFolders = recent;
   return state;
 }

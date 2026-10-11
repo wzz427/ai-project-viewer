@@ -42,6 +42,14 @@ export function resolveProject(rawPath: string): Promise<ResolvedProject> {
 }
 
 /**
+ * Batch staleness check for the Open Recent menu (V1.5 §198-b): true iff
+ * the path is still a directory; missing/file both gray out.
+ */
+export function pathsExist(paths: string[]): Promise<boolean[]> {
+  return invoke<boolean[]>("paths_exist", { paths });
+}
+
+/**
  * One directory level for the lazy tree (V1.5 §27). Never recursive;
  * visibility filtering happens in the frontend (spec-002 D1).
  */

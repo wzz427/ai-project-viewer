@@ -56,6 +56,7 @@ function sampleInput(): BuildInput {
       fileTree: { showSystemGeneratedFolders: true },
       external: { vsCodeNewWindow: true },
     },
+    recentFolders: [],
   };
 }
 
@@ -110,6 +111,18 @@ describe("buildAppState", () => {
     expect(state.projects[0].trustedForExecution).toBe(true);
     const parsed = parseAppState(JSON.stringify(state));
     expect(parsed!.projects[0].trustedForExecution).toBe(true);
+  });
+
+  it("writes recentFolders only when non-empty (§198, spec-010 D5)", () => {
+    const empty = buildAppState(sampleInput());
+    expect(empty.recentFolders).toBeUndefined();
+
+    const input = sampleInput();
+    input.recentFolders = ["D:\\a", "D:\\b"];
+    const state = buildAppState(input);
+    expect(state.recentFolders).toEqual(["D:\\a", "D:\\b"]);
+    const parsed = parseAppState(JSON.stringify(state));
+    expect(parsed!.recentFolders).toEqual(["D:\\a", "D:\\b"]);
   });
 });
 
@@ -182,6 +195,25 @@ describe("parseAppState", () => {
       }),
     );
     expect(parsed!.settings.viewer.fontSize).toBe(20);
+  });
+
+  it("heals recentFolders: drops non-strings, caps at 10, absent stays absent (§198)", () => {
+    const twelve = Array.from({ length: 12 }, (_, i) => `D:\\p${i}`);
+    const parsed = parseAppState(
+      JSON.stringify({
+        version: STATE_VERSION,
+        projects: [],
+        settings: {},
+        recentFolders: [...twelve, 42, null],
+      }),
+    );
+    expect(parsed!.recentFolders).toEqual(twelve.slice(0, 10));
+
+    // Pre-spec-010 state files carry no field at all — heals to absent.
+    const old = parseAppState(
+      JSON.stringify({ version: STATE_VERSION, projects: [], settings: {} }),
+    );
+    expect(old!.recentFolders).toBeUndefined();
   });
 
   it("persists and heals pdfState (spec-005 D6)", () => {

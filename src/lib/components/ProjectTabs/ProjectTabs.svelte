@@ -6,8 +6,10 @@
     type ProjectTab,
   } from "$lib/stores/projectStore.svelte";
   import { gitDirtyOf } from "$lib/stores/gitStore.svelte";
+  import { recentState } from "$lib/stores/recentStore.svelte";
   import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
   import UpdateButton from "$lib/components/ProjectTabs/UpdateButton.svelte";
+  import AddProjectMenu from "$lib/components/ProjectTabs/AddProjectMenu.svelte";
 
   let {
     /** §141 Refresh Project — same refresh as the ↻ header icon (tree+git). */
@@ -32,6 +34,20 @@
     menuX = e.clientX;
     menuY = e.clientY;
   }
+
+  // Open Recent (V1.5 §198-b): with any history the + opens a menu
+  // (Browse first, recents beneath); with none it stays the plain picker
+  // so first use is unchanged. The menu anchors under the + button.
+  let addMenu = $state<{ x: number; y: number } | null>(null);
+
+  function onAddClick(e: MouseEvent) {
+    if (recentState.folders.length === 0) {
+      void addProjectViaPicker();
+      return;
+    }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    addMenu = { x: rect.left, y: rect.bottom + 4 };
+  }
 </script>
 
 <div class="project-tabs" role="presentation">
@@ -46,7 +62,13 @@
       {tab.name}{#if indicatorOf(tab)}<span class="git-state {indicatorOf(tab) === "●" ? "dirty" : "clean"}">{indicatorOf(tab)}</span>{/if}
     </button>
   {/each}
-  <button class="add" onclick={() => addProjectViaPicker()} title="Add project" aria-label="Add project">
+  <button
+    class="add"
+    onclick={onAddClick}
+    title="Add project"
+    aria-label="Add project"
+    aria-haspopup="menu"
+  >
     +
   </button>
   <UpdateButton />
@@ -60,6 +82,10 @@
     onRefreshProject={onRefreshProject}
     onclose={() => (menuFor = null)}
   />
+{/if}
+
+{#if addMenu}
+  <AddProjectMenu x={addMenu.x} y={addMenu.y} onclose={() => (addMenu = null)} />
 {/if}
 
 <style>

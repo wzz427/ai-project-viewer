@@ -162,6 +162,7 @@ pub fn run() {
             test_project_arg,
             test_mode_active,
             project::resolve_project,
+            project::paths_exist,
             file_tree::list_directory,
             file_inspect::inspect_file,
             file_inspect::read_text_file,

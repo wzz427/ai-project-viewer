@@ -15,6 +15,7 @@ import { projectState } from "$lib/stores/projectStore.svelte";
 import { treeState } from "$lib/stores/fileTreeStore.svelte";
 import { tabsState } from "$lib/stores/tabsStore.svelte";
 import { settings } from "$lib/stores/settingsStore.svelte";
+import { recentState } from "$lib/stores/recentStore.svelte";
 
 const SAVE_DEBOUNCE_MS = 800;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -24,6 +25,7 @@ function snapshotStores(): BuildInput {
   return {
     projects: projectState.tabs,
     activeProjectId: projectState.activeId,
+    recentFolders: recentState.folders,
     trees: Object.fromEntries(
       Object.entries(treeState.byRoot).map(([root, st]) => [
         root,
