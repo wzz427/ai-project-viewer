@@ -29,7 +29,7 @@
 | R# | 组 | 覆盖条目 | 需求(使用者视角) |
 |---|---|---|---|
 | R1 | 提交信息与 diff 正确性 | H1/M2/L-r2/L-r3/L-r6 | 多行提交消息完整显示且正文不再变成假文件;merge 提交点开能看到对第一父的并排 diff(不错位);文件名含控制字符/通配符时 diff 与文件列表仍正确;"提交详情失败"不再误报成"git diff failed" |
-| R2 | 主线程卫生 | H2/M12 | 启动/点更新/展开树/切项目/保存状态/外部移交/运行脚本,任何路径都不再冻原生窗口(重活全数下线程池);无更新 staged 时更新检查不再白读当前 exe |
+| R2 | 主线程卫生与后端健壮 | H2/M5/M6/M12 | 启动/点更新/展开树/切项目/保存状态/外部移交/运行脚本,任何路径都不再冻原生窗口(重活全数下线程池);无更新 staged 时更新检查不再白读当前 exe;查看中的文件被外部截断不再崩溃;git 大量告警不再把本可成功的调用误报成超时 |
 | R3 | watcher 与 git 刷新时序 | M4/M10/L-f5/L-f9 | 快速切项目后新项目的文件变化照常实时刷新;git 徽标/列表不被旧快照覆盖,正开着的 diff 不被误关;移除的项目状态真释放(不复活驻留);同窗链式改名页签跟到最终名(不误标已删除) |
 | R4 | PDF 资源与搜索 | M7/M8/M9 | 缩放连打/滚动不再成倍白干渲染;搜索中途切页签不产生错误哨噪音,连按回车结果不交错;滚动后立刻切走,回来位置不退化为页顶 |
 | R5 | 页签与会话状态一致性 | M1/M3/M13/M14/L-f10/L-f11/L-f13 | 重开已开的 PDF 从原位置继续;MD 切 Source 再回来滚动位置不丢、关页签不把位置清零;切主题代码查看器不整建、跟随系统深浅色即时生效;改名撞名不产生重复页签;恢复的状态不重复建项目;置顶列表无重复行 |
@@ -45,7 +45,7 @@
 | V# | 对应 R | 什么样算对(可判定) | 自动/人工 |
 |---|---|---|---|
 | V1 | R1 | cargo 新增:①多行消息夹具(正文含 TAB 行)→ Message 完整+文件列表无幻影条目;②merge 提交(真 git 造 merge)→ show 输出为 unified(first-parent)且前端 parseUnifiedDiff 全行对齐;③含控制字符文件名 unquote 还原正确;④pathspec :(literal) 下 `a*b.py` 只匹配自身;⑤commit_detail 失败文案含 "commit" | 自动 |
-| V2 | R2 | 全仓 grep `#[tauri::command]`:同步 fn 且函数体含 fs::/Command/ShellExecute 的数量=0;cargo 新增 check_update 无 staged 时零读盘断言;既有 cargo/vitest 全绿 | 自动 |
+| V2 | R2 | 全仓 grep `#[tauri::command]`:同步 fn 且函数体含 fs::/Command/ShellExecute 的数量=0;cargo 新增:check_update 无 staged 时零读盘断言、decode_bytes 短于 BOM 的样本不 panic、run_git_capped 大量 stderr 不误报超时;既有 cargo/vitest 全绿 | 自动 |
 | V3 | R3 | cargo 新增 watcher 代次测试(后完成的旧 start 自弃,槽=最后请求的 root);vitest renamedRel 链式改名到不动点;**watcher-freeze-guard 0/冻窗采样**(动 watcher 链必跑)+git-suite 全绿 | 自动 |
 | V4 | R4 | pdf-suite 新增:①缩放连打 N 轮后渲染调用数≤页数×1(计数探针);②搜索中切页签→零 unhandledrejection(诊断环断言);③滚动后<300ms 切走再回来,scrollPosition 不为 undefined(e2e 探针) | 自动 |
 | V5 | R5 | phase3 新增:重开已开 PDF(非激活→树双击)页码保持;MD Rendered→Source→切走→回来滚动位置=保存值;git-suite:视图切换/刷新不再误关 diff(构造并发刷新探针);vitest:pinnedItems 去重、链式改名 | 自动 |
@@ -64,7 +64,9 @@
   调用方传语境词。
 - **G2(R2)**:H2+M12 十五个命令(check/apply_update、list_directory、resolve_project、
   save/load_state、write_diagnostics、handoff 五命令、run 两命令)按既有 `*_inner` 模式机械转
-  async+spawn_blocking;check_update 读 current 前先 `incoming.exists()` 短路。
+  async+spawn_blocking;check_update 读 current 前先 `incoming.exists()` 短路;
+  M5=decode_bytes 的 BOM 切片改 `get(bom_len..).unwrap_or(&[])`(截断样本不再 panic);
+  M6=run_git_capped 的 stderr 排空线程挪到 try_wait 循环**之前** spawn(背压不再卡死主调用)。
 - **G3(R3)**:M4=WatchSlot 旁存 `expected_root: Mutex<PathBuf>`,start 入口先记,blocking 完成
   时不一致即 drop 自己的 debouncer 返回 Ok(D3);M10=fetchInto 单飞(per-root 在途 promise
   复用,完成时若有新请求标记补一轮);L-f5=forgetGit 取 pending clearTimeout+delete+在途
@@ -112,7 +114,7 @@
 | R# | V# | 测法 | 所需夹具 | 状态 |
 |---|---|---|---|---|
 | R1 | V1 | cargo 新增 5 项(多行消息/merge first-parent/控制字符 unquote/literal pathspec/文案) | tmp 真 git 仓库(含 merge+多行消息+控制字符名文件) | ⚠(方案) |
-| R2 | V2 | grep 全量核对+cargo 新增 1+既有全绿 | 无 | ⚠ |
+| R2 | V2 | grep 全量核对+cargo 新增 3(零读盘/截断样本/大 stderr)+既有全绿 | 无 | ⚠ |
 | R3 | V3 | cargo watcher 代次+vitest 不动点+**freeze-guard 必跑**+git-suite | scripts/e2e 既有 | ⚠ |
 | R4 | V4 | pdf-suite 新增 3 探针(渲染计数/零 unhandledrejection/scrollPosition 保真) | PDF 夹具 | ⚠ |
 | R5 | V5 | phase3 新增 3+git-suite 并发探针+vitest 2 | AIV-TestProject | ⚠ |
@@ -126,3 +128,5 @@
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
 | 2026-10-11 | 立项 Draft(owner"我想全部修复。你写一个针对code review的修复spec") | 本文档+测试矩阵 9 行 |
+| 2026-10-11 | Draft→Ready(自核 R/V 与报告逐条对上时**发现 M5/M6 漏入组**,补进 R2/G2/V2/矩阵——"44 全量减 M15=43 条"现在才真正对平;矩阵 9 行齐;D1–D8 齐) | 本页修订 4 处 |
+| 2026-10-11 | Ready→InDev(A2 开工确认:owner 原话"开工,完成spec012") | — |
