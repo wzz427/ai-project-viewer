@@ -75,3 +75,35 @@ describe("renamedRel (file and ancestor renames)", () => {
     expect(renamedRel("src/oldish/main.py", renames)).toBeNull();
   });
 });
+
+describe("renamedRel chains to a fixpoint (spec-012 L-f9)", () => {
+  it("follows a→b→c inside one window to the final name c", () => {
+    const renames = [
+      { from: "a.md", to: "b.md" },
+      { from: "b.md", to: "c.md" },
+    ];
+    expect(renamedRel("a.md", renames)).toBe("c.md");
+  });
+
+  it("follows chained ancestor directory renames", () => {
+    const renames = [
+      { from: "old", to: "mid" },
+      { from: "mid", to: "new" },
+    ];
+    expect(renamedRel("old/x.py", renames)).toBe("new/x.py");
+  });
+
+  it("does not hang on a malformed cyclic batch", () => {
+    const renames = [
+      { from: "a.md", to: "b.md" },
+      { from: "b.md", to: "a.md" },
+    ];
+    // Even cycle: cap iterations land back on the original path, which
+    // reads as "no rename" — deterministic, never a hang.
+    expect(renamedRel("a.md", renames)).toBeNull();
+  });
+
+  it("keeps returning null when nothing matches", () => {
+    expect(renamedRel("x.py", [{ from: "a.md", to: "b.md" }])).toBeNull();
+  });
+});

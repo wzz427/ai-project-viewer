@@ -85,16 +85,37 @@ interface Pending {
   timer: ReturnType<typeof setTimeout>;
   promise: Promise<void>;
   fire: () => void;
+  resolve: () => void;
 }
 
 const pending = new Map<string, Pending>();
 const seen = new Set<string>();
+
+/** In-flight fetches (spec-012 M10): one fetchInto per root at a time.
+ * Callers that arrive mid-flight mark `dirty` and share the same promise —
+ * a follow-up round runs when the current one completes, so responses
+ * always apply in request order and a slow old fetch can never overwrite a
+ * newer snapshot (or mis-close a diff view off stale groups). */
+interface InFlight {
+  wait: Promise<void>;
+  dirty: boolean;
+}
+const inFlight = new Map<string, InFlight>();
+
+/** Per-root forget generation (spec-012 L-f5): bumped by forgetGit; an
+ * in-flight fetch's follow-up rounds abort when the generation moved. */
+const generation = new Map<string, number>();
 
 async function fetchInto(rootPath: string) {
   const st = projectGitState(rootPath);
   st.loading = true;
   try {
     const snap = await gitSnapshot(rootPath);
+    // Project removed while the fetch was in flight (L-f5): discard —
+    // writing this would resurrect the forgotten project's git state and
+    // pin it until exit. Identity check also catches forget+re-add (a new
+    // state object exists; ours is stale).
+    if (gitState.byRoot[rootPath] !== st) return;
     st.snapshot = snap;
     st.marks = marksByRel(snap);
     // A diff whose file left its group after the refresh (reverted,
@@ -110,6 +131,7 @@ async function fetchInto(rootPath: string) {
       if (group && !group.some((e) => e.rel === slot.rel)) closeGitView();
     }
   } catch (err) {
+    if (gitState.byRoot[rootPath] !== st) return;
     st.snapshot = {
       status: "error",
       error: String(err),
@@ -121,8 +143,31 @@ async function fetchInto(rootPath: string) {
     };
     st.marks = new Map();
   } finally {
-    st.loading = false;
+    if (gitState.byRoot[rootPath] === st) st.loading = false;
   }
+}
+
+/** Single-flight fetch (M10): dedupes concurrent callers per root and runs
+ * follow-up rounds for requests that arrived mid-flight. */
+function startFetch(rootPath: string): Promise<void> {
+  const cur = inFlight.get(rootPath);
+  if (cur) {
+    cur.dirty = true;
+    return cur.wait;
+  }
+  const entry: InFlight = { wait: Promise.resolve(), dirty: false };
+  const gen = generation.get(rootPath) ?? 0;
+  entry.wait = (async () => {
+    do {
+      entry.dirty = false;
+      await fetchInto(rootPath);
+      // forgetGit bumped the generation mid-flight → stop (L-f5).
+      if ((generation.get(rootPath) ?? 0) !== gen) break;
+    } while (entry.dirty);
+    inFlight.delete(rootPath);
+  })();
+  inFlight.set(rootPath, entry);
+  return entry.wait;
 }
 
 function projectGitState(rootPath: string): ProjectGitState {
@@ -137,7 +182,8 @@ function projectGitState(rootPath: string): ProjectGitState {
 /**
  * Debounced refresh. Callers within the window coalesce onto one promise
  * (the ↻ spinner awaits it); the timer resets on each call so bursts of
- * focus events produce one spawn set.
+ * focus events produce one spawn set. The fetch itself rides startFetch's
+ * single flight (M10).
  */
 export function refreshGit(rootPath: string): Promise<void> {
   const cur = pending.get(rootPath);
@@ -150,9 +196,9 @@ export function refreshGit(rootPath: string): Promise<void> {
   const promise = new Promise<void>((r) => (resolve = r));
   const fire = () => {
     pending.delete(rootPath);
-    void fetchInto(rootPath).finally(() => resolve());
+    void startFetch(rootPath).finally(() => resolve());
   };
-  pending.set(rootPath, { timer: setTimeout(fire, 400), promise, fire });
+  pending.set(rootPath, { timer: setTimeout(fire, 400), promise, fire, resolve });
   return promise;
 }
 
@@ -170,7 +216,7 @@ export function refreshGitNow(rootPath: string): Promise<void> {
     cur.fire();
     return cur.promise;
   }
-  return fetchInto(rootPath);
+  return startFetch(rootPath);
 }
 
 /** Startup/new-project scan bookkeeping (App effect asks "anything new?"). */
@@ -182,9 +228,19 @@ export function markGitSeen(rootPath: string) {
   seen.add(rootPath);
 }
 
-/** Project removed → drop its state entirely (same point as forgetTabs). */
+/** Project removed → drop its state entirely (same point as forgetTabs).
+ * Cancels the debounce AND disarms any in-flight fetch (L-f5): the result
+ * is discarded at the identity check, follow-up rounds abort on the
+ * generation bump, and awaiters are released so nothing hangs. */
 export function forgetGit(rootPath: string) {
+  generation.set(rootPath, (generation.get(rootPath) ?? 0) + 1);
   seen.delete(rootPath);
+  const cur = pending.get(rootPath);
+  if (cur) {
+    clearTimeout(cur.timer);
+    pending.delete(rootPath);
+    cur.resolve();
+  }
   delete gitState.byRoot[rootPath];
   if (gitViewSlot.current?.rootPath === rootPath) closeGitView();
 }

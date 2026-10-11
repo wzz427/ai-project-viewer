@@ -319,26 +319,23 @@ export function applyTreeRenames(
 ): void {
   const st = treeFor(rootPath);
   if (renames.length === 0) return;
+  // Fixpoint, not first hop (spec-012 L-f9): one window can carry a→b
+  // then b→c; the iteration cap doubles as a cycle guard.
   const mapPath = (p: string): string => {
-    for (const r of renames) {
-      if (p === r.from || p.startsWith(r.from + "/")) {
-        return r.to + p.slice(r.from.length);
-      }
+    let cur = p;
+    for (let i = 0; i < renames.length; i++) {
+      const hop = renames.find(
+        (r) => cur === r.from || cur.startsWith(r.from + "/"),
+      );
+      if (!hop) break;
+      cur = hop.to + cur.slice(hop.from.length);
     }
-    return p;
+    return cur;
   };
   const lastName = (p: string) => p.slice(p.lastIndexOf("/") + 1);
-  const mapName = (parentRel: string, name: string): string => {
-    for (const r of renames) {
-      const fromParent = r.from.includes("/")
-        ? r.from.slice(0, r.from.lastIndexOf("/"))
-        : TREE_ROOT;
-      if (fromParent === parentRel && name === lastName(r.from)) {
-        return lastName(r.to);
-      }
-    }
-    return name;
-  };
+  // Rides mapPath's fixpoint by mapping the full pin path (M14/L-f9).
+  const mapName = (parentRel: string, name: string): string =>
+    lastName(mapPath(parentRel === TREE_ROOT ? name : parentRel + "/" + name));
 
   st.children = Object.fromEntries(
     Object.entries(st.children).map(([k, v]) => [mapPath(k), v]),
@@ -346,7 +343,14 @@ export function applyTreeRenames(
   st.expandedFolders = st.expandedFolders.map(mapPath);
   const pins: Record<string, string[]> = {};
   for (const [parent, names] of Object.entries(st.pinnedItems)) {
-    pins[mapPath(parent)] = names.map((n) => mapName(parent, n));
+    const mappedParent = mapPath(parent);
+    // A rename target colliding with an existing pin (or a chain folding
+    // two names onto one) must not leave duplicate rows (spec-012 M14).
+    const acc = pins[mappedParent] ?? [];
+    for (const n of names.map((n) => mapName(parent, n))) {
+      if (!acc.includes(n)) acc.push(n);
+    }
+    pins[mappedParent] = acc;
   }
   st.pinnedItems = pins;
   if (st.revealTarget) st.revealTarget = mapPath(st.revealTarget);

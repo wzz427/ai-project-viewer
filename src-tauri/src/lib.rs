@@ -108,8 +108,9 @@ pub fn run() {
         })
         .manage(state::LastState::default())
         // Phase 9 (spec-009 D6): ONE live watch for the active project;
-        // start_project_watch atomically swaps this slot.
-        .manage(std::sync::Mutex::new(None::<watcher::WatchSlot>))
+        // start_project_watch atomically swaps this slot. The generation
+        // marker inside retires out-of-order completions (spec-012 M4/D3).
+        .manage(std::sync::Mutex::new(watcher::WatchState::default()))
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 disable_browser_accelerators(&window);

@@ -8,7 +8,6 @@
 //! when available (§84 reliable identification, D2).
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -55,6 +54,41 @@ const STORM_LIMIT: usize = 200;
 /// nothing here.
 pub struct WatchSlot {
     debouncer: Debouncer<notify::RecommendedWatcher, NoCache>,
+}
+
+/// Managed watcher state = live slot + the generation marker
+/// `expected_root` (spec-012 M4/D3). `start_project_watch` runs its
+/// canonicalize+watch() on a worker thread; two rapid switches A→B race,
+/// and whichever finishes LAST used to win the slot — fast A on a warm
+/// cache could resurrect A's watcher over B's, silently killing the new
+/// project's live refresh. The marker is claimed at request time and
+/// re-checked at completion; a superseded start drops its own watcher.
+#[derive(Default)]
+pub struct WatchState {
+    pub(crate) expected_root: Option<PathBuf>,
+    pub(crate) slot: Option<WatchSlot>,
+}
+
+/// Record `root` as the watcher the frontend last asked for. Called BEFORE
+/// the blocking watch setup begins.
+pub(crate) fn claim_start(state: &mut WatchState, root: PathBuf) {
+    state.expected_root = Some(root);
+}
+
+/// Install `debouncer` only if `root` is still the claimed root (M4/D3).
+/// Returns false for a superseded start — the caller then drops the
+/// debouncer (joining its thread) instead of installing it.
+pub(crate) fn install_if_current(
+    state: &mut WatchState,
+    root: &Path,
+    debouncer: Debouncer<notify::RecommendedWatcher, NoCache>,
+) -> bool {
+    if state.expected_root.as_deref() == Some(root) {
+        state.slot = Some(WatchSlot { debouncer });
+        true
+    } else {
+        false
+    }
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -255,13 +289,28 @@ pub async fn start_project_watch(app: AppHandle, root_path: String) -> Result<()
         let root = std::fs::canonicalize(&root_path)
             .map_err(|e| format!("cannot watch {root_path}: {e}"))?;
         let root = dunce::simplified(&root).to_path_buf();
+        // Claim the generation FIRST (M4/D3): if a newer start/stop lands
+        // while this watcher is being built, the completion check retires
+        // this one instead of clobbering the newer watcher.
+        {
+            let state: tauri::State<'_, Mutex<WatchState>> = app.state();
+            claim_start(&mut state.lock().unwrap(), root.clone());
+        }
         let emit_app = app.clone();
         let debouncer = spawn_watcher(root.clone(), move |batch| {
             let _ = emit_app.emit("fs-changed", &batch);
         })
         .map_err(|e| format!("cannot watch {}: {e}", root.display()))?;
-        let slot: tauri::State<'_, Mutex<Option<WatchSlot>>> = app.state();
-        *slot.lock().unwrap() = Some(WatchSlot { debouncer });
+        {
+            let state: tauri::State<'_, Mutex<WatchState>> = app.state();
+            let mut guard = state.lock().unwrap();
+            if !install_if_current(&mut guard, &root, debouncer) {
+                // Superseded by a newer request — drop our own watcher.
+                // Dropping joins the debouncer thread right here on the
+                // worker thread, never the main one.
+                return Ok(());
+            }
+        }
         Ok(())
     })
     .await
@@ -273,8 +322,12 @@ pub async fn stop_project_watch(app: AppHandle) -> Result<(), String> {
     // Dropping the slot joins the debouncer thread — off the main thread
     // for the same reason as start (L35/L36).
     tauri::async_runtime::spawn_blocking(move || {
-        let slot: tauri::State<'_, Mutex<Option<WatchSlot>>> = app.state();
-        *slot.lock().unwrap() = None;
+        let state: tauri::State<'_, Mutex<WatchState>> = app.state();
+        let mut guard = state.lock().unwrap();
+        // Clearing the marker also retires any start still in flight
+        // (its completion check will see None ≠ Some(root) and self-drop).
+        guard.expected_root = None;
+        guard.slot = None;
         Ok(())
     })
     .await
@@ -447,5 +500,45 @@ mod tests {
             }
         }
         watcher.unwatch(dir.path()).ok();
+    }
+
+    /// spec-012 M4/D3: the completion check retires superseded starts and
+    /// never clobbers a newer watcher. Real debouncers on tempdirs stand in
+    /// for the real race (A claimed, B claims, A finishes last).
+    #[test]
+    fn superseded_start_self_retires_and_newer_watcher_survives() {
+        let dir_a = tempfile::tempdir().unwrap();
+        let dir_b = tempfile::tempdir().unwrap();
+        let mut state = WatchState::default();
+
+        // A claims, then B claims (the frontend switched projects).
+        claim_start(&mut state, dir_a.path().to_path_buf());
+        claim_start(&mut state, dir_b.path().to_path_buf());
+
+        // A's watcher finishes building LAST: must self-retire.
+        let deb_a = spawn_watcher(dir_a.path().to_path_buf(), |_| {}).unwrap();
+        assert!(!install_if_current(&mut state, dir_a.path(), deb_a));
+        assert!(state.slot.is_none(), "superseded watcher must not install");
+
+        // B's watcher installs and stays.
+        let deb_b = spawn_watcher(dir_b.path().to_path_buf(), |_| {}).unwrap();
+        assert!(install_if_current(&mut state, dir_b.path(), deb_b));
+        assert!(state.slot.is_some());
+        assert_eq!(state.expected_root.as_deref(), Some(dir_b.path()));
+    }
+
+    /// M4: `stop` clears the marker, so a start still in flight at stop
+    /// time retires itself at completion.
+    #[test]
+    fn stop_retires_in_flight_start() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut state = WatchState::default();
+        claim_start(&mut state, dir.path().to_path_buf());
+        // stop_project_watch's blocking body:
+        state.expected_root = None;
+        state.slot = None;
+        let deb = spawn_watcher(dir.path().to_path_buf(), |_| {}).unwrap();
+        assert!(!install_if_current(&mut state, dir.path(), deb));
+        assert!(state.slot.is_none());
     }
 }

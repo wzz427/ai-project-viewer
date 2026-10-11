@@ -36,8 +36,23 @@ export function isGone(rel: string, batch: FsChangeBatch): boolean {
 }
 
 /** New rel after renames — the file itself or an ancestor directory was
- * renamed (§84); null when unaffected. */
+ * renamed (§84); null when unaffected. CHAINS resolve to the final name
+ * (spec-012 L-f9): the same window can carry a→b then b→c, and stopping
+ * at the first hop left tabs pointing at the intermediate name b — a path
+ * that no longer exists, so the reload marked a live file deleted. The
+ * renames.length iteration cap doubles as a cycle guard (a↔b loops are
+ * malformed batches, not a hang). */
 export function renamedRel(rel: string, renames: RenamePair[]): string | null {
+  let cur = rel;
+  for (let i = 0; i < renames.length; i++) {
+    const next = oneRenameHop(cur, renames);
+    if (next === null) break;
+    cur = next;
+  }
+  return cur === rel ? null : cur;
+}
+
+function oneRenameHop(rel: string, renames: RenamePair[]): string | null {
   for (const r of renames) {
     if (rel === r.from) return r.to;
     if (rel.startsWith(r.from + "/")) return r.to + rel.slice(r.from.length);
