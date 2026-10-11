@@ -84,7 +84,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **63 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链 |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **64 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径 |
 | `git-suite.py` | Phase 7 Git 检视 33 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + 0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭 + **Phase 9:外部写/删探针→徽标自动 [8]/[7](零手势,V5;窗口 park offscreen——L34)**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换/watcher→git 链 |
 | `recent-suite.py` | Open Recent **15 项**(0.7.3,spec-010):预置状态文件+AIV_TEST_PROJECT 自动加两路驱动(原生选框绝不驱动,D4)——记录+MRU+cap 挤旧/菜单结构(Browse 首项+Clear 底部)/失效置灰+报错/打开新项目与切换已开/Esc 关闭/重启持久化/行内✕与 Clear 落盘/空白欢迎页列表;夹具 %TEMP%iv-p10-recent 每次重建;**Clear 之后严禁再点 +(空表会弹原生选框)** | 凡动 recentStore/AddProjectMenu/EmptyState/appState recentFolders 字段 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
@@ -232,6 +232,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | recent-suite | **15/15**(记录+MRU/cap 挤旧/菜单结构/失效置灰+报错/打开与切换/Esc/重启持久化/✕+Clear 落盘/空白页列表) |
 | 全档 | phase3 63/63+git 33/33+r3 8/8+pdf 19/19+vitest **60/60**(recentList 10 新+appState recentFolders 2 新)+cargo **96/96**(paths_exist 新)+check 0/0;freeze-guard 免跑(watcher 链零改动) |
 | 发版后核验 | 三处版本 0.7.3;三二进制:target\release=**dev 标识**✓、target-exp 与 updates=**exp 标识**✓——**标识字节在 4MB 窗口外,须全文件扫**(连带修了 swap-experience-client.py 的同款窗口误判) |
+
+#### 0.7.4 行号错位返修轮(2026-10-11,owner 截图报障"行标号和行字符串没有对齐";全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 全局字号走 :root CSS 变量,CodeMirror 看不见非自己施加的样式变化→缓存行高过期→**行号列(高度按旧测量显式指定)逐行漂移**;探针实证:14→20px 十二行文件偏 100px,滚动/内容溢出才偶然触发重测自愈。默认 13px 时偏移不可见——0.6 工具栏(SPEC-INFRA-003)起潜伏,owner 调大字号后显形。**非 0.7.x 引入** |
+| 修复 | 字号一变即**重建**编辑器实例(watcher contentRev 重挂载同款确定性模式,§160.5 保滚动);行号随正文同字号(VS Code 行为)。弃 requestMeasure/内部 measure 路线:离屏窗 RAF 节流+行号刷新依赖 update 旗标,探针实证不愈(12 行短文件 92px 不动) |
+| 全档 | phase3 **64/64**(+gutter_aligned_across_font_changes)+git 33/33+r3 8/8+pdf 19/19+recent 15/15+vitest 60/60+cargo 96/96+check 0/0 |
+| 版本 | 0.7.4 三处已核;发版后三二进制全文件扫描:updates=exp 0.7.4✓、dev 完好(标识 dev);dev 构建同日重至 0.7.4 |
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 
