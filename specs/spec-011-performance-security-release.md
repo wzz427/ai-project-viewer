@@ -148,3 +148,4 @@ Rust 侧命令超时面。不动架构。
 |---|---|---|
 | 2026-10-11 | 立项 Draft→Ready(A2 对齐完成:owner 看说人话范围表后原话"开工";R/V 与 §184 逐条对上,九+十一+三全覆盖) | 测试覆盖矩阵 6 行 |
 | 2026-10-11 | InDev→InTest(**0.7.6 已发体验渠道,等 owner 复验**):审计表 20 行全回填(净 14/按设计 1/特性 1/漏已修 3+主线程 2);四修复=git 旗标+async、读通道 async、cmd /K 双引号防注入、opener 授权收紧;R9 探针插曲:注入实证时 calc 短暂弹窗(已清理,测试纪律教训——注入类真 spawn 测试的载荷命令应选无害命令) | 全档数字见 §五 V6 行 |
+| 2026-10-11 | **返修一轮(0.7.7)**:owner 复验报障"点击字体放大缩小…有时按钮显示蓝色"——根因=连点落进双击窗口,浏览器按词选中按钮标签,原生 ::selection 蓝挂在按钮上(**L40**:`.viewer-body user-select:text` 罩住工具栏+Chromium 对 button 文字默认不豁免);修=全局 `button{user-select:none}`+两工具栏容器 none+容器内 input 显式恢复 text | 探针:修前 dblclick selection='+' 199 蓝像素/tri 'A+\n' 343 → 修后全空/19 基线;phase3 +1 `toolbar_buttons_not_selectable`(**67**/67)+pdf 19+r3 8+vitest 60+cargo 99+check 0 |

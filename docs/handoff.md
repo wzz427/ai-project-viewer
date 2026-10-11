@@ -25,6 +25,11 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-11 · 0.7.7 返修一轮:工具栏按钮双击变蓝(spec-011 InTest 复验反馈)
+
+- owner 报障"点击字体放大缩小…有时按钮显示蓝色"——根因=连点落进双击窗口,浏览器词选中按钮标签染原生蓝(**L40**);修=全局 button user-select:none+两工具栏容器 none+input 显式恢复 text;守卫=phase3 `toolbar_buttons_not_selectable`(67/67)。
+- **0.7.7 已发体验渠道等 owner 复验**;主线不变:复验通过后剩 T3 全量 Benchmark+NSIS 打包两红线闸(须 owner 点头)。
+
 ### 2026-10-11 · spec-011 Phase 10 体检首发轮 0.7.6(InDev→InTest,等 owner 复验)
 
 > **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → spec-011 §四审计表(20 行全回填)。

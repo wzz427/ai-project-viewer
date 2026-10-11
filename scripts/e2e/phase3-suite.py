@@ -302,6 +302,23 @@ with sync_playwright() as p:
           and gutter_bumped["cs"] == gutter_bumped["gs"],
           f"before={gutter_before} bumped={gutter_bumped}")
 
+    # 0.7.7 blue-button guard (owner 2026-10-11 "点击字体放大缩小…按钮显示蓝
+    # 色"): a fast double-/triple-click on the zoom buttons used to word-select
+    # the label ("A+"/"+") and paint it in the native blue ::selection —
+    # controls are user-select:none now; the selection must stay empty.
+    zoom_btn = page.locator('.code-viewer .vtb button[aria-label="Larger text"]')
+    zoom_btn.dblclick()
+    time.sleep(0.2)
+    sel_after_dbl = page.evaluate("() => window.getSelection().toString()")
+    box = zoom_btn.bounding_box()
+    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2,
+                     click_count=3)
+    time.sleep(0.2)
+    sel_after_tri = page.evaluate("() => window.getSelection().toString()")
+    check("toolbar_buttons_not_selectable",
+          sel_after_dbl == "" and sel_after_tri == "",
+          f"dbl={sel_after_dbl!r} tri={sel_after_tri!r}")
+
     # centered reading column + resize guard (owner 2026-10-10 bug class)
     open_file("README.md")
     cdp = page.context.new_cdp_session(page)

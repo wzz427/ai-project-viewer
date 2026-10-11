@@ -634,6 +634,9 @@
     padding: 4px 8px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    /* The whole strip is controls; double-clicks must never word-select
+       labels (native blue ::selection) — inputs opt back in below. */
+    user-select: none;
   }
 
   .tb {
@@ -672,6 +675,7 @@
     text-align: center;
     background: var(--bg);
     color: var(--text);
+    user-select: text; /* inherited none from .toolbar would kill word selection */
   }
 
   .search {
@@ -682,6 +686,7 @@
     font-size: 12px;
     background: var(--bg);
     color: var(--text);
+    user-select: text; /* same as .page-no */
   }
 
   .sep {

@@ -127,6 +127,11 @@ button {
   background: none;
   border: none;
   cursor: pointer;
+  /* Buttons are controls, never copy targets — without this, a fast
+     double-click on A+/A− (or any toolbar button inside the selectable
+     .viewer-body) word-selects the label and paints it in the native
+     blue ::selection (owner 2026-10-11 "点击字体放大缩小…按钮显示蓝色"). */
+  user-select: none;
 }
 
 .mono {

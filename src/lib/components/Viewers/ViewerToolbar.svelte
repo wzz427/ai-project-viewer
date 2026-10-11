@@ -92,6 +92,9 @@
     padding: 4px 8px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    /* The whole strip is controls; double-clicks must never word-select
+       the "15px" label (native blue ::selection) — inputs opt back in. */
+    user-select: none;
   }
 
   .tb {
@@ -119,6 +122,7 @@
     font-size: 12px;
     background: var(--bg);
     color: var(--text);
+    user-select: text; /* inherited none from .vtb would kill double-click word selection */
   }
 
   .grow {
