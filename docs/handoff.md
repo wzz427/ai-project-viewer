@@ -41,6 +41,7 @@ aivlaunch(PID 限定)+**park_offscreen(L34)**。
   (旧副本被写成空壳曾造成"健康"假象);**夹具必须含真实规模目录**(本仓库即最佳夹具)。
 - 全档:cargo 95/95+vitest 50/50+check 0/0+phase3 63/63+git 33/33+r3 8/8+pdf 19/19+
   freeze-guard 0/83;真实状态副本修后 0/75 无响应。
+- **手动换装法**(客户端冻到点不了更新时重做):按路径杀 exp 实例 → %LOCALAPPDATA%\AIProjectViewer\updates 下的 ai-project-viewer.exe 暂存为 app 目录 *.new+md5 校验+旧 exe 转 .old → Start-Process 启动 → 核 Responding+FileVersion;old 文件由下次启动自清。
 
 ### 2026-10-11 · 0.7.1 返修:启动即卡死(owner 报"一打开就卡死,点击全是 ⌛️")
 
