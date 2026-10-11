@@ -11,9 +11,9 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **owner 已预告新对话两步:① code review(0.7.6/0.7.7 的五笔修复+CSS 返修)
-② 最后的全量性能基准(T3,A–I 档+Phase 1 Baseline)**——收口原话"我打算开个新对话做 code review,
-然后做最后的全量性能基准"(2026-10-11,=T3 排期授权,新会话 code review 后即可跑,无需再请示);
+主线 = **code review 已完成(2026-10-11,全代码 2 高/15 中/约 25 低,报告 docs/code-review-2026-10-11.md),
+等 owner 拍板:先修哪批(建议 H2+M7 在 T3 前修,免得污染基准测量)→ 然后 T3 全量性能基准
+(A–I 档+Phase 1 Baseline,owner 已预告授权"新会话 code review 后即可跑,无需再请示")**;
 NSIS 实际打包仍须 owner 届时点头。spec-011 **InTest**:0.7.7 已发体验渠道待 owner 复验,
 code review 通过+基准跑完=收口转 Done 的条件。**版本段 0.7.x 固定递增不跳段**。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
@@ -25,6 +25,16 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 **park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-11 · 全面 code review 完成(0.7.7 全代码),主线=等 owner 拍板修复顺序→T3
+
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → 评审报告 docs/code-review-2026-10-11.md。
+
+- 结论:无 Critical;2 高(多行提交消息解析丢失+幻影文件 / updater 主线程整读 exe)15 中约 25 低;
+  五笔 0.7.6/0.7.7 修复复核四笔修对、async 化有长尾;揪出 0.7.6 审计四处盲区(报告"对 0.7.6 审计的
+  四点补充")。全部高中级发现经会话逐条回读源码验证。基线实测全绿(check 0/0+vitest 60+cargo 99)。
+- 下一步:owner 拍板"先修 H2+M7 再跑 T3,还是直接跑 T3 留 0.7.8 修"(报告末节有建议顺序);
+  修复批消费完报告后,报告文件归档 history。
 
 ### 2026-10-11 · 对话收口:Phase 10 体检 0.7.6+0.7.7 交付,主线交棒 code review→全量基准
 
