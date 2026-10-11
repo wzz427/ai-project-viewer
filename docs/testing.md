@@ -89,6 +89,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
+| `watcher-freeze-guard.py` | 监听抗冻守卫(0.7.0 启动卡死教训,L35):%TEMP% 夹具(300 文件/30 提交 git 仓)+持续写盘锤击(改写+增删 ~33 周期/秒)25s,`SendMessageTimeout(WM_NULL)` 测**原生窗口线程**(渲染进程健康≠窗口没冻);PASS=无响应采样≤2 | **凡动 watcher 链/git_snapshot/事件刷新路径,发版前必跑** |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
 | `oracle/` | 官方查看器对照基准(搭建见 README) | 疑上游问题 |
 
@@ -202,6 +203,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 版本 | 0.7.0 三处已核(package.json/tauri.conf.json/Cargo.toml) |
 
 实现期两教训(lessons L33/L34):Windows 上 notify 的 rename 是**单个 Name(Both) 事件带 [from,to]**,按 From/To 两事件的心智模型写分类器必漏(树靠重列兜底掩盖根因,页签不跟才暴露);隐藏 WebView2 冻结的是定时器队列不是页面——fs 事件照常送达 handleBatch,但其中 refreshGit 的 400ms 防抖定时器冻着(git-suite 徽标涨不回落;诊断环两笔 fs-change 都在+零报错定位)。修=watcher 触发的 git 刷新走 refreshGitNow 直取(Rust 侧已合并过,前端无需二次防抖)+e2e 一律 park_offscreen。
+
+#### 0.7.1 返修轮(2026-10-11,owner 报"一打开就卡死,点击全是 ⌛️";全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | **同步命令跑在原生主线程**(L35):git_snapshot(起 git.exe,真仓库 0.1–2s)被监听变成每事件批次触发,AI 会话持续写盘时主线程被占死不泵消息——小夹具 e2e 测不出(单批仅几十 ms) |
+| 修复 | ①git_snapshot → async 命令+spawn_blocking(离主线程,聚焦/手动刷新的隐性卡顿一并消除)②watcherStore 单 lane 串行+忙时合并批次(防堆积,无 setTimeout——L34) |
+| **watcher-freeze-guard** | 复现:持续锤击(改写+增删 ~33 周期/秒)下原生窗口 40 采样 **29 个无响应**(SendMessageTimeout WM_NULL;渲染进程当时 18ms"健康"——测错了对象);修复后 **0/83 + 渲染 10ms,PASS** |
+| 全档 | phase3 63/63+git-suite 33/33+r3 8/8+pdf 19/19+vitest 50/50+cargo 95/95+check 0/0 |
+| 版本 | 0.7.1 三处已核 |
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 

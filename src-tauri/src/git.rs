@@ -633,9 +633,31 @@ fn snapshot(project: &Path) -> GitSnapshot {
 /// Full runtime git state for one project (§20: runtime truth, the
 /// frontend never persists it). Never rejects — every failure folds into
 /// `status` so the panel can render §152/§153 messages.
+///
+/// ASYNC on purpose: sync commands execute on the native main thread, and
+/// this handler spawns git.exe processes (0.1–2 s). The Phase 9 watcher
+/// calls it on every fs-event batch — sustained writes saturated the main
+/// thread and the window stopped pumping messages (0.7.0 startup freeze,
+/// owner 2026-10-11; lessons L35). Async commands run on the runtime.
 #[tauri::command]
-pub fn git_snapshot(root_path: String) -> GitSnapshot {
-    snapshot(Path::new(&root_path))
+pub async fn git_snapshot(root_path: String) -> GitSnapshot {
+    tauri::async_runtime::spawn_blocking(move || snapshot(Path::new(&root_path)))
+        .await
+        .unwrap_or_else(|err| GitSnapshot {
+            status: "error",
+            error: Some(format!("git task failed: {err}")),
+            git_root: None,
+            scope_rel: None,
+            branch: None,
+            upstream: None,
+            ahead: None,
+            behind: None,
+            changes: Vec::new(),
+            staged: Vec::new(),
+            unique_count: 0,
+            commits: Vec::new(),
+            refreshed_at: 0,
+        })
 }
 
 /// Component-wise rel validation: no `..`, no absolute/drive forms, no

@@ -24,6 +24,21 @@ aivlaunch(PID 限定)+**park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-11 · 0.7.1 返修:启动即卡死(owner 报"一打开就卡死,点击全是 ⌛️")
+
+> **下一步从哪接** —— owner 点 Update(0.7.1)复验:启动不再卡死(可开着你常用的、正在被
+> AI 写文件的项目试);连同 0.7.0 的监听清单(§一 下一条)一起过 → spec-009 Done → Phase 10。
+
+- 根因(lessons **L35**):Tauri 2 **同步命令跑在原生主线程**,`git_snapshot`(每次起 git.exe,
+  真仓库 0.1–2s)被监听放大成每事件批次触发——AI 会话持续写盘时主线程被占死不泵消息=⌛️。
+  小夹具 e2e 全绿没拦住(单批只占几十 ms);**渲染进程健康≠窗口没冻**(CDP evaluate 测的是
+  渲染侧),测原生必须 SendMessageTimeout(WM_NULL)。
+- 修:git_snapshot → async 命令+spawn_blocking(离主线程;聚焦/手动刷新的隐性卡顿一并消除)+
+  watcherStore 单 lane 串行+忙时合并批次(防堆积,无 setTimeout——L34)。
+- 新常驻守卫 **watcher-freeze-guard.py**(凡动 watcher 链发版前必跑):修前原生窗口 40 采样
+  29 无响应,修后 **0/83 PASS**;全档 phase3 63/63+git 33/33+r3 8/8+pdf 19/19+vitest 50/50+
+  cargo 95/95+check 0/0。
+
 ### 2026-10-11 · spec-009(Phase 9 Watcher)交付:0.7.0 已发体验渠道,等 owner 复验
 
 > **下一步从哪接** —— owner 点 Update(0.7.0)验,全程零手势(不用点 ↻):①开着的项目里
