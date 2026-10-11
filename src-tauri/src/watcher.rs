@@ -15,7 +15,7 @@ use std::time::Duration;
 use notify_debouncer_full::notify::event::{ModifyKind, RenameMode};
 use notify_debouncer_full::notify::{Event, EventKind, RecursiveMode};
 use notify_debouncer_full::{
-    new_debouncer, Debouncer, DebounceEventResult, RecommendedCache,
+    new_debouncer_opt, notify, Debouncer, DebounceEventResult, NoCache,
 };
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -45,8 +45,16 @@ const DEBOUNCE_MS: u64 = 400;
 /// to do ONE full refresh instead (§80 storm guard, spec-009 D5).
 const STORM_LIMIT: usize = 200;
 
+/// Watcher slot. NoCache on purpose: `Debouncer::watch` synchronously
+/// feeds the cache via `add_path`, and the default Windows cache
+/// (FileIdMap) WALKS THE ENTIRE TREE with `follow_links(true)`, opening a
+/// handle per entry — minutes of 100% CPU on real projects (node_modules,
+/// build dirs, pnpm's symlink farm) and, inside a sync command, a frozen
+/// window (0.7.0/0.7.1 startup freeze, lessons L36). We pair renames from
+/// the kernel's From/To paths instead (L33), so the file-ID cache buys
+/// nothing here.
 pub struct WatchSlot {
-    debouncer: Debouncer<notify_debouncer_full::notify::RecommendedWatcher, RecommendedCache>,
+    debouncer: Debouncer<notify::RecommendedWatcher, NoCache>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -206,12 +214,12 @@ pub(crate) fn classify_event(root: &Path, ev: &Event) -> Vec<RawChange> {
 pub(crate) fn spawn_watcher<F>(
     root: PathBuf,
     sink: F,
-) -> Result<Debouncer<notify_debouncer_full::notify::RecommendedWatcher, RecommendedCache>, notify_debouncer_full::notify::Error>
+) -> Result<Debouncer<notify::RecommendedWatcher, NoCache>, notify_debouncer_full::notify::Error>
 where
     F: Fn(FsChangeBatch) + Send + 'static,
 {
     let cb_root = root.clone();
-    let mut debouncer = new_debouncer(
+    let mut debouncer = new_debouncer_opt(
         Duration::from_millis(DEBOUNCE_MS),
         None,
         move |res: DebounceEventResult| {
@@ -230,32 +238,47 @@ where
             let root_str = cb_root.to_string_lossy().to_string();
             sink(build_batch(&root_str, &raws));
         },
+        NoCache::new(),
+        notify::Config::default(),
     )?;
     debouncer.watch(&root, RecursiveMode::Recursive)?;
     Ok(debouncer)
 }
 
 #[tauri::command]
-pub(crate) fn start_project_watch(app: AppHandle, root_path: String) -> Result<(), String> {
-    let root = std::fs::canonicalize(&root_path)
-        .map_err(|e| format!("cannot watch {root_path}: {e}"))?;
-    let root = dunce::simplified(&root).to_path_buf();
-    let emit_app = app.clone();
-    let debouncer =
-        spawn_watcher(root.clone(), move |batch| {
+pub async fn start_project_watch(app: AppHandle, root_path: String) -> Result<(), String> {
+    // Async + spawn_blocking (L35/L36): `watch()` round-trips into the
+    // notify event loop, and watcher lifecycle work must NEVER run on the
+    // native main thread — a sync command there froze the window for the
+    // whole watch setup (owner 0.7.0/0.7.1 startup freeze).
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = std::fs::canonicalize(&root_path)
+            .map_err(|e| format!("cannot watch {root_path}: {e}"))?;
+        let root = dunce::simplified(&root).to_path_buf();
+        let emit_app = app.clone();
+        let debouncer = spawn_watcher(root.clone(), move |batch| {
             let _ = emit_app.emit("fs-changed", &batch);
         })
         .map_err(|e| format!("cannot watch {}: {e}", root.display()))?;
-    let slot: tauri::State<Mutex<Option<WatchSlot>>> = app.state();
-    *slot.lock().unwrap() = Some(WatchSlot { debouncer });
-    Ok(())
+        let slot: tauri::State<'_, Mutex<Option<WatchSlot>>> = app.state();
+        *slot.lock().unwrap() = Some(WatchSlot { debouncer });
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("watch start failed: {e}"))?
 }
 
 #[tauri::command]
-pub(crate) fn stop_project_watch(app: AppHandle) -> Result<(), String> {
-    let slot: tauri::State<Mutex<Option<WatchSlot>>> = app.state();
-    *slot.lock().unwrap() = None;
-    Ok(())
+pub async fn stop_project_watch(app: AppHandle) -> Result<(), String> {
+    // Dropping the slot joins the debouncer thread — off the main thread
+    // for the same reason as start (L35/L36).
+    tauri::async_runtime::spawn_blocking(move || {
+        let slot: tauri::State<'_, Mutex<Option<WatchSlot>>> = app.state();
+        *slot.lock().unwrap() = None;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("watch stop failed: {e}"))?
 }
 
 #[cfg(test)]

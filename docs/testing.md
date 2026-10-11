@@ -214,6 +214,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | phase3 63/63+git-suite 33/33+r3 8/8+pdf 19/19+vitest 50/50+cargo 95/95+check 0/0 |
 | 版本 | 0.7.1 三处已核 |
 
+#### 0.7.2 返修二轮(2026-10-11,owner"0.7.1 换装后仍启动即卡死";全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | **第二层独立根因(L36)**:notify-debouncer-full Windows 默认 FileIdMap,watch() 里对项目根全树 WalkDir+逐文件开句柄——真实仓库分钟级;start_project_watch 同步命令=主线程 → 冻死。小夹具毫秒级 → e2e 全绿放行 |
+| 修复 | `new_debouncer_opt+NoCache`(改名配对用路径 From/To,文件 ID 缓存白付)+start/stop 全转异步+spawn_blocking |
+| 真实状态验证 | owner 状态副本:修前 **75/75 无响应(CPU 满核)** → 修后 **0/75+CPU 0.4s**;bisect=禁用监听构建 0/50 一锤定音 |
+| 全档 | phase3 63/63+git-suite 33/33+r3 8/8+pdf 19/19+vitest 50/50+cargo 95/95+check 0/0+freeze-guard 0/83 |
+| 版本 | 0.7.2 三处已核 |
+
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 
 | # | 验收项(§192 清单 1–7) | 方法与结果 |

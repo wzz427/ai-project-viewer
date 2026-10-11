@@ -290,3 +290,12 @@
 - **判据一(测谁)****:⌛️/白影/拖不动 = 原生主线程;页面点了没反应但窗口能拖 = 渲染进程。**CDP evaluate 测的是渲染进程,它健康不代表窗口没冻**——测原生用 SendMessageTimeout WM_NULL + SMTO_ABORTIFHUNG。测负载类回归必须有"持续写入"场景,小夹具单发事件测不出。
 - **判据二(写谁)****:会起子进程/走网络的命令一律 `async fn`+`spawn_blocking`(git_snapshot 已改);高频事件链路的前端处理要**单 lane 串行+忙时合并批次**(watcherStore drain),防堆积靠合并不靠丢;**限速别用 setTimeout**(见 L34,隐藏窗会冻)——上游防抖(Rust 400ms)+lane 本身就是限速器。
 - **出处**:owner"一打开就直接进入到卡死状态"+⌛️ 截图说明;watcher-freeze-guard.py 复现→修→0/83 验证,2026-10-11。
+
+
+### L36:notify-debouncer-full 的 FileIdMap 在 watch() 里全树 WalkDir+逐文件开句柄——Windows 默认启用;真实项目(node_modules/构建目录/符号链接农场)=主线程分钟级卡死
+
+- **症状**(0.7.0+0.7.1,owner 两轮打回):软件一打开就 ⌛️ 卡死,CPU 单核 100%。0.7.1 已把 git_snapshot 异步化(L35)仍冻——另一层独立根因。
+- **机理**(源码级闭环):①`Debouncer::watch()` 同步调 `add_root`→`cache.add_path`;②Windows 默认 `RecommendedCache=FileIdMap`(只有 Linux 用 NoCache),其 `add_path` 对根做 **`WalkDir::follow_links(true)` 全树遍历+每文件 `get_file_id`(开句柄)**;③owner 的激活项目是真实仓库(node_modules 几十万文件+pnpm 符号链接+两个构建目录),这一走分钟级起步;④我的 `start_project_watch` 是**同步命令=主线程**执行 → 窗口冻死;e2e 夹具 330 个文件毫秒级完成 → 全绿放行。
+- **判据**:①凡引入"监听/索引/扫描"类库,先读它 watch/init 的源码路径,问"它在启动时对大树做什么"——**用真实规模目录试一次**(本仓库即最佳夹具);②监听生命周期(启/停/换)永远异步命令+spawn_blocking,主线程只许跑毫秒级活(L35 通则);③依赖库的"默认缓存"常是最贵的路径,确认自己用不用它的功能——我们改名配对用路径 From/To(L33),FileIdMap 纯属白付,`new_debouncer_opt+NoCache` 绕过。
+- **取证法**(这次提速的关键):真实状态文件副本+AIV_STATE_FILE+CDP 复现 →"禁用监听"二分构建一锤定音 → 渲染层安静+原生 CPU 满 → 直奔 Rust 侧源码。附:探针用 AIV_STATE_FILE 会被应用回写,复现用状态要每次重新拷贝(旧副本已被测试实例写成空壳,曾造成"健康"假象)。
+- **出处**:owner"0.7.0 一打开就卡死/升级按钮都点不了"+0.7.1 换装后仍冻;watcher-freeze-guard 小夹具全绿 → 真实状态 100% 复现 → 禁用监听分叉 → notify-debouncer-full cache.rs 源码,2026-10-11。
