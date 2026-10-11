@@ -153,53 +153,98 @@ pub fn resolve_target(root: &Path, rel: &str) -> Result<PathBuf, String> {
 }
 
 // ---------------------------------------------------------------------------
-// Semantic commands (§133 naming).
+// Semantic commands (§133 naming). All ASYNC (spec-012 M12, L35 family):
+// each resolves its target with canonicalize (disk IO — a stalled share
+// must not freeze the native main thread) and may spawn a process or a
+// ShellExecuteW that blocks for seconds.
 
 /// §130 Quick Edit: hand a text-like file to Notepad.
 #[tauri::command]
-pub fn edit_in_quick_editor(root_path: String, rel: String) -> Result<(), String> {
-    let path = resolve_target(Path::new(&root_path), &rel)?;
-    if path.is_dir() {
-        return Err(format!("Not a file: {rel}"));
-    }
-    NotepadEditor.open_file(&path)
+pub async fn edit_in_quick_editor(root_path: String, rel: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = resolve_target(Path::new(&root_path), &rel)?;
+        if path.is_dir() {
+            return Err(format!("Not a file: {rel}"));
+        }
+        NotepadEditor.open_file(&path)
+    })
+    .await
+    .map_err(|e| format!("handoff task failed: {e}"))?
 }
 
 /// §131 Full Edit / §140 folders / §141 project root: hand off to VS Code.
 /// `rel = None` means the project root itself (§141 Open Project in VS Code).
 #[tauri::command]
-pub fn open_in_code_editor(
+pub async fn open_in_code_editor(
     root_path: String,
     rel: Option<String>,
     new_window: bool,
 ) -> Result<(), String> {
-    let path = resolve_target(Path::new(&root_path), rel.as_deref().unwrap_or(""))?;
-    let editor = VSCodeEditor { new_window };
-    if path.is_dir() {
-        editor.open_folder(&path)
-    } else {
-        editor.open_file(&path)
-    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = resolve_target(Path::new(&root_path), rel.as_deref().unwrap_or(""))?;
+        let editor = VSCodeEditor { new_window };
+        if path.is_dir() {
+            editor.open_folder(&path)
+        } else {
+            editor.open_file(&path)
+        }
+    })
+    .await
+    .map_err(|e| format!("handoff task failed: {e}"))?
 }
 
 /// §135/§138/§140 Show in File Explorer. `rel = None` = the project itself
 /// (§141 "Open in File Explorer") which OPENS the folder window rather than
 /// selecting it in its parent (spec-006 D4, VS Code semantics).
 #[tauri::command]
-pub fn reveal_in_explorer(root_path: String, rel: Option<String>) -> Result<(), String> {
-    let path = resolve_target(Path::new(&root_path), rel.as_deref().unwrap_or(""))?;
-    if rel.as_deref().unwrap_or("").trim().is_empty() {
-        open_path(&path, None::<&str>).map_err(|e| e.to_string())
-    } else {
-        reveal_item_in_dir(&path).map_err(|e| e.to_string())
-    }
+pub async fn reveal_in_explorer(root_path: String, rel: Option<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = resolve_target(Path::new(&root_path), rel.as_deref().unwrap_or(""))?;
+        if rel.as_deref().unwrap_or("").trim().is_empty() {
+            open_path(&path, None::<&str>).map_err(|e| e.to_string())
+        } else {
+            reveal_item_in_dir(&path).map_err(|e| e.to_string())
+        }
+    })
+    .await
+    .map_err(|e| format!("handoff task failed: {e}"))?
+}
+
+/// Executable-ish extensions refused by open_with_default_app (spec-012
+/// M11/D4). ShellExecuteW on these EXECUTES the file, which would bypass
+/// the trust gate + whitelist that run_project_executable enforces — the
+/// 0.7.6 audit removed open-path from the opener PLUGIN, but this custom
+/// command handed the same power back to any in-page JS. `.msi` is
+/// deliberately NOT in the list: §126 routes it through System Default.
+const DENY_EXECUTABLE_EXTS: &[&str] = &[
+    "exe", "bat", "cmd", "lnk", "scr", "hta", "jse", "vbe", "js", "jar", "com", "pif",
+];
+
+fn is_denied_executable(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| DENY_EXECUTABLE_EXTS.contains(&e.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
 }
 
 /// OS-associated open (§111 generalized / §138 Default PDF App / §142
 /// System App rows — one mechanism, menu labels differ per type).
 #[tauri::command]
-pub fn open_with_default_app(root_path: String, rel: String) -> Result<(), String> {
-    let path = resolve_target(Path::new(&root_path), &rel)?;
+pub async fn open_with_default_app(root_path: String, rel: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || open_with_default_app_inner(&root_path, &rel))
+        .await
+        .map_err(|e| format!("open task failed: {e}"))?
+}
+
+fn open_with_default_app_inner(root_path: &str, rel: &str) -> Result<(), String> {
+    let path = resolve_target(Path::new(root_path), rel)?;
+    if is_denied_executable(&path) {
+        return Err(
+            "Opening executable files with the system default is disabled — \
+             right-click the file and use Run (requires project trust) instead."
+                .into(),
+        );
+    }
     open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
 
@@ -207,8 +252,14 @@ pub fn open_with_default_app(root_path: String, rel: String) -> Result<(), Strin
 /// even if .html is associated with an editor); .url shortcuts expose their
 /// URL= line and only http/https ever pass (§115 scheme allowlist).
 #[tauri::command]
-pub fn open_in_browser(root_path: String, rel: String) -> Result<(), String> {
-    let path = resolve_target(Path::new(&root_path), &rel)?;
+pub async fn open_in_browser(root_path: String, rel: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || open_in_browser_inner(&root_path, &rel))
+        .await
+        .map_err(|e| format!("browser task failed: {e}"))?
+}
+
+fn open_in_browser_inner(root_path: &str, rel: &str) -> Result<(), String> {
+    let path = resolve_target(Path::new(root_path), rel)?;
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
@@ -426,5 +477,24 @@ mod tests {
         ] {
             assert!(!browser_url_allowed(bad), "{bad} must be rejected");
         }
+    }
+
+    /// spec-012 M11/D4: the executable fence. Every denylisted extension is
+    /// refused case-insensitively; .msi (§126 System Default) and ordinary
+    /// documents pass; extensionless files pass.
+    #[test]
+    fn executable_like_extensions_are_refused_by_default_open() {
+        for ext in DENY_EXECUTABLE_EXTS {
+            assert!(
+                is_denied_executable(Path::new(&format!("thing.{ext}"))),
+                ".{ext} must be denied"
+            );
+        }
+        for name in ["doc.txt", "report.pdf", "installer.msi", "setup.MSI", "no_extension"] {
+            assert!(!is_denied_executable(Path::new(name)), "{name} must pass");
+        }
+        assert!(is_denied_executable(Path::new("EVIL.Exe")));
+        assert!(is_denied_executable(Path::new("run.CMD")));
+        assert!(!is_denied_executable(Path::new("no_extension")));
     }
 }

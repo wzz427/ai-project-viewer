@@ -36,6 +36,7 @@ fn ext_of(path: &Path) -> String {
 
 /// One argv element with Windows command-line encoding intent (§145,
 /// Phase 10 audit).
+#[derive(Debug)]
 pub enum SpawnArg {
     /// Standard Rust quoting — host flags and PowerShell's `-File` path
     /// (powershell.exe parses argv itself; `&` is not special there).
@@ -85,19 +86,37 @@ pub fn script_argv(script: &Path) -> Result<(PathBuf, Vec<SpawnArg>), String> {
                 SpawnArg::Std(script.to_string_lossy().into()),
             ],
         )),
-        "cmd" | "bat" => Ok((
-            PathBuf::from("cmd.exe"),
-            vec![SpawnArg::Std("/K".into()), quoted_cmd_path(script)],
-        )),
+        "cmd" | "bat" => {
+            // cmd.exe re-expands %VAR% inside the /K payload, so a literal
+            // '%' pair in the path could in theory splice environment text
+            // inside our quotes (spec-012 L-r5; precondition is exotic —
+            // refusing is cheap and total). PowerShell -File has no such
+            // reparse, so .ps1 paths with '%' stay allowed.
+            if script.to_string_lossy().contains('%') {
+                return Err(format!(
+                    "Cannot run .cmd/.bat from a path containing '%' (cmd.exe would expand it) — rename the folder: {}",
+                    script.display()
+                ));
+            }
+            Ok((PathBuf::from("cmd.exe"), vec![SpawnArg::Std("/K".into()), quoted_cmd_path(script)]))
+        }
         other => Err(format!("Not a runnable script (.{other}): use Run on .ps1/.cmd/.bat only")),
     }
 }
 
 /// §116/§137 Run Script: persistent host + visible console, cwd = project
 /// root. Spawn-and-forget — the child belongs to the user from here on.
+/// ASYNC (spec-012 M12, L35 family): resolve_target canonicalizes on disk
+/// and the spawn itself can block; never on the native main thread.
 #[tauri::command]
-pub fn run_project_script(root_path: String, rel: String) -> Result<(), String> {
-    let script = resolve_target(Path::new(&root_path), &rel)?;
+pub async fn run_project_script(root_path: String, rel: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || run_script_inner(&root_path, &rel))
+        .await
+        .map_err(|e| format!("run task failed: {e}"))?
+}
+
+fn run_script_inner(root_path: &str, rel: &str) -> Result<(), String> {
+    let script = resolve_target(Path::new(root_path), rel)?;
     if script.is_dir() {
         return Err(format!("Not a file: {rel}"));
     }
@@ -107,14 +126,21 @@ pub fn run_project_script(root_path: String, rel: String) -> Result<(), String> 
         ));
     }
     let (program, args) = script_argv(&script)?;
-    spawn_visible(&program, &args, Path::new(&root_path))
+    spawn_visible(&program, &args, Path::new(root_path))
 }
 
 /// §122/§123/§139 Run: direct launch of the absolute exe path, never via
 /// cmd /c string composition; cwd = the exe's own directory (§124).
+/// ASYNC for the same reason as run_project_script.
 #[tauri::command]
-pub fn run_project_executable(root_path: String, rel: String) -> Result<(), String> {
-    let exe = resolve_target(Path::new(&root_path), &rel)?;
+pub async fn run_project_executable(root_path: String, rel: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || run_executable_inner(&root_path, &rel))
+        .await
+        .map_err(|e| format!("run task failed: {e}"))?
+}
+
+fn run_executable_inner(root_path: &str, rel: &str) -> Result<(), String> {
+    let exe = resolve_target(Path::new(root_path), rel)?;
     if exe.is_dir() {
         return Err(format!("Not a file: {rel}"));
     }
@@ -124,7 +150,7 @@ pub fn run_project_executable(root_path: String, rel: String) -> Result<(), Stri
     let cwd = exe
         .parent()
         .map(Path::to_path_buf)
-        .unwrap_or_else(|| Path::new(&root_path).to_path_buf());
+        .unwrap_or_else(|| Path::new(root_path).to_path_buf());
     spawn_visible(&exe, &[], &cwd)
 }
 
@@ -238,17 +264,26 @@ mod tests {
         assert!(script_argv(Path::new("C:/x/s.exe")).is_err());
     }
 
+    /// spec-012 L-r5: cmd /K re-expands %VAR% — a '%' in a .cmd/.bat path is
+    /// refused with a rename hint; .ps1 (powershell -File) is unaffected.
+    #[test]
+    fn cmd_path_with_percent_is_refused() {
+        let err = script_argv(Path::new(r"C:\proj\100%\run.bat")).unwrap_err();
+        assert!(err.contains("rename") || err.contains("cmd.exe"), "{err}");
+        assert!(script_argv(Path::new(r"C:\proj\100%\run.ps1")).is_ok());
+    }
+
     #[test]
     fn run_script_rejects_non_whitelisted_and_missing() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("x.py"), b"print(1)\n").unwrap();
-        let err = run_project_script(
-            dir.path().to_string_lossy().into(),
-            "x.py".into(),
+        let err = run_script_inner(
+            dir.path().to_string_lossy().into_owned().as_str(),
+            "x.py",
         )
         .unwrap_err();
         assert!(err.contains("Not a runnable script"), "{err}");
-        let err = run_project_script(dir.path().to_string_lossy().into(), "nope.bat".into())
+        let err = run_script_inner(dir.path().to_string_lossy().into_owned().as_str(), "nope.bat")
             .unwrap_err();
         assert!(err.contains("Not found"), "{err}");
     }
@@ -257,9 +292,9 @@ mod tests {
     fn run_executable_rejects_non_exe() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("x.bat"), b"@echo off\r\n").unwrap();
-        let err = run_project_executable(
-            dir.path().to_string_lossy().into(),
-            "x.bat".into(),
+        let err = run_executable_inner(
+            dir.path().to_string_lossy().into_owned().as_str(),
+            "x.bat",
         )
         .unwrap_err();
         assert!(err.contains("Not an executable"), "{err}");
@@ -271,9 +306,9 @@ mod tests {
         let b = tempfile::tempdir().unwrap();
         std::fs::write(b.path().join("tool.exe"), b"MZ fake").unwrap();
         let bname = b.path().file_name().unwrap().to_str().unwrap();
-        let err = run_project_executable(
-            a.path().to_string_lossy().into(),
-            format!("../{bname}/tool.exe"),
+        let err = run_executable_inner(
+            a.path().to_string_lossy().into_owned().as_str(),
+            &format!("../{bname}/tool.exe"),
         )
         .unwrap_err();
         assert!(err.contains("escapes"), "{err}");
@@ -296,13 +331,16 @@ mod tests {
             format!("@echo off\r\necho step\r\necho done> \"{}\"\r\n", marker.display()),
         )
         .unwrap();
-        let mut child = std::process::Command::new("cmd.exe")
-            .arg("/K")
-            .arg(&bat)
+        // Production argv path (spec-012 L-r7): ride apply_args + script_argv
+        // so the /K payload keeps its verbatim double-quoted encoding.
+        let (program, argv) = script_argv(&bat).unwrap();
+        let mut launcher = std::process::Command::new(&program);
+        apply_args(&mut launcher, &argv);
+        launcher
             .stdin(std::process::Stdio::piped())
             .creation_flags(CREATE_NO_WINDOW)
-            .spawn()
-            .unwrap();
+            .current_dir(dir.path());
+        let mut child = launcher.spawn().unwrap();
         // Hold the write end open for the whole test = "input never EOFs".
         let _stdin_hold = child.stdin.take();
         let start = Instant::now();

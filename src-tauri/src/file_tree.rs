@@ -100,12 +100,17 @@ pub fn list_level(root: &Path, rel_dir: &str) -> Result<DirectoryListing, String
     })
 }
 
+/// ASYNC on purpose (spec-012 M12, L35 family): expanding a tree node is
+/// the highest-frequency IO in the app; a network drive that stalls turns a
+/// sync command into a frozen native window.
 #[tauri::command]
-pub fn list_directory(
+pub async fn list_directory(
     root_path: String,
     rel_dir: String,
 ) -> Result<DirectoryListing, String> {
-    list_level(Path::new(&root_path), &rel_dir)
+    tauri::async_runtime::spawn_blocking(move || list_level(Path::new(&root_path), &rel_dir))
+        .await
+        .map_err(|e| format!("list task failed: {e}"))?
 }
 
 #[cfg(test)]

@@ -66,33 +66,48 @@ pub fn app_version(app: tauri::AppHandle) -> String {
 /// Write a diagnostics report under the app config dir (0.6.12, owner
 /// 2026-10-10: "在客户端 setting 中增加一个诊断的按钮…生成运行信息").
 /// Returns the absolute path for the UI to show/copy.
+/// ASYNC (spec-012 M12): the report can be hundreds of KB — keep the write
+/// off the native main thread.
 #[tauri::command]
-pub fn write_diagnostics(app: tauri::AppHandle, text: String) -> Result<String, String> {
+pub async fn write_diagnostics(app: tauri::AppHandle, text: String) -> Result<String, String> {
     let dir = app
         .path()
         .app_config_dir()
         .map_err(|e| e.to_string())?
         .join("diagnostics");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_secs();
-    let path = dir.join(format!("aiv-diagnostics-{ts}.txt"));
-    std::fs::write(&path, text.as_bytes()).map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().into_owned())
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = dir.join(format!("aiv-diagnostics-{ts}.txt"));
+        fs::write(&path, text.as_bytes()).map_err(|e| e.to_string())?;
+        Ok(path.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| format!("diagnostics task failed: {e}"))?
 }
 
+/// ASYNC (spec-012 M12): reading state.json off a slow disk must not stall
+/// the native main thread during startup.
 #[tauri::command]
-pub fn load_state(app: tauri::AppHandle) -> Result<Option<String>, String> {
+pub async fn load_state(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let Some(path) = state_path(&app)? else {
         return Ok(None);
     };
-    persistence::load(&path)
+    tauri::async_runtime::spawn_blocking(move || persistence::load(&path))
+        .await
+        .map_err(|e| format!("load state task failed: {e}"))?
 }
 
+/// ASYNC (spec-012 M12): the atomic write does tmp→flush→rename (an fsync);
+/// save_state fires on the 800 ms debounce, so a slow disk would otherwise
+/// freeze the window right after any tab/theme change. The in-memory slot
+/// update stays INLINE — it is the exit flush's source of truth and must
+/// land before this command returns.
 #[tauri::command]
-pub fn save_state(
+pub async fn save_state(
     app: tauri::AppHandle,
     json: String,
 ) -> Result<(), String> {
@@ -101,7 +116,9 @@ pub fn save_state(
         let mut slot = last.0.write().map_err(|e| e.to_string())?;
         *slot = Some(json);
     }
-    write_current(&app)
+    tauri::async_runtime::spawn_blocking(move || write_current(&app))
+        .await
+        .map_err(|e| format!("save state task failed: {e}"))?
 }
 
 /// Write the in-memory last state to disk if access allows. Shared by the

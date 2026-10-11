@@ -74,21 +74,39 @@ fn read_note(updates: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// Pure availability decision: an update exists iff BOTH hashes read AND
+/// they differ. None on either side = nothing staged/unreadable → quiet.
+fn decide(incoming_md5: Option<String>, current_md5: Option<String>) -> bool {
+    matches!((incoming_md5, current_md5), (Some(a), Some(b)) if a != b)
+}
+
+/// ASYNC on purpose (spec-012 H2, L35 family): UpdateButton invokes this on
+/// mount, so a sync command would md5 the whole running exe (~6 MB) on the
+/// NATIVE main thread at every experience-client startup — even in dev
+/// builds where no `updates\` exists.
 #[tauri::command]
-pub fn check_update() -> UpdateInfo {
-    let Some((app_dir, updates)) = layout() else {
+pub async fn check_update() -> UpdateInfo {
+    tauri::async_runtime::spawn_blocking(check_update_blocking)
+        .await
+        .unwrap_or_else(|_| UpdateInfo { available: false, note: String::new() })
+}
+
+fn check_update_blocking() -> UpdateInfo {
+    let Some((_app_dir, updates)) = layout() else {
         return UpdateInfo { available: false, note: String::new() };
     };
     let incoming = updates.join("ai-project-viewer.exe");
+    // Gate BEFORE any read: with nothing staged (every dev build) the old
+    // code still md5'd the running exe (spec-012 H2 — the tuple evaluated
+    // both arms).
+    if !incoming.exists() {
+        return UpdateInfo { available: false, note: read_note(&updates) };
+    }
     let current = match std::env::current_exe() {
         Ok(p) => p,
-        Err(_) => return UpdateInfo { available: false, note: String::new() },
+        Err(_) => return UpdateInfo { available: false, note: read_note(&updates) },
     };
-    let _ = app_dir;
-    let available = match (md5_of(&incoming), md5_of(&current)) {
-        (Ok(a), Ok(b)) => a != b,
-        _ => false, // no update staged or unreadable -> not available
-    };
+    let available = decide(md5_of(&incoming).ok(), md5_of(&current).ok());
     UpdateInfo { available, note: read_note(&updates) }
 }
 
@@ -113,8 +131,17 @@ pub fn perform_swap(current: &Path, incoming: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// ASYNC on purpose (spec-012 H2): the swap copies the whole exe and md5s
+/// it twice more (~24 MB IO) — clicking Update on a sync command froze the
+/// window for the whole copy.
 #[tauri::command]
-pub fn apply_update() -> Result<(), String> {
+pub async fn apply_update() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(apply_update_blocking)
+        .await
+        .map_err(|e| format!("update task failed: {e}"))?
+}
+
+fn apply_update_blocking() -> Result<(), String> {
     let Some((_, updates)) = layout() else {
         return Err("Not an experience install.".into());
     };
@@ -135,12 +162,15 @@ pub fn clean_stale_swap_files() {
     }
 }
 
-/// Restart into the (just-updated) binary: spawn a fresh instance, then
-/// exit. The single-instance plugin only guards same-identifier apps; the
-/// child starts as this process dies, so activation races are avoided by
-/// the exit-then-start ordering here.
+/// Restart into the (just-updated) binary. `std::process::exit` bypasses
+/// RunEvent::Exit — the exit-time state flush would never run, so the last
+/// debounced window (e.g. a just-opened tab) was lost; flush SYNCHRONOUSLY
+/// before spawning (spec-012 L-r4/D8). The single-instance plugin only
+/// guards same-identifier apps; the child starts as this process dies, so
+/// activation races are avoided by the spawn-then-exit ordering.
 #[tauri::command]
-pub fn relaunch() -> Result<(), String> {
+pub fn relaunch(app: tauri::AppHandle) -> Result<(), String> {
+    crate::state::flush_on_exit(&app);
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     std::process::Command::new(&exe)
         .spawn()
@@ -190,5 +220,16 @@ mod tests {
         fs::write(&c, b"different").unwrap();
         assert_eq!(md5_of(&a).unwrap(), md5_of(&b).unwrap());
         assert_ne!(md5_of(&a).unwrap(), md5_of(&c).unwrap());
+    }
+
+    /// spec-012 H2: nothing staged (or unreadable) must read as "no update"
+    /// — None on either arm stays quiet; only two differing hashes arm it.
+    #[test]
+    fn decide_requires_both_hashes_and_a_difference() {
+        assert!(!decide(None, None));
+        assert!(!decide(None, Some("x".into())));
+        assert!(!decide(Some("x".into()), None));
+        assert!(!decide(Some("x".into()), Some("x".into())));
+        assert!(decide(Some("x".into()), Some("y".into())));
     }
 }

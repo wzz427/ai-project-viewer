@@ -223,11 +223,18 @@ pub fn read_text(path: &Path) -> Result<TextContent, String> {
 }
 
 fn decode_bytes(bytes: &[u8], enc: FileEncoding) -> Result<String, String> {
+    // inspect() and the fs::read in read_text re-open the file: an external
+    // writer can truncate it in between, leaving fewer bytes than the BOM
+    // the first sample detected. Fixed-length slices panicked exactly there
+    // (release panic=abort = whole-app crash; spec-012 M5 — the watcher
+    // reloadFile path sits inside that window by design). Degrade to an
+    // empty tail instead.
+    let after_bom = |n: usize| bytes.get(n..).unwrap_or(&[]);
     let (cow, _, _) = match enc {
         FileEncoding::Utf8 => UTF_8.decode(bytes),
-        FileEncoding::Utf8Bom => UTF_8.decode(&bytes[3..]),
-        FileEncoding::Utf16LeBom => UTF_16LE.decode(&bytes[2..]),
-        FileEncoding::Utf16BeBom => UTF_16BE.decode(&bytes[2..]),
+        FileEncoding::Utf8Bom => UTF_8.decode(after_bom(3)),
+        FileEncoding::Utf16LeBom => UTF_16LE.decode(after_bom(2)),
+        FileEncoding::Utf16BeBom => UTF_16BE.decode(after_bom(2)),
         FileEncoding::Gb18030 => GB18030.decode(bytes),
         FileEncoding::Binary => return Err("Binary file.".into()),
     };
@@ -604,5 +611,21 @@ mod read_tests {
         write_bytes(&root, "big.png", &vec![0u8; 21 * 1024 * 1024]);
         assert!(read_media(&root.join("a.txt")).is_err());
         assert!(read_media(&root.join("big.png")).is_err());
+    }
+
+    /// spec-012 M5: the file was BOM'd text when inspected but truncated by
+    /// an external writer before read_text's second open — decoding must
+    /// degrade instead of slicing past the end.
+    #[test]
+    fn decode_bytes_survives_truncated_bom_sample() {
+        assert_eq!(decode_bytes(&[0xEF, 0xBB], FileEncoding::Utf8Bom).unwrap(), "");
+        assert_eq!(decode_bytes(&[0xFF], FileEncoding::Utf16LeBom).unwrap(), "");
+        assert_eq!(decode_bytes(&[0xFE], FileEncoding::Utf16BeBom).unwrap(), "");
+        assert_eq!(decode_bytes(&[0xEF, 0xBB, 0xBF], FileEncoding::Utf8Bom).unwrap(), "");
+        assert_eq!(decode_bytes(&[0xEF, 0xBB, 0xBF, b'x'], FileEncoding::Utf8Bom).unwrap(), "x");
+        assert_eq!(
+            decode_bytes(&[0xFF, 0xFE, b'h', 0x00], FileEncoding::Utf16LeBom).unwrap(),
+            "h"
+        );
     }
 }

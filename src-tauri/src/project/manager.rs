@@ -50,13 +50,21 @@ pub fn resolve_root(raw: &str) -> Result<(PathBuf, String), String> {
     Ok((canonical, name))
 }
 
+/// ASYNC on purpose (spec-012 M12, L35 family): session restore calls this
+/// once per restored project; on a stalled SMB share each canonicalize can
+/// block for seconds, and a sync command would freeze the native main
+/// window that many times at startup.
 #[tauri::command]
-pub fn resolve_project(raw_path: String) -> Result<ResolvedProject, String> {
-    let (root, name) = resolve_root(&raw_path)?;
-    Ok(ResolvedProject {
-        root_path: root.to_string_lossy().into_owned(),
-        name,
+pub async fn resolve_project(raw_path: String) -> Result<ResolvedProject, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (root, name) = resolve_root(&raw_path)?;
+        Ok(ResolvedProject {
+            root_path: root.to_string_lossy().into_owned(),
+            name,
+        })
     })
+    .await
+    .map_err(|e| format!("resolve task failed: {e}"))?
 }
 
 /// Inner sync core so the existence rules are unit-testable.
