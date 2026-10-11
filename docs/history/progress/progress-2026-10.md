@@ -120,7 +120,7 @@
   深读+会话逐条亲验全部高/中级;结论=无 Critical,2 高/15 中/约 25 低,集中在三件事——0.7.6"重活禁上主线程"
   没全量核对(updater+13 同步命令长尾)/PDF"完成时写回"缺取消语义(renderedScale·scrollTimer·runSearch 同根因
   三现)/两处解析器盲区(多行提交消息、merge combined diff);揪出 0.7.6 审计四处盲区(报告"对 0.7.6 审计的
-  四点补充")。报告 docs/code-review-2026-10-11.md(44 条;spec-012 Done 时归 history 快照轴)。
+  四点补充")。报告 history/code-reviews/code-review-2026-10-11.md(44 条;spec-012 已 Done,报告随验收归档)。
 - **spec-012 修复批**(owner"开工,完成spec012"→当日一批完):开工自核发现 M5(decode_bytes 截断 panic)/M6
   (stderr 背压)漏入组→补齐 43 条;42 落地+L-c6 止损(noUncheckedIndexedAccess 实测 60 错>20,回退记档,去处=
   下一前端专项)。要点:H1=%B 尾 %x1e 分隔符切 header(夹具须 --cleanup=verbatim——git 默认剥行尾空白);

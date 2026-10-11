@@ -18,7 +18,7 @@
 
 | 日期 | 文件 | 一句话结果 | Grep 关键词 |
 |---|---|---|---|
-| 2026-10-01→10-12 | `progress/progress-2026-10.md` | 建仓→Phase 10 体检→全面 code review→spec-012 修复批全程蒸馏(Phase 1–9+INFRA 三件+spec-010~012,v6→0.7.9;未结=0.7.9 验收/T3 基准/NSIS/冻结 bug) | Phase 号/spec-00N/版本号/L 教训号 |
+| 2026-10-01→10-12 | `progress/progress-2026-10.md` | 建仓→Phase 10 体检→全面 code review→spec-012 修复批全程蒸馏(Phase 1–9+INFRA 三件+spec-010~012,v6→0.7.9;spec-012 已验收 Done;未结=T3 基准/NSIS/冻结 bug) | Phase 号/spec-00N/版本号/L 教训号 |
 
 ## 版本轴
 
@@ -29,3 +29,4 @@
 
 | 文件 | 是什么 | 何时看 |
 |---|---|---|
+| `code-reviews/code-review-2026-10-11.md` | V1 收口前全面代码评审报告(44 条:H2/M15/L27;spec-012 的证据基线——42 条已修、L-c6 记档、M15 随打包轮) | 查"当时查出了什么、在哪个文件哪一行、机理是什么"——spec-012 只存条目号指针 |

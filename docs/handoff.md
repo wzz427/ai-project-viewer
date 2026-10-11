@@ -11,12 +11,11 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-012 InTest,体验渠道当前版 0.7.9(2026-10-12)**:0.7.8=code review 修复批
-(42 条落地),0.7.9=InTest 期间 owner 报障返修(右键动作后树高亮跳回旧文件,L41)。owner
-客户端点 Update 复验 → 验收原话落 SPEC → Done(评审报告 docs/code-review-2026-10-11.md
-随之归 history)→ **T3 全量性能基准**(A–I 档+Phase 1 Baseline,owner 已预告授权)→
-spec-011 复验转 Done;NSIS 实际打包届时点头(含 webviewInstallMode 三选一,D7/R21)。
-**版本段 0.7.x 固定递增不跳段**。
+主线 = **spec-012 已 Done(2026-10-12 owner 验收原话"spec012可以done"),下一步=T3 全量性能基准**
+(A–I 档+Phase 1 Baseline,口径=V1.5 §162–§173+testing.md §4.9;owner 已预告授权,
+**开跑前按红线再确认一次**)→ spec-011 复验转 Done → NSIS 实际打包届时点头
+(含 webviewInstallMode 三选一,D7/R21)。评审报告已归 history/code-reviews/(快照轴)。
+**版本段 0.7.x 固定递增不跳段**;tsconfig 收紧记档待清(60 处/8 文件,去处=下一前端专项批次,spec-012 D12)。
 挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
@@ -28,6 +27,17 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-12 · spec-012 验收 Done,主线交棒 T3 全量基准
+
+- owner 原话"spec012可以done"落 spec-012 §六(InTest→Done 硬门过);INDEX 同步两行
+  (spec-012→Done 冷却待搬;spec-011 去处切"下一动作=T3,开跑前按红线再确认");
+  评审报告 git mv → history/code-reviews/(INDEX 快照轴登记;断链修指四处:spec-012 头引/INDEX
+  两行/progress 时间轴)。
+- 下一步 = **T3 全量基准:开跑前找 owner 再确认一次**(红线"全量测试批准";预告授权留痕在
+  INDEX spec-011 行)→ 跑完 spec-011 复验 → NSIS 打包届时点头(webviewInstallMode 三选一)。
+- 遗留仅 L-c6 记档:tsconfig noUncheckedIndexedAccess 实测 60 处/8 文件,超 D6 止损线 20 未在本批清,
+  去处=下一前端专项批次(2026-10-12 owner 问询过是什么,已在对话中解释)。
+
 ### 2026-10-12 · 本段收口:code review→修复批 0.7.8→高亮返修 0.7.9,主线交棒新对话
 
 > **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → specs/spec-012-code-review-fixes.md(§六)+lessons L41。
@@ -35,8 +45,8 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 > → 全档回归全绿 → 0.7.8 发体验渠道 → InTest 报障(右键动作后树高亮)当日返修 0.7.9 再发。
 > 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-012/0.7.8/0.7.9/L41)。
 
-- 交接要点:①体验渠道当前版 **0.7.9**,spec-012 **InTest**——owner 点 Update 复验,验收原话落 §六→Done,
-  评审报告 docs/code-review-2026-10-11.md 随之归 history 快照轴;②T3 全量基准=V1.5 §162–§173+testing.md
+- 交接要点:①体验渠道当前版 **0.7.9**,spec-012 验收已过(见上条)——评审报告已归
+  history/code-reviews/ 快照轴;②T3 全量基准=V1.5 §162–§173+testing.md
   §4.9 口径,owner 已预告授权(原话留痕在前段收口条,蒸馏件可 Grep "T3 排期授权");③NSIS 打包须届时点头
   (webviewInstallMode 三选一,spec-012 D7);④新报障第一动作=Settings→Export Diagnostics 同机直读;
   ⑤动 watcher 链发版前必跑 freeze-guard;⑥tsconfig 收紧记档待清(60 处,去处=下一前端专项批次)。
