@@ -320,3 +320,10 @@
 - **机理**(探针实证,Python 字符串命令线复刻 raw_arg):cmd 的 /C//K 文档行为——引号内含 `&<>()@^|` 任一元字符即不保留引号,改走"老规则"剥首尾引号后重新解析。所以 `cmd /K "C:\proj\a&calc&\run.bat"` 实际拆成 `C:\proj\a` & `calc` & `\run.bat` 三段执行(`calc` 从 PATH 真跑出来了);双层引号 `cmd /K ""path""` 剥外留内,`&` 落在内层引号里=字面量,脚本照跑。
 - **判据**:①凡 spawn cmd.exe 且载荷含文件路径(路径成分用户可控=项目文件夹名),路径一律 `raw_arg` 双层引号(Rust 标准参数转义走 MSVCRT 规则,与 cmd 的解析规则不同族,别混);powershell.exe 的 `-File` 无此坑(PS 自己解析 argv,`&` 不特殊)。②验证注入类问题必须真 spawn 断言行为(marker 文件写没写),只看 argv 字符串测不出 cmd 的重析;**载荷命令必须选无害命令**——本轮用 `calc` 实证时真弹了计算器窗口(已清理),反例教材。
 - **出处**:spec-011 R16 审计发现 `cmd /K` 裸传路径;两轮探针(单层=注入成立/双层=干净)+cargo 真 spawn 回归 `bat_in_ampersand_folder_runs_via_verbatim_quoting`,2026-10-11,修复随 0.7.6 发。
+
+### L40:内容可划选(user-select:text)的容器会罩住控件区——双击控件=按词选中标签,原生蓝色高亮挂在按钮上(0.7.7)
+
+- **症状**(owner 2026-10-11,0.7.6 复验):连点 A+/A− 调字号,"有时"按钮显示蓝色。截图肉眼难辨,像素扫描在工具栏带找到 (47,99,206) 纯蓝块;活体探针一锤定音:可信双击 A+ 后 `window.getSelection().toString()=='+'`、按钮区域 199 蓝像素;三连击选中 `'A+\n'`(343 像素);120ms 间隔连点不触发——"有时"=连点节奏是否落进双击判定窗口。
+- **机理**:为"内容可划选"立的 `.viewer-body { user-select:text }` 把工具栏一起罩住;Chromium 对 `<button>` 文字默认**没有** user-select:none,双击按词选标签,选中色=系统蓝。CSS user-select 是**继承属性**:容器级 none 会顺着罩进 `<input>`,把输入框的双击选词/全选拖选弄坏——输入框必须显式恢复 `user-select:text`。
+- **判据**:控件区与内容区分治——全局 `button { user-select:none }`(按钮是控件,永远不是复制目标)+ 工具栏容器 none + 容器内 input 显式 text;验证只信活体:双击后 selection 字符串为空(机器可判),别靠截图肉眼(本次截图里 A/A+ 恰好常态,险些误导)。
+- **出处**:owner 截图报障;像素扫描定位疑点→CDP 可信双击/三连击探针实证→修复后同探针 selection 全空/蓝像素回落基线,2026-10-11,修复随 0.7.7 发;守卫=phase3 `toolbar_buttons_not_selectable`。
