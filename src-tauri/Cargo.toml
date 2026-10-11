@@ -25,7 +25,9 @@ serde_json = "1"
 dunce = "1"
 encoding_rs = "0.8"
 base64 = "0.22"
-md5 = "0.7"
+# RustCrypto md-5 (spec-012 L-c1): the old `md5` crate has been unmaintained
+# since 2018; the use here is experience-channel content comparison only.
+md-5 = "0.10"
 tauri-plugin-opener = "2.7.0"
 # Phase 9 watcher (spec-009): notify via the debouncer's re-export so the
 # crate graph holds exactly one notify version.

@@ -43,7 +43,8 @@ fn layout() -> Option<(PathBuf, PathBuf)> {
 }
 
 fn md5_of(path: &Path) -> Result<String, String> {
-    let mut ctx = md5::Context::new();
+    use md5::{Digest, Md5};
+    let mut hasher = Md5::new();
     let mut file = fs::File::open(path).map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
     let mut buf = [0u8; 8192]; // streamed: O(8KB) regardless of file size
     loop {
@@ -51,9 +52,9 @@ fn md5_of(path: &Path) -> Result<String, String> {
         if n == 0 {
             break;
         }
-        ctx.consume(&buf[..n]);
+        hasher.update(&buf[..n]);
     }
-    Ok(format!("{:x}", ctx.compute()))
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 fn read_note(updates: &Path) -> String {
