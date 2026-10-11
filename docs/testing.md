@@ -84,7 +84,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **64 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径 |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **66 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** + **0.7.6 opener 授权守卫(p10_×2):渲染层直调 plugin:opener|open_path 与 open_url file:// 必须双拒(断言 rejection,不弹任何窗口)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径/**capabilities 授权** |
 | `git-suite.py` | Phase 7 Git 检视 33 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + 0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭 + **Phase 9:外部写/删探针→徽标自动 [8]/[7](零手势,V5;窗口 park offscreen——L34)**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换/watcher→git 链 |
 | `recent-suite.py` | Open Recent **15 项**(0.7.3,spec-010):预置状态文件+AIV_TEST_PROJECT 自动加两路驱动(原生选框绝不驱动,D4)——记录+MRU+cap 挤旧/菜单结构(Browse 首项+Clear 底部)/失效置灰+报错/打开新项目与切换已开/Esc 关闭/重启持久化/行内✕与 Clear 落盘/空白欢迎页列表;夹具 %TEMP%iv-p10-recent 每次重建;**Clear 之后严禁再点 +(空表会弹原生选框)** | 凡动 recentStore/AddProjectMenu/EmptyState/appState recentFolders 字段 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
@@ -249,6 +249,21 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 变更 | 上限 20→**32px**(下限 11/默认 13 不变);范围收成 appState 导出 FONT_SIZE_MIN/MAX 单一常量,setFontSize 与解析自愈共用 |
 | 验证 | 探针:13px 连按 25 次 A+ 到顶 **32px**,行号同字号且对齐 0 偏差;vitest 60/60(钳制 99→32)+check 0/0+phase3 64/64+r3 8/8 |
 | 版本 | 0.7.5 三处已核;updates=exp 0.7.5(全文件扫)、dev=dev 标识 0.7.5 |
+
+#### 0.7.6 Phase 10 上线前体检轮(2026-10-11,spec-011;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 审计 | §184 九泄漏+十一风险逐项留证(住 SPEC §四审计表):净 14/按设计 1/特性 1/**漏已修 3+主线程 2**;一次性探针 V3(DOM 30 轮开关节点数 105→105 零增长)/V4(会话结束零孤儿,按 target 构建树+fixture 引用限定——**进程名过滤须限定构建树**,owner 体验版客户端同名共存) |
+| 修复 | ①git show 两处补 --no-ext-diff/--no-textconv(§70)②cmd /K 路径 raw_arg 双层引号(探针实证:单层引号下 `a&calc&` 文件夹注入跑出 calc=注入成立活证据;**测试纪律:注入类真 spawn 测试的载荷命令必须选无害命令**,本轮 calc 弹窗已清理)③opener 授权收紧(删 allow-open-path **+opener:default,只留 open_url http/https;插件文档证实 scope 仅 IPC 层,Rust 自由函数不受影响)④git_diff/git_commit_detail+inspect/read_text/read_media/read_binary 六命令全转 async+spawn_blocking(L35 泛化) |
+| cargo | **99/99**(+3:show_diff_argv 旗标/cmd 元字符单元/& 文件夹真 spawn 注入回归) |
+| vitest | 60/60(无前端逻辑变更,防退化) |
+| svelte-check | 0 错 0 警 |
+| phase3-suite | **66/66**(+2:p10_opener_open_path_denied/p10_opener_file_url_denied——渲染层直调插件 IPC 断言拒绝) |
+| git-suite | 33/33(命令转 async 后全绿=行为不变) |
+| recent/r3/pdf | 15/15、8/8、19/19 |
+| freeze-guard | **0/82 + webview 11ms PASS**(动了 watcher→git 链,必跑档) |
+| 版本 | 0.7.6 三处已核 |
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 

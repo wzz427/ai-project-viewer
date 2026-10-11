@@ -179,10 +179,18 @@ fn classify_bytes(sample: &[u8]) -> FileEncoding {
 }
 
 #[tauri::command]
-pub fn inspect_file(
+pub async fn inspect_file(
     root_path: String,
     rel_path: String,
 ) -> Result<FileInspection, String> {
+    // ASYNC (L35 family, Phase 10 audit): file IO must stay off the native
+    // main thread — inspect samples up to 5 MB before answering.
+    tauri::async_runtime::spawn_blocking(move || inspect_file_inner(root_path, rel_path))
+        .await
+        .map_err(|e| format!("inspect task failed: {e}"))?
+}
+
+fn inspect_file_inner(root_path: String, rel_path: String) -> Result<FileInspection, String> {
     let path = resolve_file(Path::new(&root_path), &rel_path)?;
     inspect(&path)
 }
@@ -227,7 +235,17 @@ fn decode_bytes(bytes: &[u8], enc: FileEncoding) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn read_text_file(
+pub async fn read_text_file(
+    root_path: String,
+    rel_path: String,
+) -> Result<serde_json::Value, String> {
+    // ASYNC (L35 family): up to 20 MB off the main thread.
+    tauri::async_runtime::spawn_blocking(move || read_text_file_inner(root_path, rel_path))
+        .await
+        .map_err(|e| format!("read task failed: {e}"))?
+}
+
+fn read_text_file_inner(
     root_path: String,
     rel_path: String,
 ) -> Result<serde_json::Value, String> {
@@ -283,7 +301,17 @@ pub fn read_media(path: &Path) -> Result<MediaContent, String> {
 }
 
 #[tauri::command]
-pub fn read_media_file(
+pub async fn read_media_file(
+    root_path: String,
+    rel_path: String,
+) -> Result<serde_json::Value, String> {
+    // ASYNC (L35 family): up to 20 MB read + base64 off the main thread.
+    tauri::async_runtime::spawn_blocking(move || read_media_file_inner(root_path, rel_path))
+        .await
+        .map_err(|e| format!("read media task failed: {e}"))?
+}
+
+fn read_media_file_inner(
     root_path: String,
     rel_path: String,
 ) -> Result<serde_json::Value, String> {
@@ -313,13 +341,19 @@ pub fn read_binary(path: &Path) -> Result<Vec<u8>, String> {
 /// Returns tauri::ipc::Response so the bytes cross as one ArrayBuffer
 /// instead of a JSON number array (Tauri 2 fast channel).
 #[tauri::command]
-pub fn read_binary_file(
+pub async fn read_binary_file(
     root_path: String,
     rel_path: String,
 ) -> Result<tauri::ipc::Response, String> {
-    let path = resolve_file(Path::new(&root_path), &rel_path)?;
-    let bytes = read_binary(&path)?;
-    Ok(tauri::ipc::Response::new(bytes))
+    // ASYNC (L35 family): the PDF channel carries up to 100 MB — reading it
+    // on the main thread would stall the window on a cold cache.
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = resolve_file(Path::new(&root_path), &rel_path)?;
+        let bytes = read_binary(&path)?;
+        Ok(tauri::ipc::Response::new(bytes))
+    })
+    .await
+    .map_err(|e| format!("read binary task failed: {e}"))?
 }
 
 #[cfg(test)]
@@ -462,7 +496,7 @@ mod tests {
         std::fs::write(base.path().join("secret.txt"), "s").unwrap();
         std::mem::forget(base);
 
-        let err = inspect_file(
+        let err = inspect_file_inner(
             root.to_string_lossy().into_owned(),
             "../secret.txt".into(),
         )
@@ -474,7 +508,7 @@ mod tests {
     fn command_rejects_directory() {
         let root = tmp_project("DirReject");
         std::fs::create_dir_all(root.join("sub")).unwrap();
-        let err = inspect_file(root.to_string_lossy().into_owned(), "sub".into()).unwrap_err();
+        let err = inspect_file_inner(root.to_string_lossy().into_owned(), "sub".into()).unwrap_err();
         assert!(err.contains("Not a file"), "unexpected: {err}");
     }
 
@@ -483,7 +517,7 @@ mod tests {
         let root = tmp_project("FwdSlash");
         std::fs::create_dir_all(root.join("docs")).unwrap();
         std::fs::write(root.join("docs/a.md"), "# hi").unwrap();
-        let r = inspect_file(root.to_string_lossy().into_owned(), "docs/a.md".into()).unwrap();
+        let r = inspect_file_inner(root.to_string_lossy().into_owned(), "docs/a.md".into()).unwrap();
         assert_eq!(r.encoding, FileEncoding::Utf8);
     }
 }
@@ -547,8 +581,8 @@ mod read_tests {
         let root = base.path().join("In");
         std::fs::create_dir_all(root.join("sub")).unwrap();
         std::mem::forget(base);
-        assert!(read_text_file(root.to_string_lossy().into_owned(), "../x".into()).is_err());
-        assert!(read_text_file(root.to_string_lossy().into_owned(), "sub".into()).is_err());
+        assert!(read_text_file_inner(root.to_string_lossy().into_owned(), "../x".into()).is_err());
+        assert!(read_text_file_inner(root.to_string_lossy().into_owned(), "sub".into()).is_err());
     }
 
     #[test]

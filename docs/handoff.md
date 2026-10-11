@@ -11,10 +11,10 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-011 Phase 10 上线前体检(§184,禁新增产品功能):性能九类泄漏+安全十一类风险
-逐项审计(证据表住 SPEC §四)+发版三决定落地(NSIS/不签名/不自动更新,owner 2026-10-11 "开工"拍板)**。
-2026-10-11 本会话完成 A2 对齐(说人话范围表→owner 原话"开工")并立项 InDev。
-红线闸不代跑:T3 全量 Benchmark、NSIS 实际打包——发版前请示 owner。版本 0.7.6 起。
+主线 = **spec-011 Phase 10(§184,禁新增产品功能)InTest:0.7.6 已发体验渠道等 owner 复验**;
+复验通过后剩两红线闸动作=T3 全量 Benchmark、NSIS 实际打包(均须 owner 点头,可并 V1 验收)。
+审计+修复详情见 specs/spec-011-performance-security-release.md §四;发版三决定已拍板
+(NSIS/不签名/不自动更新,V1.5 §197 审计行)。**版本段 0.7.x 固定递增不跳段**。
 上段(spec-009 Watcher + spec-010 Open Recent + 0.7.4/0.7.5 两轮返修)已全部 Done——2026-10-11
 owner 收口原话"我换新对话做下一个需求",全程蒸馏在 history/progress/progress-2026-10.md。
 **未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断已装)——
@@ -25,14 +25,15 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-11 · spec-011 Phase 10 立项开工(本会话)
+### 2026-10-11 · spec-011 Phase 10 体检首发轮 0.7.6(InDev→InTest,等 owner 复验)
 
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → 续 spec-011 审计(性能九+安全十一,证据表
-> 住 specs/spec-011-performance-security-release.md §四)。
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → spec-011 §四审计表(20 行全回填)。
+> owner 复验通过后:InTest→Done(记原话)→ 剩 T3 全量 Benchmark 与 NSIS 打包(两红线闸,须 owner 点头,可并 V1 验收一起)。
 
-- A2 对齐:说人话范围(体检三件事+三决定建议表)→ owner 原话**"开工"**;三决定=NSIS/不签名/不自动更新。
-- 审法:每类列产生点/入口全清单→逐点判→file:line 证据进 SPEC §四审计表;漏即修+回归;零新功能零 UI。
-- 闸:T3 全量 Benchmark+NSIS 打包必须 owner 点头(AGENTS.md 红线),交付汇报时一并请示。
+- 审计结论:九泄漏+十一风险逐项留证——**净 14/按设计 1(信任门=UX 门,§128)/特性 1(控制台宿主驻留)/漏已修 3+主线程 2**;一次性探针 V3(DOM 30 轮零增长)/V4(零孤儿)。
+- 五笔修复:①git show 两处补 §70 双旗标 ②cmd /K 路径 raw_arg 双层引号(**L39**:单层引号实证可注入,`a&calc&` 文件夹跑出 calc;测试纪律:注入类真 spawn 载荷选无害命令)③opener 授权收紧到 open_url http/https(D10,phase3 双拒探针守卫)④git_diff/git_commit_detail+四读通道全转 async+spawn_blocking(L35 泛化,硬规则已立)⑤发版三决定拍板落 V1.5 §197,Q1 归档。
+- 全档:cargo **99**(+3)/vitest 60/check 0/phase3 **66**(+2)/git 33/recent 15/r3 8/pdf 19/**freeze-guard 0/82**;版本 0.7.6 三处。
+- 内存账:零新增驻留(修复均为线程池调度);watcherStore lanes Map 既有两字段小对象记档不修(spec-011 R6 补注)。
 
 ### 2026-10-11 · 本段收口:Watcher+Open Recent 全 Done(0.7.0–0.7.5 五版),主线交棒新对话
 

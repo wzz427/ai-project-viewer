@@ -31,12 +31,14 @@
 | D7 | 文件树排序 | Name + Favorites First(Pinned 手工序 + Unpinned 自动序) | 否决 Full Manual Sort:Agent 高频增删文件,人工顺序维护成本持续上升 | V1.5 §33–§40 |
 | D8 | Git 子目录场景 | Git identity 仓库级、变化呈现项目级(Badge/Changes/Tab 只算 Project Scope,Branch/Ahead/Behind 仓库级) | 否决父仓库全量呈现:与"当前项目"直觉不符;否决 multi-repo 递归发现:复杂度 | V1.5 §55–§66 |
 | D9 | UI 布局 | Sidebar Header Tabs(Files/Git),非 Activity Bar | 否决竖向 Activity Bar:两个工作区不值得占一列 | V1.5 §7–§8 |
+| D10 | opener 插件授权(渲染层) | capabilities 只授 `opener:allow-open-url`(http/https);**不授 open-path/reveal/mailto** | 否决 `allow-open-path **`:渲染层处理不可信 PDF/代码文件(pdf.js/CM 为现实攻击面),曾授权任意路径 OS 关联打开=可执行程序;插件文档证实 scope 仅 IPC 层强制,Rust 自由函数(open_path/reveal)不受影响——收紧零代价(spec-011 R20/phase3 双拒探针) | spec-011 §四 D8;2026-10-11 |
+| D11 | cmd.exe 宿主传脚本路径 | `raw_arg` 双层引号 `""path""`(SpawnArg::CmdPath) | 否决裸 argv/单层引号:cmd 的 /K 文档行为=引号内含元字符即剥外层引号重析,单层引号下 `a&calc&` 文件夹实证跑出 calc(§145) | spec-011 §四 D7;2026-10-11 |
 
 ## 1.5 待决问题(摆上桌但"以后再说"的;不是 bug 不是待办,是没被遗忘也没被拍死的取舍)
 
 | # | 问题 | 已知事实 | 何时回来评估 | 归档日 |
 |---|---|---|---|---|
-| Q1 | 发布形态(安装包格式/签名/自动更新) | V1.5 §184 已有初始建议:个人用 NSIS、updater OFF、签名非必需 | Phase 10 | |
+| ~~Q1~~ | ~~发布形态(安装包格式/签名/自动更新)~~ | **已拍板(2026-10-11,owner"开工"确认 §184 初始建议):NSIS Setup EXE / V1 不签名 / V1 关自动更新**;V1.5 §197 审计行;实际打包发布=独立动作走红线闸 | 公开分发时重评 Code Signing/Updater/MSI(§184) | 2026-10-11 |
 | Q2 | Multi-Repository Workspace(一个 Project 含多个嵌套 repo) | V1.5 §66 明确不做,视为 Non-Git | 真实使用出现该痛点后(V1.5 §187 Future) | |
 
 ## 2. 整体拓扑(一张图;Phase 1 实测核实)
@@ -122,15 +124,15 @@ ProjectViewer/(仓库根)
 │           ContextMenu/menuPosition.ts(右键菜单视口钳制,0.6.3)
 └── src-tauri/ —— Rust 后端
     ├── tauri.conf.json(窗口 1280×800/CSP/NSIS/dragDropEnabled:false——HTML5 拖拽必需,lessons L10)
-    ├── capabilities/default.json(core:default + dialog:default)
+    ├── capabilities/default.json(**0.7.6 最小授权**:core:default + dialog:default + opener:allow-open-url 限 http/https——渲染层不持有任何 open-path/reveal 能力,D10)
     └── src/
         ├── main.rs / lib.rs(插件装配+启动耗时命令+WebView2 加速键 COM 禁用+RunEvent::Exit 状态兜底写;**Phase 9:manage 单槽 Mutex<Option<WatchSlot>>——激活项目唯一监听,start 换槽原子停旧(D6)**)
         ├── project/manager.rs(resolve_project:canonicalize+校验,8 个单测;paths_exist=0.7.3 Open Recent 批量存性检查(置灰判据),async+spawn_blocking 守 L35,9 个单测)
         ├── state/(Phase 4:mod.rs 两命令+测试态闸门 AIV_STATE_FILE/拒访;persistence.rs 原子写+损坏隔离;migration.rs 版本路由,10 个单测)
         ├── file_tree.rs(list_directory:单层+§29 打标+hidden_count+越界拒;§176 块1)
-        ├── file_inspect.rs(inspect_file/read_text_file/read_media_file/read_binary_file:§101 流水线+按编码解码+图片 data URL+PDF 原始字节通道(ArrayBuffer,100MB 顶),守卫全在 Rust 侧)
+        ├── file_inspect.rs(inspect_file/read_text_file/read_media_file/read_binary_file:§101 流水线+按编码解码+图片 data URL+PDF 原始字节通道(ArrayBuffer,100MB 顶),守卫全在 Rust 侧;**0.7.6 起四命令全 async+spawn_blocking——大文件读盘/base64 不上主线程,spec-011 P2**)
         ├── handoff.rs(Phase 6 §132 ExternalEditor 抽象=NotepadEditor/VSCodeEditor+§133 语义命令 edit_in_quick_editor/open_in_code_editor/reveal_in_explorer/open_with_default_app/open_in_browser;全部先 canonicalize 校验(§143/§144);VS Code 探测=Local\Programs→Program Files→PATH 的 code.exe,11 单测)
-        └── run.rs(Phase 8 运行层:run_project_script/run_project_executable 两语义命令;§117/§118 持久宿主策略=cmd /K+powershell -NoExit+CREATE_NEW_CONSOLE(实验定,spec-008 §一);§120 无 -ExecutionPolicy;§121/§124 cwd;扩展名白名单住 Rust;spawn 后即忘零驻留)/ git.rs(Phase 7 只读 Git Review:git_snapshot(**0.7.1 起 async+spawn_blocking——起 git.exe 的重活禁上主线程,L35**)/git_diff/git_commit_detail 三命令(0.6.8 增 show 详情:改名/作者/文件,hash 消毒);§65 全部 git -C <GitRoot>+§70 安全旗标 --no-pager/quotepath=false/--no-ext-diff/--no-textconv/--no-optional-locks;porcelain=v2 解析(renamed TAB 双路径实证)+Scope 过滤换算项目相对路径;§72 diff 流式截断 2MB/20k 行+10s 超时+CREATE_NO_WINDOW;13 单测含 §174 场景/ahead-behind/冲突/空仓 detached)
+        └── run.rs(Phase 8 运行层:run_project_script/run_project_executable 两语义命令;§117/§118 持久宿主策略=cmd /K+powershell -NoExit+CREATE_NEW_CONSOLE(实验定,spec-008 §一);**0.7.6:cmd /K 脚本路径走 SpawnArg::CmdPath=raw_arg 双层引号 `""path""`——cmd 见元字符剥单层引号重析,实证 a&calc& 文件夹可注入跑 PATH 命令(D11)**;§120 无 -ExecutionPolicy;§121/§124 cwd;扩展名白名单住 Rust;spawn 后即忘零驻留)/ git.rs(Phase 7 只读 Git Review:git_snapshot/git_diff/git_commit_detail 三命令(**0.7.1/0.7.6 全 async+spawn_blocking——起 git.exe 的重活禁上主线程,L35+spec-011 P1**;0.6.8 增 show 详情:改名/作者/文件,hash 消毒;**0.7.6:产生补丁的 diff 与 commit 视角 show 全带 --no-ext-diff/--no-textconv——曾漏 show 两处,§70**);§65 全部 git -C <GitRoot>+§70 安全旗标 --no-pager/quotepath=false/--no-optional-locks;porcelain=v2 解析(renamed TAB 双路径实证)+Scope 过滤换算项目相对路径;§72 diff 流式截断 2MB/20k 行+10s 超时+CREATE_NO_WINDOW)
         └── watcher.rs(Phase 9 监听层:notify-debouncer-full 400ms 单槽+start/stop_project_watch 两命令——**0.7.2 起均 async+spawn_blocking,监听生命周期永不进主线程(L35/L36)**;**NoCache 换 FileIdMap(L36:Windows 默认缓存会在 watch() 全树 WalkDir+逐文件开句柄,真实仓库分钟级卡死主线程)**;§32 忽略清单 Rust 侧路径段过滤(事件不跨 IPC,§80);**Windows rename=单事件 Name(Both) 带 [from,to],拆成相邻 From/To 再配对(lessons L33,§84)**;storm 上限 200/窗折叠全量刷新;spawn_watcher 泛型 sink(生产=emit/测试=mpsc);canonicalize 围栏;单测含真监听冒烟)
 ```
 
@@ -151,8 +153,10 @@ ProjectViewer/(仓库根)
 ## 4. 硬规则(代码层面必须守的)
 
 - **内存最小化是第一实现原则**(owner 2026-10-02 立规,V1.5 §6 增量修订):每个开发决策(选型/数据结构/缓存策略/生命周期)都过内存秤——能不驻留的不驻留、能延迟加载的延迟加载、用户关闭的就真正释放;"先做完再优化内存"不被接受。落地参照:查看器懒加载(§94)、PDF 每文档独立 worker+关最后页签引擎归零(lessons L15)、非激活查看器卸载(§160.5)、大文件守卫在 Rust 侧(§104/§106)。新功能交付时主动报内存账。
-- 一切文件/进程操作遵守 V1.5 §143–§147:路径 canonicalize 后按 Path 语义校验在 Project Root 内;进程一律 Executable + Args Array,禁止 shell 字符串拼接;前端无任意执行命令。
-- git 一律 `git -C <GitRoot>` 执行(输出基准统一,见 §196 附注A)。
+- **起外部进程或读大文件的 Tauri 命令一律 async+spawn_blocking**(0.7.6 起,L35/L36 的泛化):同步命令跑在原生主线程,git.exe/大文件读盘在那里就是冻窗;0.7.1 git_snapshot、0.7.6 git_diff/git_commit_detail/read_text/media/binary/inspect 全部已转。新命令默认 async,同步命令里禁 IO/进程。
+- **渲染层插件授权最小化**(0.7.6 起,spec-011 R20):capabilities 只授前端实际调用的能力(现仅 opener open_url http/https);Rust 侧经插件自由函数的调用不受 scope 影响,不许"顺手"给渲染层留授权。
+- 一切文件/进程操作遵守 V1.5 §143–§147:路径 canonicalize 后按 Path 语义校验在 Project Root 内;进程一律 Executable + Args Array,禁止 shell 字符串拼接(**cmd.exe 的 /K 载荷走 raw_arg 双引号**,architecture D11);前端无任意执行命令。
+- git 一律 `git -C <GitRoot>` 执行(输出基准统一,见 §196 附注A);**产生补丁的 git 调用(diff/show)必带 --no-ext-diff --no-textconv**(§70,0.7.6 起含 commit 视角)。
 - Viewer 只读:任何情况下不得引入编辑能力(V1.5 §5)。
 - 每个 Phase 必须:编译→运行→测试→benchmark(如需)→报告→停,等 owner 确认(V1.5 §191)。
 - 标识符英文,文档中文;首个密钥引入当天建《密钥总备份》(目前零密钥,不建空账)。
@@ -161,6 +165,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-11 | 0.7.6 | Phase 10 体检落地(spec-011):审计 20 项(九泄漏+十一风险)逐项留证;修三缺口+两主线程隐患——git show 补 §70 旗标、cmd /K raw_arg 双引号防注入(D11)、opener 授权收紧到 open_url http/https(D10)、git_diff/git_commit_detail+四读通道全转 async;发版三决定拍板(NSIS/不签/关更新,Q1 归档);硬规则新增"外部进程/大文件命令一律 async"+"渲染层插件授权最小化"+"产生补丁的 git 调用必带双旗标" | owner"开工"(Phase 10 A2 对齐) |
 | 2026-10-02 | — | 基建落地:体验版客户端与更新机制(SPEC-INFRA-001)——owner 客户端独立 identifier/目录/数据,开发构建永不触碰;交付=scripts/publish-experience.ps1+客户端内 Update 按钮(md5 判定+rename 自替换);诊断面板加 Channel/Build 时间 | owner 立规("根治开发/体验共用 exe") |
 | 2026-10-01 | — | Phase 5 落地:PDF.js Spike→完整查看器(specs/spec-005);pdfjs-dist 6.3 **legacy build**(modern 在 WebView2 143 缺 upsert 提案 API,lessons L14)+Vite worker+字节通道 read_binary_file(ArrayBuffer);CSP 加 worker-src 'self' blob:;虚拟化+切离释放+pdfState 持久化;§98 Benchmark 四场景落 testing.md §2e | owner 指令(§179) |
 | 2026-10-01 | — | Phase 4 落地:Session & Settings(specs/spec-004)——AppState.version=1+防抖 800ms 原子写盘+迁移骨架+会话恢复(懒读内容);showSystemFolders 全局化(§22 对齐)、sidebarMode/Width 入 ProjectSession(§17);contentCache 改 SvelteMap(lessons L13);测试态闸门 AIV_STATE_FILE | owner 指令(§178) |

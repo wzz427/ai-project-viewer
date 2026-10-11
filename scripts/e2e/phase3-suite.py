@@ -864,5 +864,27 @@ with sync_playwright() as p:
     os.remove(w_renamed)
     check("watcher_tree_auto_remove", wait_row("data/zz-renamed.txt", False))
 
+    # --- Phase 10 opener-scope fence (spec-011 S2): the renderer must NOT
+    # hold a direct "open any path / any URL" capability — only http(s)
+    # open_url survives (MarkdownViewer links). Both probes assert the
+    # REJECTION (nothing may open on the desktop).
+    denied = page.evaluate("""async () => {
+        const invoke = window.__TAURI_INTERNALS__.invoke;
+        const out = { path: false, fileUrl: false };
+        try {
+            await invoke('plugin:opener|open_path',
+                { path: 'C:\\\\Windows', with: null });
+        } catch (e) { out.path = String(e).length > 0; }
+        try {
+            await invoke('plugin:opener|open_url',
+                { url: 'file:///C:/Windows/notepad.exe', with: null });
+        } catch (e) { out.fileUrl = String(e).length > 0; }
+        return out;
+    }""")
+    check("p10_opener_open_path_denied", bool(denied and denied.get("path")),
+          "open_path unexpectedly allowed (capability leak)")
+    check("p10_opener_file_url_denied", bool(denied and denied.get("fileUrl")),
+          "open_url file:// unexpectedly allowed (scope leak)")
+
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

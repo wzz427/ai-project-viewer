@@ -84,11 +84,36 @@ V1 打包无从谈起。代价:审计工时;修复可能碰任何文件(风险=�
 主产物,结论只住这一份。修复预期集中在:前端组件销毁钩子、缓存清理边角(改名/删除)、
 Rust 侧命令超时面。不动架构。
 
-**审计表(InDev 时逐行填,行=类别;状态:净/漏已修/特性非泄漏)**
+**审计表(InDev 完成回填;证据=file:line,行号为 0.7.6 审计时点)**
 
 | 类别 | 产生点/入口清单 | 判定 | 结论 |
 |---|---|---|---|
-| (待审) | | | |
+| R1 Event Listener | addEventListener 全量 31 处:App 拖拽 95-100(onUp 配对)/main.ts 3 处(应用级)/ErrorDialog+四右键菜单(开挂卸清)/PdfViewer 120-125(unmount 清)+拖选 387-401(**activeDriver 兜底+8s 保险**,unmount 先杀)/shortcuts·stateSync·settingsStore(应用级单例)/App onMount listen 两处(unlisten 配对)/watcherStore initWatcher(应用级一次) | 全配对或应用级 | **净** |
+| R2 CodeMirror | CodeViewer $effect 建视图/cleanup `v.destroy()`;0.7.4 字号重建=effect 重跑先 destroy | 配对 | **净** |
+| R3 PDF Worker | pdfEngine 每文档独立 worker;acquireLib 先 terminate 旧;关最后页签 releaseEngineIfIdle 归零(L15);PdfViewer unmount: cleanup+destroy+releaseIfIdle | 配对 | **净** |
+| R4 Canvas | PdfViewer releasePage→replaceChildren;虚拟化 ±2 页;renderedScale 清理 | 配对 | **净** |
+| R5 Page Cache | tabsStore contentCache:closeFile:285/槽位回收:172/applyTabRenames 迁键:545/forgetTabs:559 四路全清;删除页签保内容=§83 设计 | 上界=开着的页签 | **净** |
+| R6 Watcher | Rust 单槽(D6)start 换槽原子;App.svelte:201 effect 无激活项目即 stop;进程退出即亡 | 闭环 | **净**(补注:watcherStore lanes Map 按根累积两字段小对象,量级可忽略,记档不修) |
+| R7 DOM | Svelte 卸载即拆;探针 V3:30 轮开关页签 document 节点数 105→105 **零增长** | 探针实证 | **净** |
+| R8 Git Process | run_git_capped:10s 超时/截断即 kill/err 即 kill(125/132/143),读线程 join,CREATE_NO_WINDOW | 配对 | **净**;但命令壳同步跑主线程 → 见 P1 |
+| R9 Child Process | run.rs spawn 后即忘=§117/§118 特性;探针 V4:会话结束零孤儿(target 构建树限定;owner 体验版客户端不涉) | 设计+探针 | **特性非泄漏** |
+| R10 Path Traversal | resolve_file/resolve_inside/resolve_target 全 canonicalize+Path starts_with;git 侧 sanitize_rel 逐组件拒 `..`/绝对/`:magic`;hash 消毒 hex;盘根拒 | 全通道 | **净** |
+| R11 URL Scheme | .url→shortcut_url(1MB 顶)→browser_url_allowed 仅 http/https(cargo 测);MD 链接 /^https?:/i 才 openUrl;file_url 百分号编码 | 双层 | **净** |
+| R12 SVG | read_media data-URL→`<img>`(ImageViewer:4-6);全前端唯一 {@html}=MarkdownViewer 且 html:false | 无脚本路径 | **净** |
+| R13 Markdown Script | markdown-it html:false(D4);validateLink 默认拦 javascript:;点击 handler 二道闸 | 三层 | **净** |
+| R14/R15 Git 旗标 | git_base_args 全命令(pager/quotepath/optional-locks);diff_argv 带双旗标;**缺口:commit 视角 git show 两处无旗标** → 已修(show_diff_argv+commit_detail 各补 --no-ext-diff --no-textconv;cargo show_diff_argv_carries_safe_flags) | 缺口已修 | **漏已修** |
+| R16 Command Injection | 全 spawn=Executable+Args Array;**缺口:cmd /K 载荷含路径元字符时 cmd 剥引号重析**(探针实证:单引号注入跑出 calc,双引号 idiom 干净)→ 已修(SpawnArg::CmdPath raw_arg 双引号 `""path""`;cargo 单元+真 spawn 回归各一) | 缺口已修 | **漏已修** |
+| R17 Project Trust | §128/§129 定义的 UX 确认框=runWithTrust(handoffMenu:90);Rust 持扩展名+路径围栏;test_mode 自动取消;MSI 无 Run 行(§126) | 与规格一致(规格即 UX 门;渲染层攻破需先过 CSP,且渲染层从不解释项目内容为代码) | **按设计** |
+| R18 EXE Launch | run_project_executable 仅 .exe+resolve_target 围栏+cwd=自身目录;白名单住 Rust | 净 | **净** |
+| R19 Script Arguments | script_argv 固定 argv 无用户参数;无 -ExecutionPolicy(§120,cargo 断言);-File 不经 shell 解释 | 净 | **净** |
+| R20 Frontend Shell | CSP:script 回落 default-src 'self'、connect 无外网、worker blob:;invoke 清单全语义命令;**缺口:capabilities 曾授渲染层 opener:allow-open-path `**`(任意路径 OS 关联打开=可执行)+opener:default(reveal/mailto)** → 已修(仅留 allow-open-url http/https;插件文档证实 scope 只管 IPC 层、Rust 侧自由函数不受影响;phase3 两探针断言 open_path/file:// 双拒) | 缺口已修 | **漏已修** |
+
+**性能侧两笔 L35 同族修复(非泄漏类,主线程卫生)**:
+
+| # | 问题 | 修法 |
+|---|---|---|
+| P1 | git_diff/git_commit_detail 同步命令起 git.exe 跑原生主线程——慢仓库点 diff 冻窗至 10s(L35 同族,git_snapshot 已 async 而这两处漏网) | 转 async+spawn_blocking(diff_inner/commit_detail_inner 拆同步核,cargo 测试直测内核) |
+| P2 | read_text/media/binary+inspect 四读通道同步(最高 100MB 读盘+27MB base64 在主线程)——冷缓存开大 PDF 冻窗 | 同上转 async+spawn_blocking |
 
 | D# | 决策 | 依据 | 备选 | 排除理由 |
 |---|---|---|---|---|
@@ -98,22 +123,28 @@ Rust 侧命令超时面。不动架构。
 | D4 | 发版三决定=R21–R23(owner"开工"确认 §184 初始建议);V1 正式打包动作不在本 SPEC | §184"发布前明确决定"指决定本身;打包是独立动作且是红线闸 | 本阶段顺手打出安装包 | 越红线 |
 | D5 | 版本 0.7.6 起(三处) | 0.7.x 递增纪律(handoff §二) | 0.8.0 | 无 owner 指令不换段 |
 | D6 | Idle RAM 179MB vs §163 target 150MB:Phase 1 已判"超标全来自 WebView2 空底座,非 gate";本阶段只审"我们这边没白驻留",不承诺压到 150 | §163 定性 target 非 gate;真实判据=同场景明显低于 VS Code(留给 T3 Benchmark 判) | 强压底座 | 越权且不可达 |
+| D7 | cmd /K 防注入用双层引号 `""path""`+raw_arg | cmd 的 /C//K 文档行为:引号内含元字符即剥外层引号重析(探针实证 2026-10-11:单层引号下 `a&calc&` 文件夹分裂命令行跑出 calc;双层剥外留内,脚本照跑);Rust 标准转义与 cmd 规则不兼容,raw_arg 全控 | 仅单层引号 | 探针实证注入 |
+| D8 | opener 收紧=删渲染层授权而非弃插件 | 插件文档:scope 仅 IPC 层强制,Rust 自由函数无检查→handoff.rs 不受影响;渲染层唯一合法用途=open_url http/https(MarkdownViewer 链接) | Rust 侧改直调 Win32 | 无收益(授权删干净即达目的) |
 
-**内存账(交付时报)**:预期净减或持平;每笔修复若引入新驻留须过秤并在此记一行。
+**内存账(交付时报)**:零新增驻留(四处修复均为线程池调度,无新常驻结构;SpawnArg=argv 构建期临时值);watcherStore lanes Map 为既有行为(见 R6 补注)未变。
 
 ## 五、测试覆盖矩阵(Draft→Ready 硬产物)
 
 | R# | V# | 测法 | 所需夹具 | 状态 |
 |---|---|---|---|---|
-| R1–R9 | V1 | 代码审计证据表(逐产生点)+发现即修后进对应回归 | 无 | ⚠(InDev 填) |
-| R7 | V3 | 一次性 e2e DOM 节点探针(开关页签 N 轮) | AIV-TestProject | ⚠ |
-| R9 | V4 | 一次性孤儿进程探针(会话结束后 psutil 差集) | 无 | ⚠ |
-| R10–R20 | V2 | 代码审计证据表(逐入口)+既有 cargo/vitest 安全测试对账+缺口即修 | 无 | ⚠ |
-| R21–R23 | V5 | 文档核对(architecture 决策表/Q1 归档/V1.5 §197 审计行/tauri.conf NSIS) | 无 | ⚠ |
-| 全部 | V6 | 全档回归:phase3/git/recent/r3/pdf/vitest/cargo/check(+freeze-guard 若动 watcher 链) | scripts/e2e | ⚠ |
+| R1–R9 | V1 | 代码审计证据表(§四,逐产生点 file:line) | 无 | ✓ |
+| R7 | V3 | 一次性 e2e DOM 探针:30 轮开关页签节点数 105→105 零增长 | AIV-TestProject | ✓ |
+| R9 | V4 | 一次性孤儿进程探针:会话结束 target 构建树+fixture 引用零存活 | 无 | ✓ |
+| R10–R20 | V2 | 代码审计证据表+既有 cargo/vitest 安全测试对账+三缺口修复回归 | 无 | ✓ |
+| R14/R15 | — | cargo show_diff_argv_carries_safe_flags(新) | 无 | ✓ |
+| R16 | — | cargo cmd_path_with_metacharacter_stays_one_token + bat_in_ampersand_folder_runs_via_verbatim_quoting(真 spawn 注入回归,新×2) | 无 | ✓ |
+| R20 | — | phase3 p10_opener_open_path_denied + p10_opener_file_url_denied(渲染层直调 IPC 断言拒绝,新×2) | AIV-TestProject | ✓ |
+| R21–R23 | V5 | 文档核对:V1.5 §197 审计行+architecture Q1 归档/决策表/硬规则+tauri.conf NSIS targets 就绪 | 无 | ✓ |
+| 全部 | V6 | 全档回归:phase3 **66**(+2)/git 33/recent 15/r3 8/pdf 19/vitest 60/cargo **99**(+3)/check 0/0/**freeze-guard 0/82**(动 watcher→git 链必跑) | scripts/e2e | ✓ |
 
 ## 六、变更与验收记录
 
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
 | 2026-10-11 | 立项 Draft→Ready(A2 对齐完成:owner 看说人话范围表后原话"开工";R/V 与 §184 逐条对上,九+十一+三全覆盖) | 测试覆盖矩阵 6 行 |
+| 2026-10-11 | InDev→InTest(**0.7.6 已发体验渠道,等 owner 复验**):审计表 20 行全回填(净 14/按设计 1/特性 1/漏已修 3+主线程 2);四修复=git 旗标+async、读通道 async、cmd /K 双引号防注入、opener 授权收紧;R9 探针插曲:注入实证时 calc 短暂弹窗(已清理,测试纪律教训——注入类真 spawn 测试的载荷命令应选无害命令) | 全档数字见 §五 V6 行 |

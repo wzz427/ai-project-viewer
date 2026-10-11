@@ -34,18 +34,60 @@ fn ext_of(path: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// One argv element with Windows command-line encoding intent (§145,
+/// Phase 10 audit).
+pub enum SpawnArg {
+    /// Standard Rust quoting — host flags and PowerShell's `-File` path
+    /// (powershell.exe parses argv itself; `&` is not special there).
+    Std(String),
+    /// Emitted VERBATIM (no Rust quoting): the cmd.exe `/K` target. cmd
+    /// re-parses everything after /K as its own command line under cmd's
+    /// rules (Rust's quoting is not cmd's), so the script path arrives
+    /// wrapped in its OWN quote pair by us. It must be a DOUBLE pair:
+    /// cmd's documented /C//K parsing strips the outer quotes when the
+    /// inner text carries a metacharacter (`&<>()@^|`) — a folder named
+    /// `x&calc` would then split the line and let `calc` run as a bare
+    /// PATH command (probe-verified 2026-10-11: single quotes inject,
+    /// `""path""` runs the script untouched).
+    CmdPath(String),
+}
+
+fn quoted_cmd_path(script: &Path) -> SpawnArg {
+    SpawnArg::CmdPath(format!("\"\"{}\"\"", script.to_string_lossy()))
+}
+
+/// Apply argv elements with their per-shell encoding (shared by the real
+/// spawn and the windowless tests).
+fn apply_args(cmd: &mut std::process::Command, args: &[SpawnArg]) {
+    use std::os::windows::process::CommandExt;
+    for a in args {
+        match a {
+            SpawnArg::Std(s) => {
+                cmd.arg(s);
+            }
+            SpawnArg::CmdPath(s) => {
+                cmd.raw_arg(s);
+            }
+        }
+    }
+}
+
 /// Host program + arguments for one script (§117/§120/§121). Pure — the
 /// exact argv (notably: NO -ExecutionPolicy) is unit-testable without
 /// spawning anything. cwd = Project Root is applied by the caller (§121).
-pub fn script_argv(script: &Path) -> Result<(PathBuf, Vec<String>), String> {
+pub fn script_argv(script: &Path) -> Result<(PathBuf, Vec<SpawnArg>), String> {
     match ext_of(script).as_str() {
         "ps1" => Ok((
             PathBuf::from("powershell.exe"),
-            vec!["-NoExit".into(), "-File".into(), script.to_string_lossy().into()],
+            vec![
+                SpawnArg::Std("-NoExit".into()),
+                SpawnArg::Std("-File".into()),
+                SpawnArg::Std(script.to_string_lossy().into()),
+            ],
         )),
         "cmd" | "bat" => Ok((
             PathBuf::from("cmd.exe"),
-            vec!["/K".into(), script.to_string_lossy().into()],
+            vec![SpawnArg::Std("/K".into()), quoted_cmd_path(script)],
         )),
         other => Err(format!("Not a runnable script (.{other}): use Run on .ps1/.cmd/.bat only")),
     }
@@ -86,9 +128,10 @@ pub fn run_project_executable(root_path: String, rel: String) -> Result<(), Stri
     spawn_visible(&exe, &[], &cwd)
 }
 
-fn spawn_visible(program: &Path, args: &[String], cwd: &Path) -> Result<(), String> {
+fn spawn_visible(program: &Path, args: &[SpawnArg], cwd: &Path) -> Result<(), String> {
     let mut cmd = std::process::Command::new(program);
-    cmd.args(args).current_dir(cwd).creation_flags(CREATE_NEW_CONSOLE);
+    apply_args(&mut cmd, args);
+    cmd.current_dir(cwd).creation_flags(CREATE_NEW_CONSOLE);
     cmd.spawn()
         .map(|_| ())
         .map_err(|e| format!("Cannot start {}: {e}", program.display()))
@@ -115,18 +158,78 @@ mod tests {
     #[test]
     fn ps1_argv_has_no_execution_policy_flag() {
         let (_, argv) = script_argv(Path::new("C:/x/s.ps1")).unwrap();
-        let joined = argv.join(" ");
+        let joined = argv
+            .iter()
+            .map(|a| match a {
+                SpawnArg::Std(s) | SpawnArg::CmdPath(s) => s.as_str(),
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
         assert!(!joined.to_ascii_lowercase().contains("executionpolicy"));
-        assert!(argv.contains(&"-NoExit".to_string()));
-        assert!(argv.contains(&"-File".to_string()));
+        assert!(joined.contains("-NoExit"));
+        assert!(joined.contains("-File"));
     }
 
     #[test]
     fn bat_uses_cmd_k_host() {
         let (program, argv) = script_argv(Path::new("C:/x/s.bat")).unwrap();
         assert_eq!(program, PathBuf::from("cmd.exe"));
-        assert_eq!(argv[0], "/K");
-        assert!(argv[1].ends_with("s.bat"));
+        assert!(matches!(argv[0], SpawnArg::Std(ref s) if s == "/K"));
+        let SpawnArg::CmdPath(path) = &argv[1] else {
+            panic!("script path must ride the verbatim cmd channel");
+        };
+        assert!(path.starts_with("\"\"") && path.ends_with("\"\""));
+        assert!(path.contains("s.bat"));
+    }
+
+    /// §145 / Phase 10 audit: cmd.exe re-parses the `/K` payload and
+    /// strips an outer quote pair that carries a metacharacter — a folder
+    /// named `x&calc` must ride the double-quoted verbatim channel.
+    #[test]
+    fn cmd_path_with_metacharacter_stays_one_token() {
+        let (program, argv) =
+            script_argv(Path::new(r"C:\proj\a&calc&\run.bat")).unwrap();
+        assert_eq!(program, PathBuf::from("cmd.exe"));
+        let SpawnArg::CmdPath(path) = &argv[1] else {
+            panic!("expected CmdPath");
+        };
+        assert_eq!(path, "\"\"C:\\proj\\a&calc&\\run.bat\"\"");
+    }
+
+    /// Real-spawn regression for the same property: with the quoting, the
+    /// script body inside the `&`-named folder actually runs (unquoted, cmd
+    /// would split the line into `C:\...\a` & `calc&\run.bat` and neither
+    /// exists). Windowless via the shared apply_args + CREATE_NO_WINDOW.
+    #[test]
+    fn bat_in_ampersand_folder_runs_via_verbatim_quoting() {
+        let dir = tempfile::tempdir().unwrap();
+        let nest = dir.path().join("a&calc&");
+        std::fs::create_dir_all(&nest).unwrap();
+        let marker = dir.path().join("marker.txt");
+        let bat = nest.join("run.bat");
+        std::fs::write(
+            &bat,
+            format!("@echo off\r\necho done> \"{}\"\r\n", marker.display()),
+        )
+        .unwrap();
+
+        let (program, argv) = script_argv(&bat).unwrap();
+        let mut launcher = std::process::Command::new(&program);
+        apply_args(&mut launcher, &argv);
+        launcher
+            .stdin(std::process::Stdio::piped())
+            .creation_flags(CREATE_NO_WINDOW)
+            .current_dir(dir.path());
+        let mut child = launcher.spawn().unwrap();
+        // Hold stdin open (no console window; a closed pipe would EOF the
+        // host before the script body finishes — same trick as the §118
+        // persistence tests).
+        let _stdin_hold = child.stdin.take();
+        let start = Instant::now();
+        while !marker.exists() && start.elapsed() < Duration::from_secs(8) {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        assert!(marker.exists(), "script in '&'-named folder never ran — path was split by cmd");
     }
 
     #[test]

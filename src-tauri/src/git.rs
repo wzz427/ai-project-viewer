@@ -685,7 +685,23 @@ fn sanitize_rel(rel: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn git_diff(
+pub async fn git_diff(
+    root_path: String,
+    rel: String,
+    staged: bool,
+    commit_hash: Option<String>,
+) -> Result<GitDiffResult, String> {
+    // ASYNC on purpose (L35 family, Phase 10 audit): this handler spawns
+    // git.exe; a sync command would run it on the native main thread and a
+    // slow repo could freeze the window for up to the 10 s timeout per click.
+    tauri::async_runtime::spawn_blocking(move || {
+        diff_inner(root_path, rel, staged, commit_hash)
+    })
+    .await
+    .map_err(|e| format!("git diff task failed: {e}"))?
+}
+
+fn diff_inner(
     root_path: String,
     rel: String,
     staged: bool,
@@ -703,20 +719,8 @@ pub fn git_diff(
     let rel = sanitize_rel(&rel)?;
     let pathspec = if scope.is_empty() { rel } else { format!("{scope}/{rel}") };
 
-    // A commit-scoped diff shows that file's change INSIDE the given
-    // commit (`git show --format=` drops the log header, keeps the diff —
-    // and works for root commits where `hash^` does not exist).
     let argv = match commit_hash {
-        Some(hash) => {
-            let hash = sanitize_hash(&hash)?;
-            let mut args = git_base_args(&git_root);
-            args.push("show".into());
-            args.push("--format=".into());
-            args.push(hash);
-            args.push("--".into());
-            args.push(pathspec);
-            args
-        }
+        Some(hash) => show_diff_argv(&git_root, &sanitize_hash(&hash)?, &pathspec),
         None => diff_argv(&git_root, &pathspec, staged),
     };
     let out = run_git_capped(&argv, DIFF_MAX_BYTES, DIFF_MAX_LINES)
@@ -726,6 +730,25 @@ pub fn git_diff(
         truncated: out.truncated,
         lines: out.lines as u32,
     })
+}
+
+/// A commit-scoped diff shows that file's change INSIDE the given commit
+/// (`git show --format=` drops the log header, keeps the diff — and works
+/// for root commits where `hash^` does not exist). §70 applies to EVERY
+/// patch-producing invocation: `git show` emits patches, so the same
+/// --no-ext-diff/--no-textconv fence as diff_argv (Phase 10 audit —
+/// without them a repo's diff.external / GIT_EXTERNAL_DIFF config would
+/// launch an external program through us).
+fn show_diff_argv(root: &Path, hash: &str, pathspec: &str) -> Vec<String> {
+    let mut args = git_base_args(root);
+    args.push("show".into());
+    args.push("--format=".into());
+    args.push("--no-ext-diff".into());
+    args.push("--no-textconv".into());
+    args.push(hash.into());
+    args.push("--".into());
+    args.push(pathspec.into());
+    args
 }
 
 /// Revisions crossing the bridge must be plain hex (4–40 chars) — anything
@@ -803,7 +826,14 @@ fn parse_commit_detail(out: &str, scope: &str) -> Option<GitCommitDetail> {
 }
 
 #[tauri::command]
-pub fn git_commit_detail(root_path: String, hash: String) -> Result<GitCommitDetail, String> {
+pub async fn git_commit_detail(root_path: String, hash: String) -> Result<GitCommitDetail, String> {
+    // ASYNC for the same reason as git_diff (L35 family, Phase 10 audit).
+    tauri::async_runtime::spawn_blocking(move || commit_detail_inner(root_path, hash))
+        .await
+        .map_err(|e| format!("commit detail task failed: {e}"))?
+}
+
+fn commit_detail_inner(root_path: String, hash: String) -> Result<GitCommitDetail, String> {
     let project = dunce::canonicalize(&root_path)
         .map_err(|e| format!("Project folder is not accessible: {e}"))?;
     let root_out = run_git(&with_args(
@@ -820,6 +850,8 @@ pub fn git_commit_detail(root_path: String, hash: String) -> Result<GitCommitDet
         &[
             "show",
             "--name-status",
+            "--no-ext-diff",
+            "--no-textconv",
             "--format=%H%x1f%an%x1f%aI%x1f%B",
             &hash,
         ],
@@ -988,6 +1020,20 @@ mod tests {
         assert!(joined.ends_with("-- apps/viewer/a.ts"));
     }
 
+    /// Phase 10 audit (§70): the commit-scoped `git show` emits patches, so
+    /// it must carry the same external-diff/textconv fences as diff_argv.
+    #[test]
+    fn show_diff_argv_carries_safe_flags() {
+        let argv = show_diff_argv(Path::new("R"), "ab12", "apps/viewer/a.ts");
+        let joined = argv.join(" ");
+        assert!(joined.contains("--no-ext-diff"));
+        assert!(joined.contains("--no-textconv"));
+        assert!(joined.contains("show"));
+        assert!(joined.ends_with("-- apps/viewer/a.ts"));
+        // The hash stays a bare token after `--format=` — never rev syntax.
+        assert!(argv.contains(&"ab12".to_string()));
+    }
+
     // ---- real repositories (format truth + §174 scenario) ----
 
     #[test]
@@ -1117,27 +1163,27 @@ mod tests {
         write_file(repo, "b.txt", "staged content\n");
         sh(repo, &["add", "b.txt"]);
 
-        let wt = git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false, None).unwrap();
+        let wt = diff_inner(repo.to_string_lossy().into_owned(), "a.txt".into(), false, None).unwrap();
         assert!(!wt.truncated);
         assert!(wt.text.contains("-two"));
         assert!(wt.text.contains("+TWO"));
         assert!(wt.text.contains("+three"));
 
-        let st = git_diff(repo.to_string_lossy().into_owned(), "b.txt".into(), true, None).unwrap();
+        let st = diff_inner(repo.to_string_lossy().into_owned(), "b.txt".into(), true, None).unwrap();
         assert!(st.text.contains("+staged content"));
         assert!(st.text.contains("new file"));
 
         // Path escape is refused before any git spawn.
-        assert!(git_diff(repo.to_string_lossy().into_owned(), "../x".into(), false, None).is_err());
+        assert!(diff_inner(repo.to_string_lossy().into_owned(), "../x".into(), false, None).is_err());
         // Commit-scoped diff: the file's change inside one commit (works
         // for the root commit too, where hash^ does not exist).
         let head = run_git(&with_args(&git_base_args(repo), &["rev-parse", "--short", "HEAD"]))
             .unwrap();
-        let cd = git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false, Some(head.trim().to_string())).unwrap();
+        let cd = diff_inner(repo.to_string_lossy().into_owned(), "a.txt".into(), false, Some(head.trim().to_string())).unwrap();
         assert!(cd.text.contains("+one"));
         assert!(cd.text.contains("+two"));
         assert!(cd.text.contains("new file"));
-        assert!(git_diff(repo.to_string_lossy().into_owned(), "a.txt".into(), false, Some("HEAD~1^{tree}".into())).is_err());
+        assert!(diff_inner(repo.to_string_lossy().into_owned(), "a.txt".into(), false, Some("HEAD~1^{tree}".into())).is_err());
     }
 
     #[test]
@@ -1151,7 +1197,7 @@ mod tests {
         let changed: String = (0..30_000).map(|i| format!("changed {i}\n")).collect();
         write_file(repo, "big.txt", &changed);
 
-        let d = git_diff(repo.to_string_lossy().into_owned(), "big.txt".into(), false, None).unwrap();
+        let d = diff_inner(repo.to_string_lossy().into_owned(), "big.txt".into(), false, None).unwrap();
         assert!(d.truncated);
         assert!(d.lines <= DIFF_MAX_LINES as u32);
         assert!(d.text.len() <= DIFF_MAX_BYTES + 8);
@@ -1214,7 +1260,7 @@ DELTA
         commit_all(repo, "second commit");
 
         let head = run_git(&with_args(&git_base_args(repo), &["rev-parse", "HEAD"])).unwrap();
-        let d = git_commit_detail(
+        let d = commit_detail_inner(
             repo.to_string_lossy().into_owned(),
             head.trim().to_string(),
         )
@@ -1236,7 +1282,7 @@ DELTA
 
         // Subdirectory scope filters the file list (keep.txt untouched,
         // b.txt deleted — only b.txt is in scope for sub/).
-        let d2 = git_commit_detail(
+        let d2 = commit_detail_inner(
             repo.join("sub").to_string_lossy().into_owned(),
             head.trim().to_string(),
         )
@@ -1244,6 +1290,6 @@ DELTA
         assert_eq!(d2.files.len(), 1);
         assert_eq!(d2.files[0].rel, "b.txt");
 
-        assert!(git_commit_detail(repo.to_string_lossy().into_owned(), "zz~1".into()).is_err());
+        assert!(commit_detail_inner(repo.to_string_lossy().into_owned(), "zz~1".into()).is_err());
     }
 }
