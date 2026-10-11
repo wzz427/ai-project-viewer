@@ -11,12 +11,13 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-011 Phase 10(§184,禁新增产品功能)InTest:0.7.6 已发体验渠道等 owner 复验**;
-复验通过后剩两红线闸动作=T3 全量 Benchmark、NSIS 实际打包(均须 owner 点头,可并 V1 验收)。
-审计+修复详情见 specs/spec-011-performance-security-release.md §四;发版三决定已拍板
-(NSIS/不签名/不自动更新,V1.5 §197 审计行)。**版本段 0.7.x 固定递增不跳段**。
-上段(spec-009 Watcher + spec-010 Open Recent + 0.7.4/0.7.5 两轮返修)已全部 Done——2026-10-11
-owner 收口原话"我换新对话做下一个需求",全程蒸馏在 history/progress/progress-2026-10.md。
+主线 = **owner 已预告新对话两步:① code review(0.7.6/0.7.7 的五笔修复+CSS 返修)
+② 最后的全量性能基准(T3,A–I 档+Phase 1 Baseline)**——收口原话"我打算开个新对话做 code review,
+然后做最后的全量性能基准"(2026-10-11,=T3 排期授权,新会话 code review 后即可跑,无需再请示);
+NSIS 实际打包仍须 owner 届时点头。spec-011 **InTest**:0.7.7 已发体验渠道待 owner 复验,
+code review 通过+基准跑完=收口转 Done 的条件。**版本段 0.7.x 固定递增不跳段**。
+Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
+审计证据表住 specs/spec-011-performance-security-release.md §四。
 **未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断已装)——
 复现时 Settings → Export Diagnostics,文件在 %APPDATA%\com.aiprojectviewer.app.exp\diagnostics\
 aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
@@ -25,20 +26,15 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-11 · 0.7.7 返修一轮:工具栏按钮双击变蓝(spec-011 InTest 复验反馈)
+### 2026-10-11 · 对话收口:Phase 10 体检 0.7.6+0.7.7 交付,主线交棒 code review→全量基准
 
-- owner 报障"点击字体放大缩小…有时按钮显示蓝色"——根因=连点落进双击窗口,浏览器词选中按钮标签染原生蓝(**L40**);修=全局 button user-select:none+两工具栏容器 none+input 显式恢复 text;守卫=phase3 `toolbar_buttons_not_selectable`(67/67)。
-- **0.7.7 已发体验渠道等 owner 复验**;主线不变:复验通过后剩 T3 全量 Benchmark+NSIS 打包两红线闸(须 owner 点头)。
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → owner 的 code review 指令。
+> 本段全程:立项(owner"开工")→审计 20 项→五笔修复→0.7.6 首发→蓝按钮返修 0.7.7→两版均发体验渠道。
 
-### 2026-10-11 · spec-011 Phase 10 体检首发轮 0.7.6(InDev→InTest,等 owner 复验)
-
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → spec-011 §四审计表(20 行全回填)。
-> owner 复验通过后:InTest→Done(记原话)→ 剩 T3 全量 Benchmark 与 NSIS 打包(两红线闸,须 owner 点头,可并 V1 验收一起)。
-
-- 审计结论:九泄漏+十一风险逐项留证——**净 14/按设计 1(信任门=UX 门,§128)/特性 1(控制台宿主驻留)/漏已修 3+主线程 2**;一次性探针 V3(DOM 30 轮零增长)/V4(零孤儿)。
-- 五笔修复:①git show 两处补 §70 双旗标 ②cmd /K 路径 raw_arg 双层引号(**L39**:单层引号实证可注入,`a&calc&` 文件夹跑出 calc;测试纪律:注入类真 spawn 载荷选无害命令)③opener 授权收紧到 open_url http/https(D10,phase3 双拒探针守卫)④git_diff/git_commit_detail+四读通道全转 async+spawn_blocking(L35 泛化,硬规则已立)⑤发版三决定拍板落 V1.5 §197,Q1 归档。
-- 全档:cargo **99**(+3)/vitest 60/check 0/phase3 **66**(+2)/git 33/recent 15/r3 8/pdf 19/**freeze-guard 0/82**;版本 0.7.6 三处。
-- 内存账:零新增驻留(修复均为线程池调度);watcherStore lanes Map 既有两字段小对象记档不修(spec-011 R6 补注)。
+- 交接要点:①code review 的对象=0.7.6/0.7.7 两轮提交(git log 33c1e23..fc82c60,五笔修复清单在
+  spec-011 §六);②T3 全量基准跑法=V1.5 §162–§173 档位+testing.md §4.9 Baseline 口径,跑前核
+  owner 预告授权(本页主线原话);③冻结 bug 取证路径见 〇;④e2e 新增检查先进 phase3/recent-suite;
+  ⑤凡动 watcher 链发版前必跑 watcher-freeze-guard。
 
 ### 2026-10-11 · 本段收口:Watcher+Open Recent 全 Done(0.7.0–0.7.5 五版),主线交棒新对话
 

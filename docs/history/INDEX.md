@@ -18,7 +18,7 @@
 
 | 日期 | 文件 | 一句话结果 | Grep 关键词 |
 |---|---|---|---|
-| 2026-10-01→10-11 | `progress/progress-2026-10.md` | 建仓→Open Recent 全程蒸馏(Phase 1–9+INFRA 三件+spec-010,v6→0.7.5;0.7.x 五版三返修;冻结 bug 转出未结) | Phase 号/spec-00N/版本号/L 教训号 |
+| 2026-10-01→10-11 | `progress/progress-2026-10.md` | 建仓→Phase 10 体检全程蒸馏(Phase 1–9+INFRA 三件+spec-010+spec-011,v6→0.7.7;0.7.x 七版;未结=0.7.7 复验/T3 基准/NSIS/冻结 bug) | Phase 号/spec-00N/版本号/L 教训号 |
 
 ## 版本轴
 

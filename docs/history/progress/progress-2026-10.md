@@ -93,3 +93,22 @@
   (contentRev 同款确定性模式,保滚动);行号随正文同字号(VS Code 行为)。phase3 增 gutter 对齐守卫(64 项)。
   owner 验收原话"行号对齐了"。
 - 0.7.5:字号上限 20→32px(§22 审计行;下限 11/默认 13 不变),范围收 appState 导出 FONT_SIZE_MIN/MAX 单一常量。
+
+## 2026-10-11 · Phase 10 上线前体检(spec-011,InTest;0.7.6 首发+0.7.7 返修)
+
+- **立项**:A2 对齐=说人话范围表(性能九类/安全十一类/发版三决定+建议表)→owner 原话"开工";三决定拍板
+  NSIS/不签名/关自动更新(V1.5 §197 审计行;architecture Q1 归档)。
+- **审计**(§184 20 项逐项留证,证据表住 SPEC §四 file:line):净 14/按设计 1(信任门=UX 门,§128 原文如此)
+  /特性 1(控制台宿主驻留=§117 有意)/漏已修 3+主线程 2。一次性探针:DOM 30 轮开关节点数 105→105 零增长;
+  会话结束零孤儿(按 target 构建树+fixture 引用限定——**进程名过滤须限定构建树**,owner 体验版客户端同名共存)。
+- **五笔修复**:①git show 两处漏 --no-ext-diff/--no-textconv(§70,产生补丁的调用必须带)②cmd /K 路径元字符注入
+  (**L39**:cmd 见元字符剥单层引号重析,`a&calc&` 文件夹实证跑出 calc;修=raw_arg 双层引号 `""path""`;
+  测试纪律:注入类真 spawn 载荷必选无害命令,本轮 calc 弹窗已清理)③opener 授权收紧(删渲染层 allow-open-path
+  **+opener:default,只留 open_url http/https;插件文档实证 scope 仅 IPC 层、Rust 自由函数不受影响=D10)
+  ④git_diff/git_commit_detail+四读通道全转 async+spawn_blocking(L35 泛化,architecture 硬规则已立)
+  ⑤0.7.7 工具栏按钮双击变蓝(**L40**:`.viewer-body user-select:text` 罩住工具栏,连点落双击窗口=词选中标签染
+  原生蓝;修=全局 button user-select:none+两工具栏容器 none+input 显式恢复 text——继承属性会罩坏输入框)。
+- **全档**:0.7.6 cargo 99(+3)/vitest 60/check 0/phase3 66(+2 opener 双拒探针)/git 33/recent 15/r3 8/pdf 19/
+  freeze-guard 0/82;0.7.7 加 toolbar_buttons_not_selectable(phase3 67)。
+- **未结**:0.7.7 待 owner 复验;T3 全量 Benchmark+NSIS 打包两红线闸——owner 收口时预告"新对话做 code review,
+  然后做最后的全量性能基准"(=T3 排期授权,原话留痕);冻结 bug 挂账照旧等取证。
