@@ -44,15 +44,20 @@
   });
 
   // While this menu is open, its row owns the tree highlight (owner
-  // 2026-10-10: right-clicked row must light up, not the old active
-  // file). Unmount cleanup clears it for EVERY close path — so the
-  // lasting highlight truth stays "active tab".
+  // 2026-10-10). Owner 2026-10-12: ACTING on an item must KEEP the row lit
+  // after close — "Show in File Explorer" on notes.txt used to drop the
+  // highlight back onto the previously-active file, which reads as the
+  // wrong row being selected. Dismissing without acting still clears it;
+  // the next file activation (row click / open) hands the highlight back.
+  let acted = false;
   $effect(() => {
     contextMenuTarget.rootPath = rootPath;
     contextMenuTarget.rel = joinRel(parentRel, name);
     return () => {
-      contextMenuTarget.rootPath = null;
-      contextMenuTarget.rel = null;
+      if (!acted) {
+        contextMenuTarget.rootPath = null;
+        contextMenuTarget.rel = null;
+      }
     };
   });
 
@@ -71,6 +76,7 @@
   function togglePin() {
     // Pin changes sibling DISPLAY order only — never the path on disk
     // (V1.5 §37/§38; files and folders are both pinnable).
+    acted = true;
     if (pinned) unpin(rootPath, parentRel, name);
     else pin(rootPath, parentRel, name);
     onclose();
@@ -90,6 +96,7 @@
         class="menu-item"
         data-menu-id={entry.id}
         onclick={() => {
+          acted = true;
           void entry.run();
           onclose();
         }}

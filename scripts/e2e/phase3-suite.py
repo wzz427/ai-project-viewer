@@ -575,6 +575,41 @@ with sync_playwright() as p:
     }""")
     check("right_click_row_owns_highlight", bool(hl.get("ok")), str(hl))
 
+    # --- 0.7.9 (owner 2026-10-12: "右键 Notes.txt → Show in File Explorer,
+    # 高亮跑到 pyproject.toml 上"): ACTING on a context-menu item keeps the
+    # acted row lit until the next file activation; dismissing without acting
+    # still reverts (guard above). Copy-Path stands in for the reveal verb so
+    # the probe never opens a desktop window. ---
+    hl2 = page.evaluate(r"""() => {
+      const row = [...document.querySelectorAll('.file-tree .row')]
+        .find(r => r.getAttribute('title') === 'sample.msi');
+      if (!row) return { ok: false, why: 'row not in DOM' };
+      row.dispatchEvent(new MouseEvent('contextmenu', {
+        clientX: 200, clientY: 200, bubbles: true, cancelable: true }));
+      return new Promise(res => setTimeout(() => {
+        const btn = document.querySelector(".menu [data-menu-id='copy-abs']");
+        if (!btn) { res({ ok: false, why: 'menu item missing' }); return; }
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        setTimeout(() => {
+          const after = [...document.querySelectorAll('.file-tree .row.selected')]
+            .map(r => r.getAttribute('title'));
+          const okAfterAction = after.includes('sample.msi') && after.length === 1;
+          // Next activation (re-clicking the already-active tab) hands the
+          // highlight back without disturbing any other state.
+          const activeTabBtn = document.querySelector('.file-tabs .file-tab.active');
+          if (activeTabBtn)
+            activeTabBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          setTimeout(() => {
+            const final = [...document.querySelectorAll('.file-tree .row.selected')]
+              .map(r => r.getAttribute('title'));
+            res({ after, final,
+                  ok: okAfterAction && !final.includes('sample.msi') && final.length === 1 });
+          }, 500);
+        }, 400);
+      }, 350));
+    }""")
+    check("context_action_keeps_row_highlight", bool(hl2.get("ok")), str(hl2))
+
     # --- Phase 8 growth guard (owner 2026-10-10 晚: "新菜单项加了以后,
     # 底部右键出来的列表还是一定能够全部显示") — the clamp must adapt to
     # the TALLER menus; assert EVERY button is inside the viewport, not

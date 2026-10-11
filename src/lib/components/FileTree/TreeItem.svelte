@@ -53,10 +53,10 @@
   // Highlight derives from the ACTIVE TAB (owner 2026-10-10: the old
   // click-scoped selection drifted from the tab strip — tree and file area
   // ended up highlighting different files).
-  // While a context menu is open on some row of THIS project, that row
-  // OWNS the highlight exclusively (exactly one lit row at any time,
-  // owner 2026-10-10: right-clicking example.url must light example.url,
-  // not the previously-active file); the override vanishes with the menu.
+  // While a context menu is open on some row of THIS project — or was
+  // ACTED ON and not yet superseded (owner 2026-10-12) — that row OWNS the
+  // highlight; the override clears on dismiss-without-action and on the
+  // next file activation (clearTreeHighlight / revealInTree).
   const selected = $derived(
     contextMenuTarget.rootPath === rootPath
       ? contextMenuTarget.rel === rel

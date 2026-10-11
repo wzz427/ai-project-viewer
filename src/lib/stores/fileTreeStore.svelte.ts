@@ -55,15 +55,28 @@ export const dragState = $state({
   name: null as string | null,
 });
 
-/** Tree row whose context menu is OPEN (owner 2026-10-10: right-clicking a
- * row must highlight it, not the previously-active file). Transient by
- * design: the highlight override lives only while the menu is mounted —
- * the lasting highlight truth stays "active tab" (0.6.3 rule, single
- * source; a sticky right-click selection would re-create the drift bug). */
+/** Tree row whose context menu is OPEN or was last ACTED ON (owner
+ * 2026-10-10: right-clicking a row must highlight it, not the
+ * previously-active file; owner 2026-10-12: ACTING on a menu item must
+ * keep the row lit afterwards — "Show in File Explorer" on notes.txt used
+ * to drop the highlight back onto the previously-active file, which reads
+ * as the wrong row being selected). The override vanishes on
+ * dismiss-without-action and on the next file activation; the lasting
+ * highlight truth otherwise stays "active tab" (0.6.3 rule, single
+ * source). */
 export const contextMenuTarget = $state({
   rootPath: null as string | null,
   rel: null as string | null,
 });
+
+/** A file is becoming the active one (row click / open / reveal): the
+ * sticky right-click highlight steps aside for the active-tab rule. */
+export function clearTreeHighlight(rootPath: string) {
+  if (contextMenuTarget.rootPath === rootPath) {
+    contextMenuTarget.rootPath = null;
+    contextMenuTarget.rel = null;
+  }
+}
 
 export function treeFor(rootPath: string): ProjectTreeState {
   let st = treeState.byRoot[rootPath];
@@ -77,6 +90,7 @@ export function treeFor(rootPath: string): ProjectTreeState {
 /** Drop state when a project tab is removed (call from removeProject). */
 export function forgetTree(rootPath: string) {
   delete treeState.byRoot[rootPath];
+  clearTreeHighlight(rootPath);
 }
 
 export function joinRel(parentRel: string, name: string): string {
@@ -295,6 +309,9 @@ export function setFoldersFirst(rootPath: string, value: boolean) {
  * scroll its row into view. Aborts at a missing level (nothing to show).
  */
 export async function revealInTree(rootPath: string, relPath: string) {
+  // A file is being activated — the sticky right-click highlight yields
+  // (owner 2026-10-12 highlight bug: both rules must hand over cleanly).
+  clearTreeHighlight(rootPath);
   const st = treeFor(rootPath);
   const parts = relPath.split("/");
   for (let i = 1; i < parts.length; i++) {
