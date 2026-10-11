@@ -28,47 +28,19 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-12 · 0.7.9 高亮返修轮(InTest 报障),体验渠道=0.7.9,主线=owner 验收→T3
+### 2026-10-12 · 本段收口:code review→修复批 0.7.8→高亮返修 0.7.9,主线交棒新对话
 
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → lessons L41 + testing.md §4.14。
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → specs/spec-012-code-review-fixes.md(§六)+lessons L41。
+> 本段全程:全面 code review(报告 44 条)→ owner"开工,完成spec012" → 43 条一批修完(42 落地+L-c6 止损)
+> → 全档回归全绿 → 0.7.8 发体验渠道 → InTest 报障(右键动作后树高亮)当日返修 0.7.9 再发。
+> 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-012/0.7.8/0.7.9/L41)。
 
-- owner 报"右键 Notes.txt→Show in File Explorer,高亮变成 pyproject.toml":两条既有规矩(高亮单一真值=
-  激活页签 × 右键瞬态独占)的组合缺口,非 0.7.8 引入(探针实证无点击穿透);修=动作过的行保持高亮,
-  dismiss 照旧回落,下次文件激活交还(L41);守卫 context_action_keeps_row_highlight 入 phase3(68)。
-- 0.7.9 已发体验渠道;下一步:owner 点 Update 复验 0.7.8+0.7.9 合并效果 → spec-012 验收转 Done →
-  评审报告归 history → T3(预告授权)。
-
-### 2026-10-11 · 全面 code review 完成(0.7.7 全代码),主线=等 owner 拍板修复顺序→T3
-
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → 评审报告 docs/code-review-2026-10-11.md。
-
-- 结论:无 Critical;2 高(多行提交消息解析丢失+幻影文件 / updater 主线程整读 exe)15 中约 25 低;
-  五笔 0.7.6/0.7.7 修复复核四笔修对、async 化有长尾;揪出 0.7.6 审计四处盲区(报告"对 0.7.6 审计的
-  四点补充")。全部高中级发现经会话逐条回读源码验证。基线实测全绿(check 0/0+vitest 60+cargo 99)。
-- 下一步:owner 拍板"先修 H2+M7 再跑 T3,还是直接跑 T3 留 0.7.8 修"(报告末节有建议顺序);
-  修复批消费完报告后,报告文件归档 history。
-
-### 2026-10-11 · 对话收口:Phase 10 体检 0.7.6+0.7.7 交付,主线交棒 code review→全量基准
-
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → owner 的 code review 指令。
-> 本段全程:立项(owner"开工")→审计 20 项→五笔修复→0.7.6 首发→蓝按钮返修 0.7.7→两版均发体验渠道。
-
-- 交接要点:①code review 的对象=0.7.6/0.7.7 两轮提交(git log 33c1e23..fc82c60,五笔修复清单在
-  spec-011 §六);②T3 全量基准跑法=V1.5 §162–§173 档位+testing.md §4.9 Baseline 口径,跑前核
-  owner 预告授权(本页主线原话);③冻结 bug 取证路径见 〇;④e2e 新增检查先进 phase3/recent-suite;
-  ⑤凡动 watcher 链发版前必跑 watcher-freeze-guard。
-
-### 2026-10-11 · 本段收口:Watcher+Open Recent 全 Done(0.7.0–0.7.5 五版),主线交棒新对话
-
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → 听 owner 下一个需求;若 owner 指规划内 →
-> Phase 10(spec-011,§184,禁新增产品功能),开工前 A2 对齐;立 SPEC 按 docs/workflow.md 状态机。
-
-- 收口凭据:owner"我换新对话做下一个需求";两笔 Done 台账见 specs/INDEX;全程蒸馏 history/progress/
-  progress-2026-10.md(Grep spec-009/spec-010/0.7.x/L33–L38)。发版链 0.7.5 为体验渠道当前版。
-- 交接要点:①体验渠道发版 = scripts/publish-experience.ps1 -Note(独立 target-exp,发版后全文件扫三二进制
-  标识——L37);②e2e 新增检查先进 phase3/recent-suite 别另起炉灶;③凡动 watcher 链发版前必跑
-  watcher-freeze-guard;④冻结 bug 取证路径见 〇;⑤客户端冻到点不了更新时用 scripts/swap-experience-client.py
-  (默认预览,--yes 执行)。
+- 交接要点:①体验渠道当前版 **0.7.9**,spec-012 **InTest**——owner 点 Update 复验,验收原话落 §六→Done,
+  评审报告 docs/code-review-2026-10-11.md 随之归 history 快照轴;②T3 全量基准=V1.5 §162–§173+testing.md
+  §4.9 口径,owner 已预告授权(原话留痕在前段收口条,蒸馏件可 Grep "T3 排期授权");③NSIS 打包须届时点头
+  (webviewInstallMode 三选一,spec-012 D7);④新报障第一动作=Settings→Export Diagnostics 同机直读;
+  ⑤动 watcher 链发版前必跑 freeze-guard;⑥tsconfig 收紧记档待清(60 处,去处=下一前端专项批次)。
+- 挂账不变:冻结 bug(取证路径见 §〇)/异地备份 remote(V1 验收后 owner 亲手)。
 - ⚠️ docs/AI-Project-Guide/ 的未提交改动归另一会话,勿动勿提交勿还原。
 
 ## 二、为什么这么改(当批关键取舍;只在"后人容易被顺手的改法改回去"处留一句)

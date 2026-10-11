@@ -112,3 +112,29 @@
   freeze-guard 0/82;0.7.7 加 toolbar_buttons_not_selectable(phase3 67)。
 - **未结**:0.7.7 待 owner 复验;T3 全量 Benchmark+NSIS 打包两红线闸——owner 收口时预告"新对话做 code review,
   然后做最后的全量性能基准"(=T3 排期授权,原话留痕);冻结 bug 挂账照旧等取证。
+
+
+## 2026-10-11→10-12 · 全面 code review→spec-012 修复批(0.7.8)→InTest 高亮返修(0.7.9)
+
+- **code review**(owner"对这个项目做一次全面的 code review",范围纠正=全项目全代码非只两轮提交):四路并行
+  深读+会话逐条亲验全部高/中级;结论=无 Critical,2 高/15 中/约 25 低,集中在三件事——0.7.6"重活禁上主线程"
+  没全量核对(updater+13 同步命令长尾)/PDF"完成时写回"缺取消语义(renderedScale·scrollTimer·runSearch 同根因
+  三现)/两处解析器盲区(多行提交消息、merge combined diff);揪出 0.7.6 审计四处盲区(报告"对 0.7.6 审计的
+  四点补充")。报告 docs/code-review-2026-10-11.md(44 条;spec-012 Done 时归 history 快照轴)。
+- **spec-012 修复批**(owner"开工,完成spec012"→当日一批完):开工自核发现 M5(decode_bytes 截断 panic)/M6
+  (stderr 背压)漏入组→补齐 43 条;42 落地+L-c6 止损(noUncheckedIndexedAccess 实测 60 错>20,回退记档,去处=
+  下一前端专项)。要点:H1=%B 尾 %x1e 分隔符切 header(夹具须 --cleanup=verbatim——git 默认剥行尾空白);
+  M2=--first-parent(VS Code 同款);H2+M12=15 命令 *_inner 转 async(check_update exists() 前置门,启动零白读);
+  M4=WatchState{expected_root,slot} 代次(快速 A→B 切换后活着的必是 B);M10=gitStore 单飞(inFlight+dirty 补轮,
+  旧响应不再覆盖新快照/误关 diff);M7-M9=PDF 取消语义(activeRenders cancel 同页重渲/searchGen 代次重启/
+  清定时器+**lastScrollTop 平变量**——e2e 实证 bind:this 卸载序早于 onMount cleanup,只清定时器必要不充分);
+  M11=可执行拒绝表 exe/bat/cmd/lnk/scr/hta/jse/vbe/js/jar/com/pif(msi 豁免 §126)。实现差异回写决策表 D9–D12。
+- **全档**:phase3 67+git 33+recent 15+r3 8+pdf 23(新 4 探针:M8 搜索中断零哨/M9 位置比例还原/M7 缩放风暴
+  settle 不变量)+vitest 64+cargo 112(+13)+check 0/0+freeze-guard 0/83;**L29 重演一次**——warning 清理用裸
+  `cargo build --release` 覆盖 tauri 产物→e2e 全线白屏,双构建重建走 tauri CLI 后全绿(GUI 二进制只认 CLI 产物)。
+- **0.7.9 高亮返修**(InTest 报障"右键 Notes.txt→Show in File Explorer,高亮变成 pyproject.toml"):**L41**=
+  两条各自正确的规矩打架(树高亮单一真值=激活页签 × 右键瞬态独占)⇒ 菜单一关高亮还给旧激活文件;探针五步实证
+  无点击穿透、非 0.7.8 引入。修=动作过的行保持高亮(acted 标记),dismiss 照旧回落,下次文件激活经 revealInTree
+  单一咽喉交还;守卫 context_action_keeps_row_highlight 入 phase3(载荷用 Copy-Path 非会弹窗的 reveal——零打扰)。
+- **未结**:0.7.9 待 owner 验收→spec-012 Done+评审报告归 history→T3 全量基准(预告授权)→spec-011 复验转 Done;
+  NSIS 打包届时点头(webviewInstallMode 三选一,spec-012 D7);冻结 bug/异地备份挂账照旧。

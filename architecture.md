@@ -165,6 +165,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-12 | 0.7.8/0.7.9 | 全面 code review 后修复批(spec-012,报告 44 条):同步命令 IO/进程清零(13 命令补转 async+updater exists() 前置门)、watcher 升 WatchState 代次(切换乱序自弃)、gitStore 单飞、PDF 三处取消语义(RenderTask cancel/搜索代次/scrollTimer+lastScrollTop 兜底)、open_with_default_app 可执行拒绝表(msi 豁免 §126)、CSP 补 base-uri/form-action 'none'、md5→RustCrypto md-5;0.7.9 返修=右键动作后树高亮保持(L41)。硬规则未变(0.7.6 已立),本批=全量执行;L29 警示重申:GUI 二进制只认 tauri CLI 产物 | owner"开工,完成spec012";InTest 报障返修 0.7.9 |
 | 2026-10-11 | 0.7.6 | Phase 10 体检落地(spec-011):审计 20 项(九泄漏+十一风险)逐项留证;修三缺口+两主线程隐患——git show 补 §70 旗标、cmd /K raw_arg 双引号防注入(D11)、opener 授权收紧到 open_url http/https(D10)、git_diff/git_commit_detail+四读通道全转 async;发版三决定拍板(NSIS/不签/关更新,Q1 归档);硬规则新增"外部进程/大文件命令一律 async"+"渲染层插件授权最小化"+"产生补丁的 git 调用必带双旗标" | owner"开工"(Phase 10 A2 对齐) |
 | 2026-10-02 | — | 基建落地:体验版客户端与更新机制(SPEC-INFRA-001)——owner 客户端独立 identifier/目录/数据,开发构建永不触碰;交付=scripts/publish-experience.ps1+客户端内 Update 按钮(md5 判定+rename 自替换);诊断面板加 Channel/Build 时间 | owner 立规("根治开发/体验共用 exe") |
 | 2026-10-01 | — | Phase 5 落地:PDF.js Spike→完整查看器(specs/spec-005);pdfjs-dist 6.3 **legacy build**(modern 在 WebView2 143 缺 upsert 提案 API,lessons L14)+Vite worker+字节通道 read_binary_file(ArrayBuffer);CSP 加 worker-src 'self' blob:;虚拟化+切离释放+pdfState 持久化;§98 Benchmark 四场景落 testing.md §2e | owner 指令(§179) |
