@@ -161,19 +161,14 @@ function addOrActivate(rootPath: string, tab: RuntimeTab) {
   const anyPinned = st.openFiles.some((t) => t.pinned);
   let target = -1;
   if (anyPinned) {
-    if (active && !active.pinned) {
-      target = activeIdx;
-    } else {
-      for (let i = st.openFiles.length - 1; i >= 0; i--) {
-        if (!st.openFiles[i].pinned) {
-          target = i;
-          break;
-        }
-      }
-    }
+    target =
+      active && !active.pinned
+        ? activeIdx
+        : st.openFiles.findLastIndex((t) => !t.pinned);
   }
-  if (target !== -1) {
-    contentCache.delete(cacheKey(rootPath, st.openFiles[target].relativePath));
+  const replaced = target !== -1 ? st.openFiles[target] : undefined;
+  if (replaced) {
+    contentCache.delete(cacheKey(rootPath, replaced.relativePath));
     st.openFiles.splice(target, 1, tab);
   } else {
     st.openFiles.push(tab);
@@ -247,7 +242,7 @@ export function moveTabToEnd(rootPath: string, rel: string) {
   const idx = st.openFiles.findIndex((t) => t.relativePath === rel);
   if (idx === -1 || idx === st.openFiles.length - 1) return;
   const [moved] = st.openFiles.splice(idx, 1);
-  st.openFiles.push(moved);
+  if (moved) st.openFiles.push(moved);
 }
 
 /**
@@ -267,7 +262,8 @@ export function reorderTabs(
   if (from === -1 || to === -1 || from === to) return;
   const [moved] = st.openFiles.splice(from, 1);
   const anchor = st.openFiles.findIndex((t) => t.relativePath === toRel);
-  st.openFiles.splice(position === "before" ? anchor : anchor + 1, 0, moved);
+  if (moved)
+    st.openFiles.splice(position === "before" ? anchor : anchor + 1, 0, moved);
 }
 
 export function activateFile(rootPath: string, rel: string) {
@@ -301,6 +297,7 @@ export function cycleTab(rootPath: string, direction: 1 | -1) {
   );
   const next =
     st.openFiles[(idx + direction + st.openFiles.length) % st.openFiles.length];
+  if (!next) return;
   closeGitView();
   st.activeFileRelativePath = next.relativePath;
   void revealInTree(rootPath, next.relativePath);

@@ -63,7 +63,7 @@ function sampleInput(): BuildInput {
 describe("buildAppState", () => {
   it("keeps project-relative identities (V1.5 §18/§19)", () => {
     const state = buildAppState(sampleInput());
-    const p = state.projects[0];
+    const p = state.projects[0]!;
     expect(p.expandedFolders).toEqual(["src", "src/components"]);
     expect(Object.keys(p.fileTreePreferences.pinnedItems)).toEqual(["."]);
     expect(p.fileTreePreferences.pinnedItems["."]).toEqual(["README.md", "src"]);
@@ -75,24 +75,24 @@ describe("buildAppState", () => {
 
   it("whitelists FileTabState — runtime fields never persist", () => {
     const state = buildAppState(sampleInput());
-    const tabJsons = state.projects[0].openFiles.map((t) => JSON.stringify(t));
+    const tabJsons = state.projects[0]!.openFiles.map((t) => JSON.stringify(t));
     for (const j of tabJsons) {
       expect(j).not.toContain("deleted");
       expect(j).not.toContain("encoding");
       expect(j).not.toContain("sizeBytes");
       expect(j).not.toContain("unsupportedReason");
     }
-    expect(state.projects[0].openFiles[0].markdownMode).toBe("source");
-    expect(state.projects[0].openFiles[1].pinned).toBe(true);
+    expect(state.projects[0]!.openFiles[0]!.markdownMode).toBe("source");
+    expect(state.projects[0]!.openFiles[1]!.pinned).toBe(true);
   });
 
   it("copies containers so later store mutations cannot leak in", () => {
     const input = sampleInput();
     const state = buildAppState(input);
-    input.trees["D:\\proj\\alpha"].expandedFolders.push("docs");
-    input.trees["D:\\proj\\alpha"].pinnedItems["."].push("leak.md");
-    expect(state.projects[0].expandedFolders).toEqual(["src", "src/components"]);
-    expect(state.projects[0].fileTreePreferences.pinnedItems["."]).toEqual([
+    input.trees["D:\\proj\\alpha"]!.expandedFolders.push("docs");
+    input.trees["D:\\proj\\alpha"]!.pinnedItems["."]!.push("leak.md");
+    expect(state.projects[0]!.expandedFolders).toEqual(["src", "src/components"]);
+    expect(state.projects[0]!.fileTreePreferences.pinnedItems["."]).toEqual([
       "README.md",
       "src",
     ]);
@@ -106,11 +106,11 @@ describe("buildAppState", () => {
 
   it("persists per-project execution trust and round-trips it (§129)", () => {
     const input = sampleInput();
-    input.projects[0].trustedForExecution = true;
+    input.projects[0]!.trustedForExecution = true;
     const state = buildAppState(input);
-    expect(state.projects[0].trustedForExecution).toBe(true);
+    expect(state.projects[0]!.trustedForExecution).toBe(true);
     const parsed = parseAppState(JSON.stringify(state));
-    expect(parsed!.projects[0].trustedForExecution).toBe(true);
+    expect(parsed!.projects[0]!.trustedForExecution).toBe(true);
   });
 
   it("writes recentFolders only when non-empty (§198, spec-010 D5)", () => {
@@ -167,16 +167,16 @@ describe("parseAppState", () => {
     );
     expect(parsed).not.toBeNull();
     expect(parsed!.projects).toHaveLength(1);
-    const p = parsed!.projects[0];
+    const p = parsed!.projects[0]!;
     expect(p.sidebarMode).toBe("files");
     expect(p.sidebarWidth).toBe(600);
     expect(p.expandedFolders).toEqual(["src"]);
     expect(p.openFiles).toHaveLength(1);
-    expect(p.openFiles[0].relativePath).toBe("a.md");
+    expect(p.openFiles[0]!.relativePath).toBe("a.md");
     expect(p.fileTreePreferences.foldersFirst).toBe(true);
     // pre-Phase-8 state files carry no trust field — heals to untrusted (§128)
     expect(p.trustedForExecution).toBe(false);
-    expect(p.fileTreePreferences.pinnedItems["."]).toEqual(["ok.md"]);
+    expect(p.fileTreePreferences.pinnedItems["."]!).toEqual(["ok.md"]);
     expect(parsed!.settings).toEqual({
       theme: "system",
       viewer: { fontSize: 13 },
@@ -218,7 +218,7 @@ describe("parseAppState", () => {
 
   it("persists and heals pdfState (spec-005 D6)", () => {
     const state = buildAppState(sampleInput());
-    const pdfTab = state.projects[0].openFiles.find(
+    const pdfTab = state.projects[0]!.openFiles.find(
       (t) => t.viewerType === "pdf",
     );
     expect(pdfTab?.pdfState).toEqual({
@@ -246,7 +246,7 @@ describe("parseAppState", () => {
         ],
       }),
     );
-    expect(healed!.projects[0].openFiles[0].pdfState).toEqual({
+    expect(healed!.projects[0]!.openFiles[0]!.pdfState).toEqual({
       page: 1,
       zoom: 5,
     });

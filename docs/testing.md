@@ -301,6 +301,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 其余档 | git 33+recent 15+r3 8+pdf 23+cargo 112+vitest 64+check 0/0(watcher 链零改动,freeze-guard 免跑) |
 | 版本 | 0.7.9 三处已核;updates=exp 已发 |
 
+#### 0.7.10 前端索引访问收紧轮(2026-10-12,spec-013;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 变更 | tsconfig 开 noUncheckedIndexedAccess **常开**;60 处见底——产线 22(守卫/结构改写,归型清单住 SPEC §六)+测试 38(显式断言,D1-C);零行为变化 |
+| check | **0 错 0 警**(开关开) |
+| vitest | 64/64(仅类型层改动,防退化) |
+| phase3/git/recent/r3/pdf | 68/68、33/33、15/15、8/8、23/23 |
+| cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
+| 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
+
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 
 | # | 验收项(§192 清单 1–7) | 方法与结果 |

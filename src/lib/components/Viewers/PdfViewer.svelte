@@ -373,6 +373,7 @@
           const rows = rowsNow();
           if (!sel || rows.length === 0) return;
           let row = rows[0];
+          if (!row) return;
           for (const w of rows) {
             if (Math.abs(w.cy - y) < Math.abs(row.cy - y)) row = w;
           }
@@ -541,9 +542,10 @@
       }
       if (gen !== searchGen) return;
       matches = found;
-      if (found.length > 0) {
+      const first = found[0];
+      if (first) {
         matchIdx = 0;
-        scrollToPage(found[0].page);
+        scrollToPage(first.page);
       }
     } catch {
       // doc destroyed mid-search (tab switch/unmount) or a page fetch
@@ -557,7 +559,8 @@
   function nextMatch(dir: 1 | -1) {
     if (matches.length === 0) return;
     matchIdx = (matchIdx + dir + matches.length) % matches.length;
-    scrollToPage(matches[matchIdx].page);
+    const m = matches[matchIdx];
+    if (m) scrollToPage(m.page);
   }
 
   // Mount the slot map + observer once pages exist.

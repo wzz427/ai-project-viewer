@@ -31,11 +31,11 @@ describe("parseUnifiedDiff", () => {
   const segs = parseUnifiedDiff(SAMPLE);
 
   it("no leading gap when the first hunk starts at line 1", () => {
-    expect(segs[0].type).toBe("rows");
+    expect(segs[0]!.type).toBe("rows");
   });
 
   it("first hunk: context + one modified pair with both line numbers", () => {
-    const rows = rowsOf(segs[0]);
+    const rows = rowsOf(segs[0]!);
     expect(rows[0]).toMatchObject({ left: "one", right: "one", leftNo: 1, rightNo: 1, kind: "ctx" });
     expect(rows[1]).toMatchObject({ left: "two", right: "TWO", leftNo: 2, rightNo: 2, kind: "mod" });
     expect(rows[2]).toMatchObject({ left: "three", right: "three", kind: "ctx" });
@@ -48,7 +48,7 @@ describe("parseUnifiedDiff", () => {
   });
 
   it("pure additions render with null left and shifted right numbers", () => {
-    const last = segs[segs.length - 1];
+    const last = segs[segs.length - 1]!;
     expect(rowsOf(last).map((r) => r.kind)).toEqual(["ctx", "ctx", "add", "add", "ctx"]);
     expect(rowsOf(last)[2]).toMatchObject({ left: null, right: "twelve", leftNo: null, rightNo: 12 });
     expect(rowsOf(last)[4]).toMatchObject({ leftNo: 12, rightNo: 14 });
@@ -60,7 +60,7 @@ describe("parseUnifiedDiff deletions and empty sides", () => {
     const segs = parseUnifiedDiff(
       "@@ -1,2 +1,1 @@\n keep\n-gone\n-was here",
     );
-    const rows = rowsOf(segs[0]);
+    const rows = rowsOf(segs[0]!);
     expect(rows[1]).toMatchObject({ left: "gone", right: null, kind: "del", rightNo: null });
     expect(rows[2]).toMatchObject({ left: "was here", kind: "del" });
   });
@@ -70,17 +70,17 @@ describe("parseUnifiedDiff deletions and empty sides", () => {
       "diff --git a/new.ts b/new.ts\nnew file mode 100644\n--- /dev/null\n+++ b/new.ts\n@@ -0,0 +1,2 @@\n+hello\n+world",
     );
     expect(segs).toHaveLength(1);
-    const rows = rowsOf(segs[0]);
+    const rows = rowsOf(segs[0]!);
     expect(rows.map((r) => r.kind)).toEqual(["add", "add"]);
-    expect(rows[0].leftNo).toBeNull();
-    expect(rows[0].rightNo).toBe(1);
+    expect(rows[0]!.leftNo).toBeNull();
+    expect(rows[0]!.rightNo).toBe(1);
   });
 
   it("del+add runs longer than each other zip with nulls", () => {
     const segs = parseUnifiedDiff(
       "@@ -1,3 +1,2 @@\n-a\n-b\n-c\n+x\n+y",
     );
-    const rows = rowsOf(segs[0]);
+    const rows = rowsOf(segs[0]!);
     expect(rows.map((r) => r.kind)).toEqual(["mod", "mod", "del"]);
     expect(rows[2]).toMatchObject({ left: "c", right: null });
   });

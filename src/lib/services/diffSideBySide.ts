@@ -37,7 +37,7 @@ export function diffPathOf(text: string, side: "old" | "new"): string | null {
       let p = line.slice(prefix.length).trim();
       if (p === "/dev/null") return null;
       // timestamps after a tab, and the a/ b/ prefixes
-      p = p.split("\t")[0];
+      p = p.split("\t")[0] ?? p;
       if (p.length > 2 && (p.startsWith("a/") || p.startsWith("b/"))) {
         p = p.slice(2);
       }
@@ -85,8 +85,8 @@ export function parseUnifiedDiff(text: string): DiffSegment[] {
   for (const line of text.split("\n")) {
     const hunk = HUNK_RE.exec(line);
     if (hunk) {
-      const startOld = parseInt(hunk[1], 10);
-      const startNew = parseInt(hunk[3], 10);
+      const startOld = parseInt(hunk[1] ?? "0", 10);
+      const startNew = parseInt(hunk[3] ?? "0", 10);
       const gap = curOld === 0 ? startOld - 1 : startOld - curOld - 1;
       flushRows();
       if (gap > 0) {

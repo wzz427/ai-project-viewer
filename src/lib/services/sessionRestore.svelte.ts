@@ -59,8 +59,9 @@ export async function restoreAppState(): Promise<void> {
     projectState.tabs.some((t) => t.id === state.activeProjectId)
   ) {
     projectState.activeId = state.activeProjectId;
-  } else if (projectState.tabs.length > 0) {
-    projectState.activeId = projectState.tabs[projectState.tabs.length - 1].id;
+  } else {
+    const last = projectState.tabs.at(-1);
+    if (last) projectState.activeId = last.id;
   }
 }
 

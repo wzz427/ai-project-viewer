@@ -133,11 +133,12 @@ export async function addProjectViaPicker() {
 /** Remove from the viewer only — never touches the directory on disk (V1.5 §15). */
 export function removeProject(id: string) {
   const idx = projectState.tabs.findIndex((t) => t.id === id);
-  if (idx === -1) return;
+  const tab = projectState.tabs[idx];
+  if (!tab) return;
 
-  forgetTree(projectState.tabs[idx].rootPath);
-  forgetTabs(projectState.tabs[idx].rootPath);
-  forgetGit(projectState.tabs[idx].rootPath);
+  forgetTree(tab.rootPath);
+  forgetTabs(tab.rootPath);
+  forgetGit(tab.rootPath);
   projectState.tabs.splice(idx, 1);
   if (projectState.activeId === id) {
     const next = projectState.tabs[Math.min(idx, projectState.tabs.length - 1)];

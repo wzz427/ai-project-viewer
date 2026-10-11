@@ -137,9 +137,12 @@ function reconcilePins(
   if (oldEntries) {
     const oldNames = new Set(oldEntries.map((e) => e.name));
     const added = newEntries.map((e) => e.name).filter((n) => !oldNames.has(n));
-    if (missing.length === 1 && added.length === 1) {
+    const [miss] = missing;
+    const [add] = added;
+    if (miss !== undefined && add !== undefined) {
       // Reliable rename (§41): keep the pin in its position.
-      pinned[pinned.indexOf(missing[0])] = added[0];
+      const pos = pinned.indexOf(miss);
+      if (pos !== -1) pinned[pos] = add;
       return;
     }
   }

@@ -84,3 +84,22 @@ B 边界已证实(长度刚判过/构造后即用)→局部窄化;C 测试文件
 | 日期 | 跃迁/变更 | 产物 |
 |---|---|---|
 | 2026-10-12 | Draft→Ready→InDev:自核 R/V 对齐(分布实测复跑 60/8 与记档一致);A2 开工对齐=owner 原话"发版没那么急,先做这个需求,清掉这个问题"(上一轮对话已说人话讲明范围=60 处、机械清、开关常开、行为零变化) | 本文档 |
+| 2026-10-12 | InDev→InTest:60 处清零(修法归型见下),开关常开;全档回归=check 0/0+vitest 64/64+phase3 68/68+git 33/33+recent 15/15+r3 8/8+pdf 23/23;cargo/watcher 链零改动免跑(D2);0.7.10 发布体验渠道(update.json note 落盘;updates 二进制 UTF-16 VERSIONINFO=0.7.10+exp 标识,无 0.7.9 残留) | — |
+
+**V3 产线 22 处修法归型清单**(A=结构改写 / B=边界守卫或窄化;C=测试断言 38 处不逐列):
+
+| 文件:处 | 型 | 一句话 |
+|---|---|---|
+| fileTreeStore reconcilePins ×2 | A | 解构 miss/add 判空替代 length===1 心算;顺手守卫 indexOf==-1 不再写 pinned[-1] |
+| sessionRestore 激活兜底 ×1 | A | `.at(-1)` 判空替代 length>0 心算 |
+| projectStore removeProject ×3 | B | findIndex 后取元素判空早退,forget×3 走局部 tab |
+| tabsStore addOrActivate 循环 ×1 | A | 反向循环改 `findLastIndex((t)=>!t.pinned)` 等价改写 |
+| tabsStore addOrActivate 替换 ×1 | B | replaced 三元守卫,cache 删与 splice 绑在同一真值上 |
+| tabsStore moveTabToEnd ×1 | B | `if (moved)`(splice 单删必还一元) |
+| tabsStore reorderTabs ×1 | B | `if (moved)` 同上 |
+| tabsStore cycleTab ×2 | B | `if (!next) return`(模运算恒落界,守卫永不触发=纯窄化) |
+| diffSideBySide diffPathOf ×1 | B | `split("\t")[0] ?? p`(split 恒≥1 元) |
+| diffSideBySide hunk 头 ×2 | B | `parseInt(hunk[1] ?? "0")`(必匹配组;且 NaN 与 0 下游分支行为等价) |
+| PdfViewer clampAt ×5 | B | `let row=rows[0]; if(!row) return`(rows.length===0 已判,一守卫窄化全表达式族) |
+| PdfViewer runSearch ×1 | A | `const first=found[0]; if(first)` 替代 length>0 心算 |
+| PdfViewer nextMatch ×1 | B | `const m=matches[matchIdx]; if(m)`(模运算恒落界) |
