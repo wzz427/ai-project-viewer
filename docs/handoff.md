@@ -11,11 +11,11 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-012 修复批已立项 Draft(2026-10-11,owner"我想全部修复")——A2 开工对齐等 owner
-确认后进 InDev**:范围=code review 报告 44 条全量(docs/code-review-2026-10-11.md;M15 NSIS
-参数留打包轮拍板),一批修完发 0.7.8 → 然后 T3 全量性能基准(A–I 档+Phase 1 Baseline,
-owner 已预告授权)→ spec-011 复验转 Done;NSIS 实际打包仍须 owner 届时点头。**版本段 0.7.x
-固定递增不跳段**。
+主线 = **spec-012 修复批 InTest(0.7.8 已发体验渠道,2026-10-11)**:owner 客户端点 Update
+复验 → 验收原话落 SPEC → Done(评审报告 docs/code-review-2026-10-11.md 随之归 history)→
+**T3 全量性能基准**(A–I 档+Phase 1 Baseline,owner 已预告授权)→ spec-011 复验转 Done;
+NSIS 实际打包届时点头(含 webviewInstallMode 三选一,D7/R21)。**版本段 0.7.x 固定递增不跳段**。
+挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
 **未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断已装)——
@@ -26,15 +26,17 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-11 · spec-012 修复批立项 Draft,主线=owner 确认开工→修 44 条→0.7.8→T3
+### 2026-10-11 · spec-012 修复批 InTest:0.7.8 已发体验渠道,主线=owner 验收→T3
 
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → specs/spec-012-code-review-fixes.md。
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → specs/spec-012-code-review-fixes.md(§六+决策表)。
 
-- owner 原话"我想全部修复。你写一个针对code review的修复spec,对所有问题提出修复方案"→
-  spec-012 Draft:R 组级×8 覆盖报告 44 条(条目号指针化)、V×9、决策 D1–D8(一批发 0.7.8/
-  merge 用 --first-parent/watcher 后端代次校验/可执行拒绝表 msi 豁免/NSIS 参数留打包轮)。
-- 下一步:owner 确认范围与关键默认(说人话表在立项会话)→Ready→InDev 按高→中→低顺序修,
-  每组过对应测试档;动 watcher 链发版前必跑 freeze-guard。
+- owner"开工,完成spec012"→当日一批修完 43 条(42 落地+L-c6 止损):H1 多行提交消息(%x1e 分隔符)/
+  M2 merge --first-parent/H2+M12 共 15 命令转 async/M4 watcher 代次自弃/M5 截断守卫/M6 stderr 排空/
+  M7-M9 PDF 取消语义/M10 git 单飞/M11 可执行拒绝表/M13-M14/低级全清;实现差异 4 处=D9–D12
+  (M8 代次重启/M9 lastScrollTop 兜底/L-f7 文案指树菜单/L-c6 止损 60>20)。
+- 全档:phase3 67+git 33+recent 15+r3 8+**pdf 23(新 4 探针:M8 中断零哨/M9 位置比例/M7 风暴不变量)**+
+  vitest 64+cargo 112(+13)+check 0/0+freeze-guard 0/83;0.7.8 三处+updates=exp 已核。
+- 下一步:owner 点 Update 验收→Done→报告归 history;T3 跑法=V1.5 §162–§173(预告授权已留痕)。
 
 ### 2026-10-11 · 全面 code review 完成(0.7.7 全代码),主线=等 owner 拍板修复顺序→T3
 

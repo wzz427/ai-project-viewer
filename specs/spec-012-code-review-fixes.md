@@ -101,10 +101,14 @@
 | D2 | M2=Rust 侧 `--first-parent` 一行,前端 parser 不动 | VS Code 同款视角;combined 解析复杂度高收益低 | 前端支持 combined 格式 | 工作量高且仅 merge 提交受益 |
 | D3 | M4=Rust 槽代次校验(完成时过期自弃) | 根因在后端完成乱序;后端修一处,前端 effect 不动 | 前端 effect 串行 await | 治标且拖慢切换、仍有 effect 重入窗口 |
 | D4 | M11 拒绝表=exe/bat/cmd/lnk/scr/hta/jse/vbe/js/jar/com/pif,**msi 豁免** | 白名单住 Rust 的既有格局,镜像补黑名单;§126 明文 msi 走 System Default | 连 msi 一起拒 | 违 §126 |
-| D5 | H1 用 `%x1e` 记录分隔符切 header | git format 的多行安全边界;启发式按行判状态字母会误伤正文首行恰好像状态的合法消息 | `[A-Z]\tp` 启发式 | 脆,假阳/假阴都构造得出 |
+| D5 | H1 用 `%x1e` 记录分隔符切 header | git format 的多行安全边界;启发式按行判状态字母会误伤正文首行恰像状态的合法消息 | `[A-Z]\tp` 启发式 | 脆,假阳/假阴都构造得出 |
 | D6 | L-c6 开 noUncheckedIndexedAccess,暴露错误>20 处则记档延后(止损线) | 收紧良性但暴露面未知 | 直接不开 / 无条件全清 | 前者治标不治本,后者可能吞掉本批主线 |
 | D7 | M15(NSIS webviewInstallMode)本批不写值,挂 R21 打包轮 owner 三选一(embed/offline/bootstrapper) | 发版参数与 R21 同场;提前写死无验收场景 | 本批直接写 offlineInstaller | 越权代拍发版决策 |
 | D8 | L-r4 relaunch 前同步 flush | 更新重启丢"刚开的页签"用户可感 | 保持现状仅修注释 | 状态丢失真实发生 |
+| D9 | (实现差异)M8 用代次**重启**取代 V 原稿"searching 重入拒绝" | 连按回车始终以最后一次查询为准,严格优于忽略第二次 | 重入拒绝 | 第二次回车被忽略后展示的是旧查询结果 |
+| D10 | (实现差异)M9 在清定时器之外补 `lastScrollTop` 平变量供 teardown 时 persistState 兜底 | e2e 实证 Svelte 对 bind:this 的置空早于 onMount cleanup——cleanup 读 scroller 拿 null;报告"清定时器"必要不充分 | 只清定时器 | 该环境下滚动位置仍会存成 undefined |
+| D11 | (实现差异)L-f7 文案指向**树的右键移交菜单**,不是原稿"tab context menu" | 移交菜单实际住在文件树右键(§135–§142) | 照原稿文案 | 给用户指错路 |
+| D12 | (实现差异)L-c6 止损触发(实测 60 错/8 文件>20),按 D6 预案回退记档;去处=下一前端专项批次顺带清 | 预案就是为这个分支设的 | 现在清 60 处 | 会吞掉本批主线 |
 
 **内存账(交付时报)**:零新增常驻——M10 单飞=复用在途 promise;M7 pendingRenders 上界=可见
 页数(±2 窗口);M4 代次=既有槽旁一个 PathBuf;其余均为等量替换或防御分支。
@@ -130,3 +134,5 @@
 | 2026-10-11 | 立项 Draft(owner"我想全部修复。你写一个针对code review的修复spec") | 本文档+测试矩阵 9 行 |
 | 2026-10-11 | Draft→Ready(自核 R/V 与报告逐条对上时**发现 M5/M6 漏入组**,补进 R2/G2/V2/矩阵——"44 全量减 M15=43 条"现在才真正对平;矩阵 9 行齐;D1–D8 齐) | 本页修订 4 处 |
 | 2026-10-11 | Ready→InDev(A2 开工确认:owner 原话"开工,完成spec012") | — |
+| 2026-10-11 | InDev:一批修完 43 条(42 落地+L-c6 触发 D6 止损记档);实现差异 4 处回写决策表 D9–D12 | 10 个 commit:2941698/aa53b0f/8097816/705cf74/4566df3/9b16002/6fc39ba/e47539f/5c75768/d6b6a24 |
+| 2026-10-11 | InDev→InTest:全档回归全绿+0.7.8 发体验渠道(数字住 testing.md §4.13);V 口径备注=V1 多行夹具须 `--cleanup=verbatim`(git 默认剥行尾空白)、V2 零读盘断言落地为 decide 纯函数+exists 门(读盘次数无单测观测点)、V4 之 M7 探针取 settle 后 DOM 不变量(渲染调用计数需产品内计数器,未注入) | — |

@@ -275,6 +275,22 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | phase3 **67/67**(+1)+pdf 19/19+r3 8/8+vitest 60/60+check 0/0+cargo 99/99 |
 | 版本 | 0.7.7 三处已核 |
 
+#### 0.7.8 code review 修复批(2026-10-11,spec-012;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| cargo | **112/112**(+13:H1 多行消息[%B 尾 %x1e 分隔,夹具须 `--cleanup=verbatim`——git 默认剥行尾空白]/M2 merge first-parent[L-f12 族旗标断言同步]/L-r2 unquote 全转义集/L-r3 :(literal) pathspec[Windows 禁 `*` 用 `[xy]` 探]/L-r6/L-r1/M6 stderr 洪水[autocrlf 1500 文件不误报超时]/H2 decide 纯函数/M5 截断 BOM 样本/M11 拒绝表+msi 豁免/L-r5 % 路径拒绝/M4 代次自弃×2[真 debouncer 双 tempdir]) |
+| vitest | **64/64**(+4:watcherApply 链式改名不动点/环上限) |
+| svelte-check | 0 错 0 警 |
+| phase3-suite | 67/67 防退化 |
+| git-suite | 33/33(15 命令 async+gitStore 单飞后全绿;merge 提交详情现走 first-parent unified) |
+| recent/r3 | 15/15、8/8 |
+| pdf-suite | **23/23**(+4:M8 搜索中切页签零 pageerror+中断后复搜可用/M9 快切回位置比例还原 ±0.02[断言按文档占比,页缝 16px 使逐页算法不可靠]/M7 缩放风暴 settle 后每页恰一 canvas 同一 scale) |
+| freeze-guard | **0/83 + webview 14ms PASS**(动了 watcher 链,必跑档) |
+| 版本 | 0.7.8 三处已核;updates=exp 0.7.8(VERSIONINFO 核,字串扫描对 PE 无效) |
+| 教训重演 | **L29 当日重演一次**:warning 清理用了裸 `cargo build --release` 覆盖 tauri 产物→e2e 全线白屏(ERR_CONNECTION_REFUSED);双构建重建走 `pnpm tauri build --no-bundle [--debug]` 后全绿——**GUI 二进制永远只认 tauri CLI 产物** |
+| 记档延后 | L-c6 noUncheckedIndexedAccess 实测 60 错/8 文件>D6 止损线 20,回退记档(spec-012 D12;去处=下一前端专项批次) |
+
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 
 | # | 验收项(§192 清单 1–7) | 方法与结果 |
