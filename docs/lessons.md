@@ -299,3 +299,10 @@
 - **判据**:①凡引入"监听/索引/扫描"类库,先读它 watch/init 的源码路径,问"它在启动时对大树做什么"——**用真实规模目录试一次**(本仓库即最佳夹具);②监听生命周期(启/停/换)永远异步命令+spawn_blocking,主线程只许跑毫秒级活(L35 通则);③依赖库的"默认缓存"常是最贵的路径,确认自己用不用它的功能——我们改名配对用路径 From/To(L33),FileIdMap 纯属白付,`new_debouncer_opt+NoCache` 绕过。
 - **取证法**(这次提速的关键):真实状态文件副本+AIV_STATE_FILE+CDP 复现 →"禁用监听"二分构建一锤定音 → 渲染层安静+原生 CPU 满 → 直奔 Rust 侧源码。附:探针用 AIV_STATE_FILE 会被应用回写,复现用状态要每次重新拷贝(旧副本已被测试实例写成空壳,曾造成"健康"假象)。
 - **出处**:owner"0.7.0 一打开就卡死/升级按钮都点不了"+0.7.1 换装后仍冻;watcher-freeze-guard 小夹具全绿 → 真实状态 100% 复现 → 禁用监听分叉 → notify-debouncer-full cache.rs 源码,2026-10-11。
+
+### L37:e2e 定位与二进制扫描三坑(0.7.3 recent-suite 首发各付一次调试周期)
+
+- **Playwright `locator(sel, has=...)` 配 `:text-is()` 不解析**(等待到超时也不报错原因):组合 `has=loc('span.name:text-is("x")')` 永不匹配,`has=loc('span.name', has_text="x")` 或外层 `.filter(has_text="x")` 立即命中。写行级定位一律用 `filter(has_text=)`;名字在夹具内须无子串歧义(p00..p11 互不为前缀)。
+- **CSS 属性选择器把 Windows 路径反斜杠当转义**:`[data-path="C:\Users\..."]` 的 `\U` 被吃成 unicode 转义 → 永不匹配。按路径定位 DOM 一律改按**文件夹名文本**;确要按属性,得先转义反斜杠——不如换锚点。
+- **嵌入标识/资源字节可在 4MB 窗口之外**:对 exe 做标识断言(exp/dev identifier、字符串探测)必须**全文件读**(aivlaunch._assert_dev_binary 本就全读;swap-experience-client.py 首版只扫前 4MB,0.7.3 实测标识落在窗口外会误判"非 exp 构建"拒绝换装,已修)。5.9MB 文件全读无成本,别开窗口。
+- **出处**:recent-suite 15/15 跑通前的探针对照(A/B/C 三定位变体一次验明)+发版后三二进制标识核验,2026-10-11。
