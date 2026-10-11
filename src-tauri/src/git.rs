@@ -119,6 +119,20 @@ fn run_git_capped(
         (bytes, lines)
     });
 
+    // Drain stderr from the START, not after try_wait returns: git can emit
+    // megabytes of warnings while still succeeding (broken objects, stale
+    // submodules), and an undrained pipe back-pressures the child until our
+    // 10 s timeout misreports a call that would have succeeded
+    // (spec-012 M6). Spawned here so it runs during the whole wait loop.
+    let err_pipe = child.stderr.take();
+    let err_reader = std::thread::spawn(move || {
+        let mut s = String::new();
+        if let Some(mut p) = err_pipe {
+            let _ = p.read_to_string(&mut s);
+        }
+        s
+    });
+
     let deadline = Instant::now() + GIT_TIMEOUT;
     let status = loop {
         if truncated.load(Ordering::SeqCst) {
@@ -132,6 +146,7 @@ fn run_git_capped(
                 let _ = child.kill();
                 let _ = child.wait();
                 let _ = reader.join();
+                let _ = err_reader.join();
                 return Err(RunError {
                     missing: false,
                     timeout: true,
@@ -143,19 +158,11 @@ fn run_git_capped(
                 let _ = child.kill();
                 let _ = child.wait();
                 let _ = reader.join();
+                let _ = err_reader.join();
                 return Err(RunError::msg(format!("git wait failed: {e}")));
             }
         }
     };
-
-    let err_pipe = child.stderr.take();
-    let err_reader = std::thread::spawn(move || {
-        let mut s = String::new();
-        if let Some(mut p) = err_pipe {
-            let _ = p.read_to_string(&mut s);
-        }
-        s
-    });
 
     let (mut bytes, mut lines) = reader.join().unwrap_or_default();
     let stderr = err_reader.join().unwrap_or_default();
@@ -338,25 +345,51 @@ fn xy_chars(xy: &str) -> (Option<char>, Option<char>) {
 
 /// Undo git's C-style path quoting (only triggers for control chars /
 /// quotes / TAB — `core.quotepath=false` keeps non-ASCII literal).
+/// Full escape set: `\a \b \f \n \r \t \v \" \\` plus up to 3 octal digits
+/// (spec-012 L-r2 — the old parser silently mangled `\a`→`a` and passed
+/// `\ooo` through as literal text).
 fn unquote(s: &str) -> String {
     let Some(inner) = s.strip_prefix('"').and_then(|r| r.strip_suffix('"')) else {
         return s.to_string();
     };
+    let chars: Vec<char> = inner.chars().collect();
     let mut out = String::with_capacity(inner.len());
-    let mut esc = false;
-    for c in inner.chars() {
-        if esc {
-            match c {
-                't' => out.push('\t'),
-                'n' => out.push('\n'),
-                'r' => out.push('\r'),
-                other => out.push(other),
-            }
-            esc = false;
-        } else if c == '\\' {
-            esc = true;
-        } else {
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c != '\\' {
             out.push(c);
+            i += 1;
+            continue;
+        }
+        i += 1;
+        if i >= chars.len() {
+            out.push('\\');
+            break;
+        }
+        let e = chars[i];
+        i += 1;
+        match e {
+            'a' => out.push('\u{07}'),
+            'b' => out.push('\u{08}'),
+            'f' => out.push('\u{0c}'),
+            'n' => out.push('\n'),
+            'r' => out.push('\r'),
+            't' => out.push('\t'),
+            'v' => out.push('\u{0b}'),
+            '"' => out.push('"'),
+            '\\' => out.push('\\'),
+            '0'..='7' => {
+                let mut val = e.to_digit(8).unwrap();
+                let mut digits = 1;
+                while digits < 3 && i < chars.len() && ('0'..='7').contains(&chars[i]) {
+                    val = val * 8 + chars[i].to_digit(8).unwrap();
+                    i += 1;
+                    digits += 1;
+                }
+                out.push(val as u8 as char);
+            }
+            other => out.push(other),
         }
     }
     out
@@ -373,7 +406,10 @@ fn to_project_rel(path: &str, scope: &str) -> String {
     if scope.is_empty() {
         path.to_string()
     } else {
-        path[scope.len() + 1..].to_string()
+        // path == scope (project root itself listed by git) slices past the
+        // end and used to panic — release builds abort the whole app
+        // (spec-012 L-r1). `get` returns None exactly there → project root.
+        path.get(scope.len() + 1..).unwrap_or(".").to_string()
     }
 }
 
@@ -713,18 +749,23 @@ fn diff_inner(
         &git_base_args(&project),
         &["rev-parse", "--show-toplevel"],
     ))
-    .map_err(run_err_string)?;
+    .map_err(|e| run_err_string(e, "detect git root"))?;
     let git_root = PathBuf::from(root_out.trim());
-    let scope = scope_of(&project, &git_root).map_err(RunError::msg).map_err(run_err_string)?;
+    let scope = scope_of(&project, &git_root)
+        .map_err(|e| run_err_string(RunError::msg(e), "detect git root"))?;
     let rel = sanitize_rel(&rel)?;
-    let pathspec = if scope.is_empty() { rel } else { format!("{scope}/{rel}") };
+    // :(literal) magic disables glob/pathspec interpretation — a file
+    // literally named a*b.py must match only itself, not aXb.py
+    // (spec-012 L-r3). sanitize_rel already rejects ':' inside components.
+    let joined = if scope.is_empty() { rel } else { format!("{scope}/{rel}") };
+    let pathspec = format!(":(literal){joined}");
 
     let argv = match commit_hash {
         Some(hash) => show_diff_argv(&git_root, &sanitize_hash(&hash)?, &pathspec),
         None => diff_argv(&git_root, &pathspec, staged),
     };
     let out = run_git_capped(&argv, DIFF_MAX_BYTES, DIFF_MAX_LINES)
-        .map_err(run_err_string)?;
+        .map_err(|e| run_err_string(e, "git diff"))?;
     Ok(GitDiffResult {
         text: out.text,
         truncated: out.truncated,
@@ -743,6 +784,10 @@ fn show_diff_argv(root: &Path, hash: &str, pathspec: &str) -> Vec<String> {
     let mut args = git_base_args(root);
     args.push("show".into());
     args.push("--format=".into());
+    // Merge commits default to a COMBINED diff (@@@ hunks, double-prefixed
+    // lines) that the frontend's unified parser cannot read; --first-parent
+    // keeps every commit's patch in plain unified form (spec-012 M2/D2).
+    args.push("--first-parent".into());
     args.push("--no-ext-diff".into());
     args.push("--no-textconv".into());
     args.push(hash.into());
@@ -789,27 +834,40 @@ pub struct GitCommitDetail {
 
 /// `git show --name-status --format=<unit-separated>` — one header block,
 /// then one `XY\tpath` line per touched file (renames carry the old path).
+///
+/// The format string terminates the header with a `\x1e` record separator
+/// (spec-012 H1/D5): `%B` is the RAW multiline body, so without a hard
+/// boundary every body line fell into the name-status loop — the message
+/// showed only its first line, and body lines containing a TAB manufactured
+/// phantom file entries. Cut on the LAST `\x1e`: a pathological message
+/// body containing a raw `\x1e` can only appear before the real sentinel.
 fn parse_commit_detail(out: &str, scope: &str) -> Option<GitCommitDetail> {
-    let mut lines = out.lines();
-    let header = lines.next()?;
-    let mut parts = header.splitn(4, '\u{1f}');
+    let (header_block, files_block) = out.rsplit_once('\u{1e}')?;
+    let mut header_lines = header_block.lines();
+    let first = header_lines.next()?;
+    let mut parts = first.splitn(4, '\u{1f}');
     let hash = parts.next()?.to_string();
     let author = parts.next()?.to_string();
     let date = parts.next()?.to_string();
-    let message = parts.next().unwrap_or_default().trim_end().to_string();
+    let mut message = parts.next().unwrap_or_default().to_string();
+    for line in header_lines {
+        message.push('\n');
+        message.push_str(line);
+    }
+    let message = message.trim_end().to_string();
 
     let mut files = Vec::new();
-    for line in lines {
+    for line in files_block.lines() {
         if line.is_empty() {
             continue;
         }
         // R100<TAB>old<TAB>new / M<TAB>path — split on tabs, last is new.
+        // Status tokens are alphanumeric (M/A/D/R100/C99/T); anything else
+        // is not a name-status line.
         let tabs: Vec<&str> = line.split('\t').collect();
         let (status, path, orig) = match tabs.as_slice() {
-            [st, old, new] if !st.is_empty() && st.chars().all(|c| c.is_ascii_alphanumeric()) => {
-                (st, *new, Some(old.to_string()))
-            }
-            [st, p] => (st, *p, None),
+            [st, old, new] if is_status_token(st) => (st, *new, Some(old.to_string())),
+            [st, p] if is_status_token(st) => (st, *p, None),
             _ => continue,
         };
         let letter = status.chars().next().unwrap_or('M');
@@ -823,6 +881,10 @@ fn parse_commit_detail(out: &str, scope: &str) -> Option<GitCommitDetail> {
         files.push(GitCommitFile { rel, letter, orig_rel });
     }
     Some(GitCommitDetail { hash, author, date, message, files })
+}
+
+fn is_status_token(s: &str) -> bool {
+    !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 #[tauri::command]
@@ -840,9 +902,10 @@ fn commit_detail_inner(root_path: String, hash: String) -> Result<GitCommitDetai
         &git_base_args(&project),
         &["rev-parse", "--show-toplevel"],
     ))
-    .map_err(run_err_string)?;
+    .map_err(|e| run_err_string(e, "detect git root"))?;
     let git_root = PathBuf::from(root_out.trim());
-    let scope = scope_of(&project, &git_root).map_err(|e| run_err_string(RunError { missing: false, timeout: false, message: e }))?;
+    let scope = scope_of(&project, &git_root)
+        .map_err(|e| run_err_string(RunError::msg(e), "detect git root"))?;
     let hash = sanitize_hash(&hash)?;
 
     let out = run_git(&with_args(
@@ -850,24 +913,32 @@ fn commit_detail_inner(root_path: String, hash: String) -> Result<GitCommitDetai
         &[
             "show",
             "--name-status",
+            // Merge commits: diff/file list against the FIRST parent only
+            // (spec-012 M2/D2, VS Code's default view). For regular commits
+            // --first-parent is a no-op.
+            "--first-parent",
             "--no-ext-diff",
             "--no-textconv",
-            "--format=%H%x1f%an%x1f%aI%x1f%B",
+            // %B is the raw multiline body; %x1e terminates the header so
+            // parse_commit_detail has a hard boundary (spec-012 H1/D5).
+            "--format=%H%x1f%an%x1f%aI%x1f%B%x1e",
             &hash,
         ],
     ))
-    .map_err(run_err_string)?;
+    .map_err(|e| run_err_string(e, "read commit"))?;
     parse_commit_detail(&out, &scope)
         .ok_or_else(|| "Could not read commit details.".into())
 }
 
-/// git_diff rejects with a plain user-facing message (§153 wording for a
-/// missing git; otherwise the what+stderr from the runner).
-fn run_err_string(e: RunError) -> String {
+/// Both git_diff and git_commit_detail reject with a plain user-facing
+/// message (§153 wording for a missing git; otherwise the what+stderr from
+/// the runner). `what` names the operation — commit-detail failures used
+/// to read "git diff failed." (spec-012 L-r6).
+fn run_err_string(e: RunError, what: &str) -> String {
     if e.missing {
         "Git is not installed or cannot be found.".into()
     } else if e.message.is_empty() {
-        format!("git diff failed.")
+        format!("{what} failed.")
     } else {
         e.message
     }
@@ -1032,6 +1103,8 @@ mod tests {
         assert!(joined.ends_with("-- apps/viewer/a.ts"));
         // The hash stays a bare token after `--format=` — never rev syntax.
         assert!(argv.contains(&"ab12".to_string()));
+        // Merge patches stay unified (never combined @@@) — spec-012 M2/D2.
+        assert!(joined.contains("--first-parent"));
     }
 
     // ---- real repositories (format truth + §174 scenario) ----
@@ -1291,5 +1364,154 @@ DELTA
         assert_eq!(d2.files[0].rel, "b.txt");
 
         assert!(commit_detail_inner(repo.to_string_lossy().into_owned(), "zz~1".into()).is_err());
+    }
+
+    // ---- spec-012 G1/G2 (code review 2026-10-11) ----
+
+    /// H1: %B is the raw multiline body; header/file boundary is the %x1e
+    /// sentinel, and body lines that LOOK like name-status entries
+    /// (single TAB, "M<TAB>path") must stay in the message.
+    #[test]
+    fn real_commit_detail_multiline_message_body() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "a.txt", "1\n");
+        commit_all(repo, "single");
+        write_file(repo, "a.txt", "2\n");
+        write_file(repo, "b.txt", "b\n");
+        sh(repo, &["add", "-A"]);
+        // --cleanup=verbatim: default cleanup strips the whitespace-only
+        // line we deliberately planted in the body.
+        sh(
+            repo,
+            &[
+                "commit",
+                "-q",
+                "--cleanup=verbatim",
+                "-m",
+                "subject line\n\nbody para one\n\t\nM\tlooks_like_a_file.txt\nreal body end",
+            ],
+        );
+
+        let head = run_git(&with_args(&git_base_args(repo), &["rev-parse", "HEAD"])).unwrap();
+        let d = commit_detail_inner(
+            repo.to_string_lossy().into_owned(),
+            head.trim().to_string(),
+        )
+        .unwrap();
+        assert_eq!(
+            d.message,
+            "subject line\n\nbody para one\n\t\nM\tlooks_like_a_file.txt\nreal body end"
+        );
+        let rels: Vec<&str> = d.files.iter().map(|f| f.rel.as_str()).collect();
+        assert_eq!(rels, ["a.txt", "b.txt"], "phantom file entries leaked from message body");
+    }
+
+    /// M2: merge commits show first-parent unified diffs and a real
+    /// name-status file list (never the combined @@@ format).
+    #[test]
+    fn real_merge_commit_first_parent_view() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "base.txt", "base\n");
+        commit_all(repo, "base");
+        sh(repo, &["checkout", "-q", "-b", "feat"]);
+        write_file(repo, "feat.txt", "feat content\n");
+        commit_all(repo, "feat adds file");
+        sh(repo, &["checkout", "-q", "main"]);
+        write_file(repo, "main.txt", "main content\n");
+        commit_all(repo, "main adds file");
+        sh(repo, &["merge", "-q", "--no-edit", "feat"]);
+        let head = run_git(&with_args(&git_base_args(repo), &["rev-parse", "HEAD"])).unwrap();
+        let hash = head.trim().to_string();
+        let root = repo.to_string_lossy().into_owned();
+
+        let d = commit_detail_inner(root.clone(), hash.clone()).unwrap();
+        let rels: Vec<String> = d.files.iter().map(|f| f.rel.clone()).collect();
+        assert!(rels.contains(&"feat.txt".to_string()), "merge file list empty: {rels:?}");
+        assert!(d.message.contains("Merge"), "message={}", d.message);
+
+        let diff = diff_inner(root, "feat.txt".into(), false, Some(hash)).unwrap();
+        assert!(diff.text.contains("@@"), "no unified hunks: {}", diff.text);
+        assert!(!diff.text.contains("@@@"), "combined diff leaked: {}", diff.text);
+        assert!(diff.text.contains("+feat content"));
+    }
+
+    /// L-r2: full C-quote escape set incl. `\a\b\f\v` and octal `\ooo`.
+    #[test]
+    fn unquote_full_c_escape_set() {
+        assert_eq!(unquote("plain.txt"), "plain.txt");
+        assert_eq!(unquote("\"no escapes\""), "no escapes");
+        assert_eq!(unquote("\"a\\tb\""), "a\tb");
+        assert_eq!(unquote("\"a\\ab\\bc\\fd\\ve\""), "a\u{7}b\u{8}c\u{c}d\u{b}e");
+        assert_eq!(unquote("\"\\007\\040x\""), "\u{7} x");
+        assert_eq!(unquote("\"quote\\\"and\\\\slash\""), "quote\"and\\slash");
+        // No closing quote → returned unmodified.
+        assert_eq!(unquote("\"end\\"), "\"end\\");
+    }
+
+    /// L-r3: `:(literal)` keeps glob metachars in filenames literal. `*` is
+    /// not legal in Windows filenames, so the probe uses `[xy]` (a legal
+    /// name that, unquoted, also matches axb.py).
+    #[test]
+    fn real_diff_literal_pathspec_bracket_filename() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "plain.txt", "seed\n");
+        commit_all(repo, "seed");
+        write_file(repo, "a[xy]b.py", "brackets are literal\n");
+        write_file(repo, "axb.py", "would match the glob\n");
+        sh(repo, &["add", "-A"]);
+
+        let d = diff_inner(
+            repo.to_string_lossy().into_owned(),
+            "a[xy]b.py".into(),
+            true,
+            None,
+        )
+        .unwrap();
+        assert!(d.text.contains("a[xy]b.py"), "text={}", d.text);
+        assert!(!d.text.contains("axb.py"), "glob matched an unrelated file: {}", d.text);
+    }
+
+    /// L-r6: the empty-message fallback names the failing operation.
+    #[test]
+    fn run_err_string_names_the_operation() {
+        let empty = RunError { missing: false, timeout: false, message: String::new() };
+        assert!(run_err_string(empty, "read commit").contains("commit"));
+        let missing = RunError { missing: true, timeout: false, message: String::new() };
+        assert_eq!(
+            run_err_string(missing, "git diff"),
+            "Git is not installed or cannot be found."
+        );
+    }
+
+    /// L-r1: the project root itself as a git entry must resolve to ".",
+    /// never slice past the end of the path.
+    #[test]
+    fn to_project_rel_scope_equal_path_is_dot() {
+        assert_eq!(to_project_rel("apps/viewer", "apps/viewer"), ".");
+        assert_eq!(to_project_rel("apps/viewer/a.ts", "apps/viewer"), "a.ts");
+        assert_eq!(to_project_rel("a.ts", ""), "a.ts");
+    }
+
+    /// M6: thousands of per-file warnings on stderr while git still exits 0
+    /// used to fill the undrained pipe and stall the child until the 10 s
+    /// timeout misfired. autocrlf=true makes `git add` emit one
+    /// "LF will be replaced by CRLF" warning per LF file.
+    #[test]
+    fn real_git_stderr_flood_does_not_time_out() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        sh(repo, &["config", "core.autocrlf", "true"]);
+        for i in 0..1500 {
+            write_file(repo, &format!("f{i:04}.txt"), "lf only\n");
+        }
+        let out = run_git(&with_args(&git_base_args(repo), &["add", "-A"]));
+        assert!(out.is_ok(), "stderr flood must not fail the call: {out:?}");
     }
 }
