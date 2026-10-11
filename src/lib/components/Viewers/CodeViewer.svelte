@@ -4,7 +4,6 @@
    * (V1.5 §100/§107): line numbers, syntax highlight, Ctrl+F (via the app
    * dispatcher + search registry), scroll restore on remount (§160.5).
    */
-  import { onMount } from "svelte";
   import { EditorState, Compartment, type Extension } from "@codemirror/state";
   import { EditorView, lineNumbers } from "@codemirror/view";
   import { search } from "@codemirror/search";
@@ -49,8 +48,20 @@
     return lang ? [lang] : [];
   }
 
-  onMount(() => {
-    view = new EditorView({
+  // Build the editor, and REBUILD it whenever the global viewer font knob
+  // (§22) turns. The knob rides a CSS variable, which CodeMirror cannot
+  // see: a live A+/A− change leaves its cached line heights (and the
+  // gutter elements' explicit heights, set from those measurements) stale,
+  // and the line-number column drifts off the text line by line (owner
+  // 2026-10-11 screenshot; probe: 14→20px = −100px on a 12-line file).
+  // requestMeasure/measure re-measure paths proved unreliable offscreen
+  // (RAF throttling + the gutter's flag-driven refresh), so this uses the
+  // same deterministic rebuild the watcher's contentRev already uses
+  // (§160.5): a fresh view measures at the current size by construction.
+  // Scroll survives via the existing save/restore pair.
+  $effect(() => {
+    void settings.fontSize;
+    const v = new EditorView({
       state: EditorState.create({
         doc: text,
         extensions: [
@@ -72,20 +83,24 @@
               backgroundColor: "transparent",
               color: "var(--text-muted)",
               border: "none",
+              // Numbers scale with the content (VS Code behavior); heights
+              // stay exact because the view is rebuilt at this size.
+              fontSize: "var(--viewer-font-size)",
             },
           }),
         ],
       }),
       parent: host!,
     });
-    view.scrollDOM.scrollTop = tab.scrollPosition ?? 0;
-    setActiveSearchView(view);
+    view = v;
+    v.scrollDOM.scrollTop = tab.scrollPosition ?? 0;
+    setActiveSearchView(v);
 
     return () => {
-      if (view) saveScrollPosition(rootPath, tab.relativePath, view.scrollDOM.scrollTop);
+      saveScrollPosition(rootPath, tab.relativePath, v.scrollDOM.scrollTop);
       setActiveSearchView(null);
-      view?.destroy();
-      view = null;
+      v.destroy();
+      if (view === v) view = null;
     };
   });
 

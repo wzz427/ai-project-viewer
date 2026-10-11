@@ -268,6 +268,40 @@ with sync_playwright() as p:
     }""")
     check("code_find_counts", any("/" in t for t in code_find), str(code_find))
 
+    # --- gutter alignment across LIVE font changes (owner 2026-10-11
+    # screenshot: line numbers drifted off the text). CodeMirror cannot see
+    # the CSS-variable font change on :root, so its cached heights went
+    # stale (probe: 13->20px = -168px by line 31; first scroll healed it).
+    # requestMeasure on every knob turn must keep the gutter on the lines
+    # with NO scroll, and the gutter font must follow the content scale.
+    gutter_gauge = """() => {
+      const lines = [...document.querySelectorAll('.cm-content .cm-line')];
+      const gutters = [...document.querySelectorAll('.cm-lineNumbers .cm-gutterElement')];
+      const g = new Map(gutters.map(e => [e.textContent.trim(), e]));
+      let maxAbs = 0;
+      lines.forEach((l, i) => {
+        const ge = g.get(String(i + 1));
+        if (ge) maxAbs = Math.max(maxAbs,
+          Math.abs(ge.getBoundingClientRect().top - l.getBoundingClientRect().top));
+      });
+      const cs = getComputedStyle(document.querySelector('.cm-content')).fontSize;
+      const gs = getComputedStyle(document.querySelector('.cm-gutters')).fontSize;
+      return { maxAbs: Math.round(maxAbs * 10) / 10, cs, gs };
+    }"""
+    gutter_before = page.evaluate(gutter_gauge)
+    for _ in range(6):
+        page.locator('.code-viewer .vtb button[aria-label="Larger text"]').click()
+        time.sleep(0.2)
+    time.sleep(0.8)
+    gutter_bumped = page.evaluate(gutter_gauge)
+    for _ in range(6):
+        page.locator('.code-viewer .vtb button[aria-label="Smaller text"]').click()
+        time.sleep(0.15)
+    check("gutter_aligned_across_font_changes",
+          gutter_before["maxAbs"] < 1 and gutter_bumped["maxAbs"] < 1
+          and gutter_bumped["cs"] == gutter_bumped["gs"],
+          f"before={gutter_before} bumped={gutter_bumped}")
+
     # centered reading column + resize guard (owner 2026-10-10 bug class)
     open_file("README.md")
     cdp = page.context.new_cdp_session(page)
