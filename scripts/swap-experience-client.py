@@ -20,6 +20,7 @@ Default run is a dry-run preview; pass --yes to execute the swap.
 import argparse
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -29,6 +30,12 @@ BASE = Path(os.environ["LOCALAPPDATA"]) / "AIProjectViewer"
 APP_EXE = BASE / "app" / "ai-project-viewer.exe"
 UPDATE_EXE = BASE / "updates" / "ai-project-viewer.exe"
 EXP_IDENTIFIER = b"com.aiprojectviewer.app.exp"
+
+
+def psq(s: str) -> str:
+    """Escape for a PowerShell single-quoted string (spec-012 L-c5): a '
+    inside LOCALAPPDATA would otherwise terminate the literal early."""
+    return s.replace("'", "''")
 
 
 def ps(command: str) -> str:
@@ -42,7 +49,7 @@ def ps(command: str) -> str:
 
 
 def file_version(path: Path) -> str:
-    return ps(f"(Get-Item -LiteralPath '{path}').VersionInfo.FileVersion")
+    return ps(f"(Get-Item -LiteralPath '{psq(str(path))}').VersionInfo.FileVersion")
 
 
 def md5(path: Path) -> str:
@@ -53,12 +60,25 @@ def md5(path: Path) -> str:
     return h.hexdigest()
 
 
+def contains_bytes(path: Path, needle: bytes) -> bool:
+    overlap = len(needle) - 1
+    prev = b""
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(1 << 20)
+            if not chunk:
+                return False
+            if needle in prev + chunk:
+                return True
+            prev = chunk[-overlap:] if overlap else b""
+
+
 def running_pids() -> list[int]:
     # Path-equality filter only -- the kill-by-name shortcut is forbidden
     # (e2e/test instances may share the process name).
     out = ps(
         f"Get-CimInstance Win32_Process -Filter \"Name='ai-project-viewer.exe'\" | "
-        f"Where-Object {{ $_.ExecutablePath -ieq '{APP_EXE}' }} | "
+        f"Where-Object {{ $_.ExecutablePath -ieq '{psq(str(APP_EXE))}' }} | "
         f"ForEach-Object {{ $_.ProcessId }}"
     )
     return [int(x) for x in out.split()]
@@ -96,12 +116,15 @@ def main() -> int:
         return 1
 
     staged = APP_EXE.with_suffix(".exe.new")
-    staged.write_bytes(UPDATE_EXE.read_bytes())
+    # Streamed copy + streamed marker scan (spec-012 L-c5): whole-exe
+    # read_bytes() holds the binary in RAM twice; chunked = same O(1MB)
+    # footprint as the Rust updater's own swap path.
+    shutil.copyfile(UPDATE_EXE, staged)
     if md5(UPDATE_EXE) != md5(staged):
         staged.unlink(missing_ok=True)
         print("[abort] md5 mismatch after copy, no files touched")
         return 1
-    if EXP_IDENTIFIER not in staged.read_bytes():
+    if not contains_bytes(staged, EXP_IDENTIFIER):
         staged.unlink(missing_ok=True)
         print("[abort] staged binary is not an exp build, no files touched")
         return 1

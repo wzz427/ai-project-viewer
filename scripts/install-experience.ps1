@@ -19,6 +19,16 @@ $updatesDir = Join-Path $base "updates"
 New-Item -ItemType Directory -Force -Path $appDir, $updatesDir | Out-Null
 
 $dest = Join-Path $appDir "ai-project-viewer.exe"
+
+# --- running-client gate (spec-012 L-c3): a locked exe used to blow up
+# mid-Copy-Item with a raw IO error and only THEN print "close it first"
+# at the tail. Refuse up front, by path (never by bare name).
+$running = Get-Process -Name "ai-project-viewer" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -ieq $dest }
+if ($running) {
+    throw "The experience client is still running. Fully close it (tray icon -> Exit), then run this script again."
+}
+
 Copy-Item $built $dest -Force
 Write-Host "installed: $dest"
 

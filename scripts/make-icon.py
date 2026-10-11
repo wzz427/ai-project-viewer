@@ -178,7 +178,20 @@ masters = {
     "C": (render(candidate_c, "C"), "大眼睛", "极简大眼睛+AI星标 · 深蓝→紫"),
 }
 
-FONT = r"C:\Windows\Fonts\msyh.ttc"
+# Font fallback chain (spec-012 L-c4): msyh is not guaranteed on every
+# machine; any CJK-capable system font keeps the contact sheet readable.
+def load_cjk_font() -> str:
+    for cand in (
+        r"C:\Windows\Fonts\msyh.ttc",
+        r"C:\Windows\Fonts\msyhbd.ttc",
+        r"C:\Windows\Fonts\simhei.ttf",
+        r"C:\Windows\Fonts\simsun.ttc",
+    ):
+        if os.path.exists(cand):
+            return cand
+    raise SystemExit("[abort] no CJK-capable system font found (msyh/simhei/simsun)")
+
+FONT = load_cjk_font()
 f_title = ImageFont.truetype(FONT, 40)
 f_row   = ImageFont.truetype(FONT, 32)
 f_small = ImageFont.truetype(FONT, 22)
