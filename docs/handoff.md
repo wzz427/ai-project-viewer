@@ -11,11 +11,11 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **code review 已完成(2026-10-11,全代码 2 高/15 中/约 25 低,报告 docs/code-review-2026-10-11.md),
-等 owner 拍板:先修哪批(建议 H2+M7 在 T3 前修,免得污染基准测量)→ 然后 T3 全量性能基准
-(A–I 档+Phase 1 Baseline,owner 已预告授权"新会话 code review 后即可跑,无需再请示")**;
-NSIS 实际打包仍须 owner 届时点头。spec-011 **InTest**:0.7.7 已发体验渠道待 owner 复验,
-code review 通过+基准跑完=收口转 Done 的条件。**版本段 0.7.x 固定递增不跳段**。
+主线 = **spec-012 修复批已立项 Draft(2026-10-11,owner"我想全部修复")——A2 开工对齐等 owner
+确认后进 InDev**:范围=code review 报告 44 条全量(docs/code-review-2026-10-11.md;M15 NSIS
+参数留打包轮拍板),一批修完发 0.7.8 → 然后 T3 全量性能基准(A–I 档+Phase 1 Baseline,
+owner 已预告授权)→ spec-011 复验转 Done;NSIS 实际打包仍须 owner 届时点头。**版本段 0.7.x
+固定递增不跳段**。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
 **未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断已装)——
@@ -25,6 +25,16 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 **park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-11 · spec-012 修复批立项 Draft,主线=owner 确认开工→修 44 条→0.7.8→T3
+
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → specs/spec-012-code-review-fixes.md。
+
+- owner 原话"我想全部修复。你写一个针对code review的修复spec,对所有问题提出修复方案"→
+  spec-012 Draft:R 组级×8 覆盖报告 44 条(条目号指针化)、V×9、决策 D1–D8(一批发 0.7.8/
+  merge 用 --first-parent/watcher 后端代次校验/可执行拒绝表 msi 豁免/NSIS 参数留打包轮)。
+- 下一步:owner 确认范围与关键默认(说人话表在立项会话)→Ready→InDev 按高→中→低顺序修,
+  每组过对应测试档;动 watcher 链发版前必跑 freeze-guard。
 
 ### 2026-10-11 · 全面 code review 完成(0.7.7 全代码),主线=等 owner 拍板修复顺序→T3
 
