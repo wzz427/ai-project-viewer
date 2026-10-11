@@ -291,6 +291,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 教训重演 | **L29 当日重演一次**:warning 清理用了裸 `cargo build --release` 覆盖 tauri 产物→e2e 全线白屏(ERR_CONNECTION_REFUSED);双构建重建走 `pnpm tauri build --no-bundle [--debug]` 后全绿——**GUI 二进制永远只认 tauri CLI 产物** |
 | 记档延后 | L-c6 noUncheckedIndexedAccess 实测 60 错/8 文件>D6 止损线 20,回退记档(spec-012 D12;去处=下一前端专项批次) |
 
+#### 0.7.9 高亮返修轮(2026-10-12,spec-012 InTest 期间 owner 报障;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 树高亮单一真值=激活页签(2026-10-10 规矩)×右键瞬态独占(0.6.12)⇒ 菜单一关高亮还给旧激活文件;探针五步实证无点击穿透、非 0.7.8 引入(L41) |
+| 修复 | 动作过的行保持高亮(acted 标记,动作关闭不清);dismiss 照旧回落;下次文件激活(revealInTree 咽喉)交还;forgetTree 同步清 |
+| phase3-suite | **68/68**(+1 `context_action_keeps_row_highlight`;载荷=Copy-Path 非 reveal——零打扰红线) |
+| 其余档 | git 33+recent 15+r3 8+pdf 23+cargo 112+vitest 64+check 0/0(watcher 链零改动,freeze-guard 免跑) |
+| 版本 | 0.7.9 三处已核;updates=exp 已发 |
+
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 
 | # | 验收项(§192 清单 1–7) | 方法与结果 |

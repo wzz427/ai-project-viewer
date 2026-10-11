@@ -11,10 +11,12 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-012 修复批 InTest(0.7.8 已发体验渠道,2026-10-11)**:owner 客户端点 Update
-复验 → 验收原话落 SPEC → Done(评审报告 docs/code-review-2026-10-11.md 随之归 history)→
-**T3 全量性能基准**(A–I 档+Phase 1 Baseline,owner 已预告授权)→ spec-011 复验转 Done;
-NSIS 实际打包届时点头(含 webviewInstallMode 三选一,D7/R21)。**版本段 0.7.x 固定递增不跳段**。
+主线 = **spec-012 InTest,体验渠道当前版 0.7.9(2026-10-12)**:0.7.8=code review 修复批
+(42 条落地),0.7.9=InTest 期间 owner 报障返修(右键动作后树高亮跳回旧文件,L41)。owner
+客户端点 Update 复验 → 验收原话落 SPEC → Done(评审报告 docs/code-review-2026-10-11.md
+随之归 history)→ **T3 全量性能基准**(A–I 档+Phase 1 Baseline,owner 已预告授权)→
+spec-011 复验转 Done;NSIS 实际打包届时点头(含 webviewInstallMode 三选一,D7/R21)。
+**版本段 0.7.x 固定递增不跳段**。
 挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
@@ -26,17 +28,15 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-11 · spec-012 修复批 InTest:0.7.8 已发体验渠道,主线=owner 验收→T3
+### 2026-10-12 · 0.7.9 高亮返修轮(InTest 报障),体验渠道=0.7.9,主线=owner 验收→T3
 
-> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → specs/spec-012-code-review-fixes.md(§六+决策表)。
+> **新会话从这接** —— 读 AGENTS.md 开机三步 → 本页 → lessons L41 + testing.md §4.14。
 
-- owner"开工,完成spec012"→当日一批修完 43 条(42 落地+L-c6 止损):H1 多行提交消息(%x1e 分隔符)/
-  M2 merge --first-parent/H2+M12 共 15 命令转 async/M4 watcher 代次自弃/M5 截断守卫/M6 stderr 排空/
-  M7-M9 PDF 取消语义/M10 git 单飞/M11 可执行拒绝表/M13-M14/低级全清;实现差异 4 处=D9–D12
-  (M8 代次重启/M9 lastScrollTop 兜底/L-f7 文案指树菜单/L-c6 止损 60>20)。
-- 全档:phase3 67+git 33+recent 15+r3 8+**pdf 23(新 4 探针:M8 中断零哨/M9 位置比例/M7 风暴不变量)**+
-  vitest 64+cargo 112(+13)+check 0/0+freeze-guard 0/83;0.7.8 三处+updates=exp 已核。
-- 下一步:owner 点 Update 验收→Done→报告归 history;T3 跑法=V1.5 §162–§173(预告授权已留痕)。
+- owner 报"右键 Notes.txt→Show in File Explorer,高亮变成 pyproject.toml":两条既有规矩(高亮单一真值=
+  激活页签 × 右键瞬态独占)的组合缺口,非 0.7.8 引入(探针实证无点击穿透);修=动作过的行保持高亮,
+  dismiss 照旧回落,下次文件激活交还(L41);守卫 context_action_keeps_row_highlight 入 phase3(68)。
+- 0.7.9 已发体验渠道;下一步:owner 点 Update 复验 0.7.8+0.7.9 合并效果 → spec-012 验收转 Done →
+  评审报告归 history → T3(预告授权)。
 
 ### 2026-10-11 · 全面 code review 完成(0.7.7 全代码),主线=等 owner 拍板修复顺序→T3
 
