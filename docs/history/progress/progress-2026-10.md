@@ -65,3 +65,31 @@
 - **未结转出**:内容区冻结 bug(owner 客户端切页签内容不变,本机三路复刻未现)→ handoff 挂账,等诊断导出取证。
 - owner"这期收口,进下一个需求,版本升到0.7"→ 版本段改 **0.7.x**(D7 逃逸条款"直到 owner 另有指令"首次使用),
   版本三处已升 0.7.0,Phase 9(Watcher)起用。
+
+
+## 2026-10-11 · Phase 9 Watcher(spec-009,Done;0.7.0 首发+0.7.1/0.7.2 两轮返修)
+
+- 交付:notify-debouncer-full 400ms 单槽+§32 忽略清单 Rust 侧过滤+相邻配对 rename(L33:Windows 单事件
+  Name(Both) 带 [from,to])+storm 折叠;前端 watcherStore 单 lane 串行+忙时合并(无 setTimeout——L34 隐藏窗
+  冻定时器);contentRev 重挂载换装(顺带修 Ctrl+R 代码页签不刷新);§77 单活监听随激活项目换。
+- **0.7.0 启动卡死两层根因**(owner 两轮打回,我代换装两次):①L35 git_snapshot 同步命令跑主线程被监听放大
+  (修 async+spawn_blocking);②L36 notify 默认 FileIdMap 在 watch() 全树 WalkDir 逐文件开句柄,真实仓库分钟级
+  (修 NoCache+启停全异步)。取证链:SendMessageTimeout 测原生线程(渲染健康≠窗口没冻)→真实状态副本 75/75→
+  禁用监听二分→源码闭环。常驻守卫 watcher-freeze-guard.py;手动换装法落成 scripts/swap-experience-client.py。
+- owner 持续使用 0.7.2→0.7.5 无再报卡死,收口指令"我换新对话做下一个需求"。
+
+## 2026-10-11 · Open Recent(spec-010,Done;0.7.3)
+
+- owner 增量需求(V1.5 §198 增量节+审计行,Phase 10 顺延 spec-011):+ 号两段式菜单(Browse 永第一项+MRU≤10
+  悬停✕+Clear,空表仍直开选框)+空白欢迎页只读列表+失效文件夹置灰(paths_exist async+spawn_blocking);
+  记录=用户主动打开成功含切换,会话恢复不记(D1);身份=canonical 路径;cap 写读双侧夹(D5)。
+  recent-suite 15 项(预置状态文件+自动加两路驱动,原生选框绝不驱动)。e2e 定位与二进制扫描三坑 L37。
+
+## 2026-10-11 · 0.7.4 行号错位返修 + 0.7.5 字号上限(均 owner 报障/诉求驱动)
+
+- L38:全局字号走 :root CSS 变量,CodeMirror 看不见非自施样式→缓存行高过期→行号列(高度按旧测量显式内联)
+  逐行漂移,14→20px 十二行文件偏 100px,滚动偶然自愈;默认 13px 隐形故 0.6 起潜伏。requestMeasure(等动画帧,
+  离屏窗被节流)与内部 measure()(行号刷新挂 update 旗标链)探针实证均不愈→**字号一变即重建编辑器实例**
+  (contentRev 同款确定性模式,保滚动);行号随正文同字号(VS Code 行为)。phase3 增 gutter 对齐守卫(64 项)。
+  owner 验收原话"行号对齐了"。
+- 0.7.5:字号上限 20→32px(§22 审计行;下限 11/默认 13 不变),范围收 appState 导出 FONT_SIZE_MIN/MAX 单一常量。
