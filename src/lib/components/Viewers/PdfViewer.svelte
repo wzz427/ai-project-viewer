@@ -31,6 +31,7 @@
   type PdfDoc = import("pdfjs-dist").PDFDocumentProxy;
   type PdfPage = import("pdfjs-dist").PDFPageProxy;
   type PdfTask = import("pdfjs-dist").PDFDocumentLoadingTask;
+  type PdfRenderTask = import("pdfjs-dist").RenderTask;
 
   // Plain lets on purpose: pdf.js objects must never enter the reactive
   // system — Svelte's deep proxy wraps their internals (private fields,
@@ -62,6 +63,11 @@
   /** page number (1-based) -> canvas holder element. */
   const slots = new Map<number, HTMLDivElement>();
   const renderedPages = new Set<number>();
+  /** Canvas renders still in flight (spec-012 M7): keyed by page — a
+   * re-render of the same page (zoom churn) cancels the stale one instead
+   * of stacking a second canvas+textLayer job, and release/unmount cancel
+   * whatever is still pending. Bounded by the render window (±ADJACENT). */
+  const activeRenders = new Map<number, PdfRenderTask>();
   let observer: IntersectionObserver | null = null;
   const ADJACENT = 2;
 
@@ -126,6 +132,16 @@
       activeDriver?.();
       observer?.disconnect();
       observer = null;
+      // Late timers must not fire after teardown: a scroll scheduled <300 ms
+      // before the switch used to land on a null scroller and overwrite the
+      // saved scroll position with undefined (spec-012 M9); the anchor timer
+      // does scrollToPage → persistState on the same torn-down path.
+      clearTimeout(scrollTimer);
+      clearTimeout(anchorTimer);
+      // Cancel canvas renders still pending before destroying the doc (M7).
+      searchGen++;
+      for (const t of activeRenders.values()) t.cancel();
+      activeRenders.clear();
       slots.clear();
       renderedPages.clear();
       persistState();
@@ -237,6 +253,10 @@
     if (!d || !host || !lib) return;
     const pdfjs = lib;
     renderedPages.add(pageNo);
+    // A render still in flight for this page is stale the moment a new one
+    // is requested (zoom churn) — cancel it instead of painting twice (M7).
+    activeRenders.get(pageNo)?.cancel();
+    let renderTask: PdfRenderTask | null = null;
     try {
       const page: PdfPage = await d.getPage(pageNo);
       // Ownership re-check after every await: releases (window move, zoom
@@ -263,12 +283,14 @@
       textLayer.className = "pdf-text-layer";
       textLayer.style.setProperty("--total-scale-factor", String(scale));
       host.replaceChildren(canvas, textLayer);
-      await page.render({
+      renderTask = page.render({
         canvas,
         canvasContext: canvas.getContext("2d") ?? undefined,
         viewport: vp,
         transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-      }).promise;
+      });
+      activeRenders.set(pageNo, renderTask);
+      await renderTask.promise;
       await new pdfjs.TextLayer({
         textContentSource: page.streamTextContent(),
         container: textLayer,
@@ -408,10 +430,18 @@
       if (doc === d) {
         releasePage(pageNo);
       }
+    } finally {
+      if (activeRenders.get(pageNo) === renderTask) {
+        activeRenders.delete(pageNo);
+      }
     }
   }
 
   function releasePage(pageNo: number) {
+    // Cancel any render still pending for this page (M7): without this the
+    // orphaned task would finish painting into a detached host.
+    activeRenders.get(pageNo)?.cancel();
+    activeRenders.delete(pageNo);
     renderedPages.delete(pageNo);
     renderedScale.delete(pageNo);
     slots.get(pageNo)?.replaceChildren();
@@ -476,31 +506,42 @@
   let matches = $state<{ page: number }[]>([]);
   let matchIdx = $state(-1);
   let searching = $state(false);
+  /** Search generation (spec-012 M8): a new run supersedes the in-flight
+   *  one (Enter mash → latest query wins); unmount bumps it so a search
+   *  running across a tab switch stops writing. */
+  let searchGen = 0;
 
   async function runSearch() {
     const q = query.trim().toLowerCase();
     matches = [];
     matchIdx = -1;
     if (!q || !doc) return;
+    const gen = ++searchGen;
     searching = true;
     try {
       const found: { page: number }[] = [];
       for (let p = 1; p <= doc.numPages; p++) {
         const page = await doc.getPage(p);
         const text = await page.getTextContent();
+        if (gen !== searchGen) return;
         const sheet = text.items
           .map((it) => ("str" in it ? it.str : ""))
           .join(" ")
           .toLowerCase();
         if (sheet.includes(q)) found.push({ page: p });
       }
+      if (gen !== searchGen) return;
       matches = found;
       if (found.length > 0) {
         matchIdx = 0;
         scrollToPage(found[0].page);
       }
+    } catch {
+      // doc destroyed mid-search (tab switch/unmount) or a page fetch
+      // rejected — these used to reach the global unhandledrejection
+      // sentinel and pollute the freeze-bug diagnostics (M8). Swallow.
     } finally {
-      searching = false;
+      if (gen === searchGen) searching = false;
     }
   }
 
