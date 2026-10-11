@@ -10,4 +10,4 @@
 
 | 执行项 | 状态 |
 |---|---|
-| 1. 把"手动换装 owner 体验客户端"落成 `scripts/swap-experience-client.py`(方法全文在 handoff 0.7.2 条:按路径杀 exp 实例→updates 下 exe 暂存 .new+md5 校验+旧转 .old→启动→核 Responding+FileVersion;~30 行;下次客户端再冻到点不了更新时直接跑) | 待执行 |
+| (空——上一轮唯一执行项"手动换装落成 `scripts/swap-experience-client.py`"已于 2026-10-11 完成销账) | |
