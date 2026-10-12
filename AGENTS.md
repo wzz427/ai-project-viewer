@@ -98,6 +98,7 @@
 
 **备份:一段收尾就推** `git push --force backup main --tags` +
 核 `rev-list --count backup/main..main` = 0。备份装不下密钥。
+(remote 已建线 2026-10-12,地址/钥匙/恢复/演练等细则 → architecture §0「备份规则」)
 
 ## 六、开机三步
 

@@ -14,8 +14,20 @@
 | 启动(开发) | `pnpm tauri dev`(起 Vite:1420 + debug exe);要可独立运行的 debug exe:`pnpm tauri build --debug --no-bundle` → `src-tauri/target/debug/ai-project-viewer.exe` |
 | 跑测试 | 见 docs/testing.md §1(唯一真值):`pnpm check` / `cd src-tauri && cargo test` / 构建;Benchmark 档位见 V1.5 §162–§173 |
 | 调试端口(CDP) | dev/体验版**常开** 9322:lib.rs 启动时若 env 未设则给 WebView2 加 `--remote-debugging-port=9322`(e2e 自设端口优先);活体直连=`scripts/e2e/live-inspect.py` 只读快照(owner 2026-10-12 指令,现场报障第一动作)。**生产/NSIS 打包必须关**(spec-011 记档债务) |
+| 🔒 备份(异地) | **remote `backup` = `git@github.com:wzz427/ai-project-viewer.git`**(SSH;owner 给的 https 直连在此网络被重置,且指南铁律=远程必须 SSH 地址)。认证=`~/.ssh/github_wzz` 账号级钥匙(一钥匙管一事,与 Gitee/服务器不共用;`ssh -T git@github.com` 回 `Hi wzz427!` 为通)。方法全文=docs/AI-Project-Guide/07-backup-secrets.md + Desktop 指南 advanced/02(两平台篇)。**本项目备份规则**(2026-10-12 立,细则见下方「备份规则」块) |
 | 平台已知坑 | ① 路径含空格/中文必须加引号;② WebView2 浏览器加速键抢占应用快捷键 → 已在 Rust 侧 COM 禁用(§147,src-tauri/src/lib.rs);③ git 输出路径基准不一致:status 相对 cwd、diff/log 相对 Git Root,一律用 `git -C <GitRoot>` 规避(V1.5 §196 附注A);④ Rust `canonicalize` 产生 `\\?\` 前缀 → 用 dunce crate(V1.5 §144);⑤ 无 BOM UTF-8 的 .ps1 含中文会被 PS5.1 按 GBK 误读导致解析错乱(lessons L2) |
 | 🚫 别碰 | 需求文档是唯一基线,不得未经 owner 修改;密钥文件别读(见 AGENTS.md 红线);不得绕过 V1.5 §143–§147 安全章节"图快" |
+
+### 备份规则(2026-10-12 owner 指令建线,agent 依指南 advanced/02 拟定)
+
+1. **节奏**:一段工作收尾(commit 之后)就推 `git push --force backup main --tags`——AGENTS §五既有规矩,与 commit 同性质,不攒批。**没 commit 的改动不在备份里**(当前 docs/AI-Project-Guide/ 另一会话未提交改动即不在内,该会话收口自会入账)。
+2. **核账**:推完必核 `git rev-list --count backup/main..main` = `0`;只信退出码不够。git banner 走 stderr——红字≠失败,以退出码+核账数为准(指南实测坑)。
+3. **`--force` 语义**:备份库只有本机往里推,force=远端完全等于本地 main,不存在覆盖他人;远程若意外变 https 地址,先 `git remote set-url backup git@github.com:...` 纠正再推。
+4. **装不下(红线)**:密钥(`.env*`/`*.key`/`*.pem`/`secrets/`,.gitignore 占位+推前历史扫描);可重建大物(node_modules/target*/dist);推备份的钥匙本身(只在 `~/.ssh/`);体验渠道二进制(updates/ 在 LOCALAPPDATA,本就不在仓)。
+5. **恢复**:本地全丢 → 新机 `git clone git@github.com:wzz427/ai-project-viewer.git`(clone 不需要那把推送钥匙,网页登录即可;此网络 https 直连不稳,SSH 稳)→ 密钥单独放回 → 重装依赖。
+6. **演练**:每季度或发大版后,`git clone` 到 `%TEMP%\backup-drill` 对一眼 HEAD 再删——真拉一次才算验证过。
+7. **第二平台**:现只挂 GitHub 一线;要加 Gitee 主备份时按指南另挂 remote(两远端各自单独推,互不替代)。
+8. **可见性**:该库应为 **Private**——owner 建库时网页上确认一眼(agent 无法读取可见性,记为 owner 确认项)。
 
 ## 1. 核心决策表(D 编号;否决项一栏是灵魂——三个月后有人问"为什么不用 X",答案住这)
 
@@ -179,6 +191,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-12 | 0.7.14 | **异地备份建线**(挂账清偿):remote `backup`=GitHub SSH(github_wzz 账号级钥匙),首推 main+核 0;备份规则八条落 §0(节奏/核账/force 语义/装不下红线/恢复/演练/第二平台预留/私有可见性=owner 确认项) | owner 指令(原计划 V1 后自建,提前委托) |
 | 2026-10-12 | 0.7.14 | 视觉改版落地(spec-014,owner 拍板 A 克制专业/一步到位/亮色为主,布局不动):tokens 三档字阶+语义色统一(--danger 唯一错误红,--accent-soft 染色层)+暗色三面阶梯+Icon.svelte 内联 SVG 图标集(16 枚,替换全部 Unicode/emoji)+项目首字徽标 hash 色身份+文件类型图标族(路由同源)+两级标签正交(项目条 40px 底条/文件条 28px 顶线)+交互态 100ms 过渡;对比度 WCAG AA 全数值实测(含 2 处返修:亮面徽标字母压暗/Up-to-date chip 分主题);e2e 断言与字形解耦(徽章去括号+指示器 data-state);**D14** | owner"整个页面设计得特别土…调用 frontend-design 和 impeccable";评审 19/40 后拍板 |
 | 2026-10-12 | 0.7.10–0.7.13 | T3 全量性能档跑通(A–I+Baseline 全过;idle 200MB 记账未达 150 目标,WebView2 基座占大头,非门);内容冻结大案修复:根因=ActiveViewer `$derived` 与 tabsState 失联跨项目蔓延 → 工作区按 rootPath keyed + projectTabs 返回 store 代理(**D12**);取证升级 0.7.11(data-rel 渲染标记/console 捕获/`__aiv.snapshot`);常开 CDP 9322 探查端口(**D13**);0.7.13 置顶图钉移行尾(层级对齐,owner 提案) | owner 报障"切页签内容不变"+活体直连指令;T3 预授权"开跑" |
 | 2026-10-12 | 0.7.8/0.7.9 | 全面 code review 后修复批(spec-012,报告 44 条):同步命令 IO/进程清零(13 命令补转 async+updater exists() 前置门)、watcher 升 WatchState 代次(切换乱序自弃)、gitStore 单飞、PDF 三处取消语义(RenderTask cancel/搜索代次/scrollTimer+lastScrollTop 兜底)、open_with_default_app 可执行拒绝表(msi 豁免 §126)、CSP 补 base-uri/form-action 'none'、md5→RustCrypto md-5;0.7.9 返修=右键动作后树高亮保持(L41)。硬规则未变(0.7.6 已立),本批=全量执行;L29 警示重申:GUI 二进制只认 tauri CLI 产物 | owner"开工,完成spec012";InTest 报障返修 0.7.9 |
