@@ -301,6 +301,17 @@
       {#if projectState.tabs.length === 0}
         <EmptyState />
       {:else if project}
+        <!-- Keyed by project root (2026-10-12 freeze hunt): this subtree
+             holds the only deriveds in the app that must re-track a
+             DIFFERENT slice of tabsState on every project switch. Three
+             field freezes all showed the same signature — the tab strip and
+             store stayed live while exactly these deriveds stopped
+             receiving invalidations. Keying turns a switch into a clean
+             unmount + fresh mount, so subscriptions can never go stale
+             across a rootPath retarget. Inner viewers already re-key per
+             file (+contentRev) and restore scroll/pdf state on mount, so
+             the only remount cost is the tab strip itself. -->
+        {#key project.rootPath}
         <div class="viewer-stack">
           {#if !gitViewShowing}
             <FileTabs rootPath={project.rootPath} />
@@ -331,6 +342,7 @@
             </div>
           {/if}
         </div>
+        {/key}
       {/if}
     </main>
   </div>

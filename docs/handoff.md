@@ -21,16 +21,22 @@ scripts/e2e/benchmark-suite.py;PDF 驻留探针=无应用侧泄漏(渲染进程�
 挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
-**未结大案:内容区冻结 bug**(owner 2026-10-12 现场二次报+**首次带诊断取证**:
-断点=三次快速项目切换(1.2s 间隔)后 store/页签条活而 ActiveViewer 派生死,环内零异常;
-本地两版 42 轮未复现;根因未定,0.7.11 已装取证升级=下次现场必中)——再现时照用,然后
-Settings → Export Diagnostics(文件在 %APPDATA%\com.aiprojectviewer.app.exp\diagnostics\,
-新导出带 viewer-rel+MISMATCH 行+console 捕获,同机直读即定位);**应急恢复(免重启):切 Git
-面板点任一改动条目(DiffViewer 接管主区=ActiveViewer 卸载)→切回 Files 即重挂**。
+**冻结大案(2026-10-12 三次现场)**:根因定位=内容区组件的派生对页签数据断订阅(对项目切换 prop 活→切项目能渲染、切页签永冻,且随切换"扩散");**修复已随 0.7.12 发**(工作区按 rootPath keyed+projectTabs 回读代理),待 owner 现场验证;**若再冻结:别重启,说一声即上门**——dev/体验版常开 9322,`pywork python scripts\e2e\live-inspect.py` 直读活体(项目/页签/DOM 三对照+日志环,L43);应急恢复照旧:切 Git 面板点条目→切回 Files。
 协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律 aivlaunch(PID 限定)+
 **park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-12 · 冻结大案定位+修复 0.7.12+活体直连通道(等 owner Update+现场验证)
+
+- 现场#3 的 MISMATCH 行实锤断链层(仅 viewer 派生死);本地 96 轮仅 1 中(≈2%,A/B 不可行)
+  →机理修复:**App 工作区按 rootPath keyed**(切项目=干净重挂,订阅不跨重定向变陈旧)
+  +projectTabs() 创建路径回读代理;全档绿(cargo 112+phase3 70+git 33+recent 15+r3 8+pdf 23
+  +vitest 64+check 0/0+probe 6/6),0.7.12 已发体验渠道。
+- **活体直连**(owner"直接获取我本地软件里的信息"):dev/体验版常开 CDP 9322
+  +window.__aiv.snapshot() 只读探针+live-inspect.py(绝不 launch/kill/focus);实测附身运行中
+  实例全量吐出 ✓;生产打包须关端口(spec-011 NSIS 步记账)。
+- 下一步:owner Update→日常用;再冻结**别重启,喊我上门**;spec-011 验收仍等 owner。
 
 ### 2026-10-12 · 冻结大案二次现场+取证升级 0.7.11 已发(等 owner 点 Update)
 

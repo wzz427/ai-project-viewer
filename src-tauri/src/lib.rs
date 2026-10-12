@@ -84,6 +84,20 @@ fn channel(app: tauri::AppHandle) -> String {
 pub fn run() {
     let _ = STARTED_AT.set(Instant::now());
 
+    // Live-probe port (owner 2026-10-12, freeze hunt: "你应该有一种机制,
+    // 能够直接获取到我在本地打开的这个软件里面的信息"): dev & experience
+    // builds listen on a fixed localhost CDP port so live-inspect.py can
+    // attach to the RUNNING app — a field freeze becomes directly
+    // inspectable instead of reconstructed from logs. e2e launches pre-set
+    // their own port via env (aivlaunch), which wins. PRODUCTION PACKAGING
+    // MUST CLOSE THIS (spec-011 NSIS step — see that spec's debt note).
+    if std::env::var_os("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_none() {
+        std::env::set_var(
+            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+            "--remote-debugging-port=9322",
+        );
+    }
+
     tauri::Builder::default()
         // Must be the first registered plugin (V1.5 §16): a second launch
         // activates the existing window instead of spawning a new instance.

@@ -92,7 +92,9 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
 | `watcher-freeze-guard.py` | 监听抗冻守卫(0.7.0 启动卡死教训,L35):%TEMP% 夹具(300 文件/30 提交 git 仓)+持续写盘锤击(改写+增删 ~33 周期/秒)25s,`SendMessageTimeout(WM_NULL)` 测**原生窗口线程**(渲染进程健康≠窗口没冻);PASS=无响应采样≤2 | **凡动 watcher 链/git_snapshot/事件刷新路径,发版前必跑** |
 | `benchmark-suite.py` | **T3 全量基准**(A–I+Phase 1 Baseline 重跑,V1.5 §161–§174):A 壳启动/RAM/CPU(双口径:隐藏=下限+`show_main_offscreen`=真实,L42)·B 常规页签/切换·C 多项目预置恢复·D node_modules>10 万文件·E Agent 锤击 60s·F/G PDF RAM 增量·H 大 diff 截断·I=复跑 git-suite;psutil 全进程树**私有字节**口径(§161);结果落 %TEMP%\aiv-bench\results.json | T3 轮(owner 批准后);性能回归疑点复测 |
-| `freeze-repro.py` | **冻结大案复现器**(v2):3 项目快速切换(1.2s 间隔)+2s 内开/激活+嵌套项目根+git 仓+切换期间盘上搅动;每步断言**内容身份**(.viewer-body 内 marker 文本,非页签名/类名);2026-10-12 两版 42 轮未复现,留档配方与断言法 | 冻结大案再现时先跑;凡动 ActiveViewer/tabsStore 激活路径/项目切换 |
+| `freeze-repro.py` | **冻结大案复现器**(v4):4 项目/开机激活≠列表首位/先健康两切/三连快切(1.2s)+10s+切嵌套项目+0.8s 连点+扩散期;每步断言**内容身份**(data-rel+marker);2026-10-12 战绩:v3 配方第 0 轮命中一次(页签条+viewer 同死),其余 96 轮活(≈2%) | 冻结大案再现时先跑;凡动 ActiveViewer/tabsStore 激活路径/项目切换 |
+| `freeze-probe.py` | 冻结**解剖器**:循环配方直至冻结,活体解剖(JS 直发点击/项目往返 store 真值读回/控制台全收);`FREEZE_PROBE_EXE`+`FREEZE_PROBE_FAST=1` 支持 A/B 与放大 | 冻结命中后的分层定位 |
+| `live-inspect.py` | **活体直连**(owner 2026-10-12 指令):只读附身正在运行的实例(常开端口 9322),调 `window.__aiv.snapshot()` 吐项目/页签/DOM 三对照/日志环;**绝不 launch/kill/focus** | owner 客户端任何异常现场的第一动作;0.7.12 起有效 |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
 | `oracle/` | 官方查看器对照基准(搭建见 README) | 疑上游问题 |
 
@@ -313,6 +315,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | phase3/git/recent/r3/pdf | 68/68、33/33、15/15、8/8、23/23 |
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
+
+#### 0.7.12 冻结大案修复轮(2026-10-12,owner 三次现场+「直连活体」指令;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 现场#3 | **MISMATCH 行实锤**:store-active 跟手最后点击/页签条 DOM 跟手/viewer-rel 钉死 14:52:40 的渲染——派生对 tabsState 断订阅、对 rootPath prop 活;「扩散」=断的是订阅本身,切到哪个项目哪个死;断链窗口=开机 20s 内(三连快切+10s+切嵌套项目) |
+| 本地复现 | v3 配方(4 项目,开机激活≠首位,三连快切+10s+切嵌套+连点)第 0 轮命中一次(页签条+viewer 同死=记录级签名);后续 51+30+15 轮全活(≈2%,统计 A/B 不可行) |
+| 修复 | ①App 工作区按 project.rootPath **keyed**(切项目=干净卸载+全新挂载,订阅永不跨重定向变陈旧;内层 viewer 本就按文件+contentRev 重键、§160.5 恢复滚动,增量成本仅页签条重挂)②projectTabs() 创建路径**改回读代理**(裸引用写入对反应性不可见,历来靠赋值 flush 掩护) |
+| 活体直连 | ③dev/体验版启动时若未设端口则补 `--remote-debugging-port=9322`(e2e 自带端口优先;**生产打包必须关——已记 spec-011 NSIS 步**)④`window.__aiv.snapshot()` 只读探针(项目/页签/DOM 三对照/日志环)⑤live-inspect.py 只读连接;实测附身运行中实例全量吐出 ✓ |
+| 全档 | check 0/0+vitest 64+cargo **112/112**+phase3 70/70+git 33/33+recent 15/15+r3 8/8+pdf 23/23+freeze-probe 6/6(修复版) |
+| 版本 | 0.7.12 三处已核;updates=exp 0.7.12(UTF-16 核,无 0.7.11 残留) |
 
 #### 0.7.11 冻结大案取证升级轮(2026-10-12,owner 现场二次报障+首次带诊断取证;全部通过)
 

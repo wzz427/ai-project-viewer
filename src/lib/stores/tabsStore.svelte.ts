@@ -91,12 +91,17 @@ type Cached =
 const contentCache = new SvelteMap<string, Cached>();
 
 function projectTabs(rootPath: string): ProjectTabs {
-  let st = tabsState.byRoot[rootPath];
-  if (!st) {
-    st = { openFiles: [], activeFileRelativePath: null };
-    tabsState.byRoot[rootPath] = st;
-  }
-  return st;
+  const existing = tabsState.byRoot[rootPath];
+  if (existing) return existing;
+  tabsState.byRoot[rootPath] = { openFiles: [], activeFileRelativePath: null };
+  // Return the PROXY from the store, never a raw local: the raw object's
+  // writes are invisible to reactivity — they only ever "worked" because
+  // the assignment above happened to flush a render before anything else
+  // read the record (found by inspection during the 2026-10-12 freeze
+  // hunt; every other path already round-trips through the store).
+  const stored = tabsState.byRoot[rootPath];
+  if (stored) return stored;
+  throw new Error(`projectTabs: record for ${rootPath} vanished after creation`);
 }
 
 function cacheKey(rootPath: string, rel: string) {
