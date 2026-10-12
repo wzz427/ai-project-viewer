@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "AI Project Viewer",
-  "version": "0.7.19",
+  "version": "0.7.20",
   "identifier": "com.aiprojectviewer.app",
   "build": {
     "beforeDevCommand": "pnpm dev",

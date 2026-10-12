@@ -106,6 +106,37 @@ pub fn run() {
             // suites keep exercising the default path.
             "--remote-debugging-port=9322 --disable-direct-composition",
         );
+    } else {
+        // L48 (2026-10-12, 0.7.19 field case): the updater's relaunch
+        // spawns this exe WITH THE PARENT'S ENV — the parent (older
+        // build) had set this var to its own value, so the first-write
+        // gate above skipped and freshly added flags were silently
+        // dropped after every update-restart (the owner's formal app ran
+        // 0.7.19 WITHOUT the black-line flag while a fresh-launched copy
+        // had it). Make the patch idempotent: append whatever flag is
+        // missing; an e2e-provided port (different number) counts as
+        // present and is never duplicated.
+        let cur = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
+            .unwrap_or_default();
+        let mut args = cur.clone();
+        let has_port = cur
+            .split_whitespace()
+            .any(|a| a.starts_with("--remote-debugging-port"));
+        if !has_port {
+            if !args.is_empty() {
+                args.push(' ');
+            }
+            args.push_str("--remote-debugging-port=9322");
+        }
+        if !cur.contains("--disable-direct-composition") {
+            if !args.is_empty() {
+                args.push(' ');
+            }
+            args.push_str("--disable-direct-composition");
+        }
+        if args != cur {
+            std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args);
+        }
     }
 
     tauri::Builder::default()
