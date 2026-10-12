@@ -245,6 +245,65 @@ def scenario_c(page):
           gone and active_project_tab(page).startswith("p01"),
           f"active={active_project_tab(page)}")
 
+    # --- spec-015: project tab drag-reorder (recents exist here, so the +
+    # opens the MENU — safe to click; the empty-recents ban is scenario_b's).
+    page.locator("button.add").click()
+    page.locator('[data-menu-id="add-project-menu"] .recent-open',
+                 has_text="p00").first.click()
+    time.sleep(1.0)
+    names_before = page.locator(".project-tabs .tab .tab-name").all_inner_texts()
+    check("ptab_two_projects_open", names_before == ["p01", "p00"],
+          str(names_before))
+    active_before = active_project_tab(page)
+
+    # Drag tab0 onto tab1's RIGHT half: drop-after -> order flips.
+    a = page.locator(".project-tabs .tab").nth(0)
+    b = page.locator(".project-tabs .tab").nth(1)
+    ab, bb = a.bounding_box(), b.bounding_box()
+    tx = bb["x"] + bb["width"] * 0.75
+    page.mouse.move(ab["x"] + 20, ab["y"] + ab["height"] / 2)
+    page.mouse.down()
+    for i in range(1, 11):
+        page.mouse.move(ab["x"] + 20 + (tx - ab["x"] - 20) * i / 10,
+                        ab["y"] + ab["height"] / 2, steps=1)
+        time.sleep(0.02)
+    check("ptab_drop_indicator_shown",
+          page.locator(".project-tabs .tab.drop-before, "
+                       ".project-tabs .tab.drop-after").count() == 1)
+    page.screenshot(path=os.path.join(os.environ["TEMP"], "aiv-p15-indicator.png"))
+    page.mouse.up()
+    time.sleep(0.4)
+    names_after = page.locator(".project-tabs .tab .tab-name").all_inner_texts()
+    check("ptab_drag_reorder", names_after == ["p00", "p01"],
+          f"{names_before} -> {names_after}")
+    # Drag = reorder, never switch (spec-015 D4).
+    check("ptab_drag_keeps_active", active_project_tab(page) == active_before,
+          f"{active_before} -> {active_project_tab(page)}")
+
+    # Band drop: throw the FIRST tab past the last one -> moves to end.
+    first = page.locator(".project-tabs .tab").nth(0)
+    last = page.locator(".project-tabs .tab").nth(1)
+    fb, lb = first.bounding_box(), last.bounding_box()
+    band_x = lb["x"] + lb["width"] + 40
+    page.mouse.move(fb["x"] + 20, fb["y"] + fb["height"] / 2)
+    page.mouse.down()
+    for i in range(1, 11):
+        page.mouse.move(fb["x"] + 20 + (band_x - fb["x"] - 20) * i / 10,
+                        fb["y"] + fb["height"] / 2, steps=1)
+        time.sleep(0.02)
+    page.mouse.up()
+    time.sleep(0.4)
+    names_final = page.locator(".project-tabs .tab .tab-name").all_inner_texts()
+    check("ptab_band_drop_to_end", names_final == ["p01", "p00"],
+          f"{names_after} -> {names_final}")
+
+    # Persistence (spec-015 R4/D2): the saved projects array order must
+    # equal the UI order after the debounced save settles.
+    saved = read_saved()
+    saved_order = [p.get("rootPath") for p in saved.get("projects", [])]
+    check("ptab_order_persisted",
+          saved_order == [DIRS["p01"], DIRS["p00"]], str(saved_order))
+
 
 run_instance(DIRS["p11"], 9261, scenario_a)
 run_instance(DIRS["p05"], 9262, scenario_b)

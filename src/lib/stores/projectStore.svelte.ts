@@ -150,3 +150,35 @@ export function removeProject(id: string) {
     projectState.activeId = next ? next.id : null;
   }
 }
+
+/* --- Project tab drag-reorder (spec-015, owner 2026-10-12) -------------
+ * Splice model mirrors tabsStore.reorderTabs; persistence needs NO new
+ * field — appState serializes `projects` in array order (spec-015 D2), so
+ * a reorder rides the existing debounced save loop automatically. */
+
+export function reorderProjects(
+  fromId: string,
+  toId: string,
+  position: "before" | "after" = "before",
+) {
+  const from = projectState.tabs.findIndex((t) => t.id === fromId);
+  const to = projectState.tabs.findIndex((t) => t.id === toId);
+  if (from === -1 || to === -1 || from === to) return;
+  const [moved] = projectState.tabs.splice(from, 1);
+  const anchor = projectState.tabs.findIndex((t) => t.id === toId);
+  if (moved) {
+    projectState.tabs.splice(
+      anchor === -1 ? projectState.tabs.length : position === "after" ? anchor + 1 : anchor,
+      0,
+      moved,
+    );
+  }
+}
+
+/** "Throw to the far right" band drop (spec-015 D3). */
+export function moveProjectToEnd(fromId: string) {
+  const from = projectState.tabs.findIndex((t) => t.id === fromId);
+  if (from === -1) return;
+  const [moved] = projectState.tabs.splice(from, 1);
+  if (moved) projectState.tabs.push(moved);
+}

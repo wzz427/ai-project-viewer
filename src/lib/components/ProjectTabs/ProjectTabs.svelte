@@ -3,6 +3,8 @@
     projectState,
     activateProject,
     addProjectViaPicker,
+    reorderProjects,
+    moveProjectToEnd,
     type ProjectTab,
   } from "$lib/stores/projectStore.svelte";
   import { gitDirtyOf } from "$lib/stores/gitStore.svelte";
@@ -37,6 +39,65 @@
     menuY = e.clientY;
   }
 
+  // --- Drag-reorder (spec-015, owner 2026-10-12) -----------------------
+  // Interaction model copied 1:1 from FileTabs (lessons L10 family:
+  // WebView2 needs dragenter AND dragover cancelled or drop never fires;
+  // cursor-half before/after; the band past the last tab = append at end).
+  let dragId = $state<string | null>(null);
+  let dropAt = $state<{ id: string; pos: "before" | "after" } | null>(null);
+  let bandDrop = $state(false);
+
+  function onDragStart(e: DragEvent, tab: ProjectTab) {
+    dragId = tab.id;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", tab.rootPath);
+    }
+  }
+
+  function onDragOver(e: DragEvent, tab: ProjectTab) {
+    if (dragId === null || dragId === tab.id) return;
+    e.preventDefault(); // enter AND over both (L10)
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    dropAt = {
+      id: tab.id,
+      pos: e.clientX < rect.left + rect.width / 2 ? "before" : "after",
+    };
+  }
+
+  function onDrop(e: DragEvent, tab: ProjectTab) {
+    e.preventDefault();
+    const from = dragId;
+    const at = dropAt;
+    dropAt = null;
+    dragId = null;
+    if (from && from !== tab.id && at) {
+      reorderProjects(from, tab.id, at.pos);
+    }
+  }
+
+  // Band = everything on the strip that is not a tab (+ button included:
+  // it lives on the strip, spec-015 D3). Dropping there = move to end.
+  function overBar(e: DragEvent) {
+    if (dragId === null) return;
+    if ((e.target as HTMLElement).closest(".tab")) return; // tab handles it
+    e.preventDefault(); // dragenter AND dragover both (L10)
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    bandDrop = true;
+  }
+
+  function dropBar(e: DragEvent) {
+    const active = bandDrop;
+    bandDrop = false;
+    if (!active) return;
+    e.preventDefault();
+    const from = dragId;
+    dragId = null;
+    if (from) moveProjectToEnd(from);
+  }
+
   // Open Recent (V1.5 §198-b): with any history the + opens a menu
   // (Browse first, recents beneath); with none it stays the plain picker
   // so first use is unchanged. The menu anchors under the + button.
@@ -55,14 +116,30 @@
 <!-- spec-014 R1: the project bar is the APP-LEVEL chrome band (40px,
      bottom accent bar, avatar-badged tabs) — deliberately orthogonal to
      the browser-style file tab strip below it (28px, top hairline). -->
-<div class="project-tabs" role="presentation">
+<div
+  class="project-tabs"
+  class:band-drop={bandDrop}
+  role="presentation"
+  ondragenter={overBar}
+  ondragover={overBar}
+  ondragleave={() => (bandDrop = false)}
+  ondrop={dropBar}
+>
   {#each projectState.tabs as tab (tab.id)}
     <button
       class="tab"
       class:active={tab.id === projectState.activeId}
+      class:drop-before={dropAt?.id === tab.id && dropAt.pos === "before"}
+      class:drop-after={dropAt?.id === tab.id && dropAt.pos === "after"}
       onclick={() => activateProject(tab.id)}
       oncontextmenu={(e) => openMenu(tab, e)}
       title={tab.rootPath}
+      draggable="true"
+      ondragstart={(e) => onDragStart(e, tab)}
+      ondragenter={(e) => onDragOver(e, tab)}
+      ondragover={(e) => onDragOver(e, tab)}
+      ondragleave={() => (dropAt = null)}
+      ondrop={(e) => onDrop(e, tab)}
     >
       <span class="avatar" style="--avatar: {avatarColorOf(tab.rootPath)}">
         {avatarInitialOf(tab.name)}
@@ -140,6 +217,23 @@
     background: var(--accent-soft);
     color: var(--text);
     box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  /* Drop indicators (spec-015, same language as file tabs): line above
+     the target = insert before it, line below = after; declared AFTER
+     .active so the transient indicator wins the box-shadow during drag. */
+  .tab.drop-before {
+    background: var(--bg-hover);
+    box-shadow: inset 0 2px 0 var(--accent);
+  }
+
+  .tab.drop-after {
+    background: var(--bg-hover);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  .project-tabs.band-drop {
+    box-shadow: inset -2px 0 0 var(--accent);
   }
 
   /* Avatar badge (spec-014 D3): 15% tint of the project's identity hue,

@@ -317,6 +317,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.7.17 项目页签拖拽换位轮(2026-10-12,spec-015;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 变更 | 项目页签可拖拽换位:交互模型 **1:1 复用文件页签 L10 方案**(dragenter+dragover 双取消/光标半区 before/after/末尾空带=扔最右,+ 按钮一带也属空带 D3);拖拽≠切换(D4);持久化=数组序零新字段(D2,appState 按序序列化+既有防抖车);store 加 reorderProjects/moveProjectToEnd(splice 模型照抄 reorderTabs 含重找锚点) |
+| recent-suite | **21/21**(+6:两项目开/指示线类断言/拖拽翻转/拖拽不切换/空带末尾/状态文件序==UI 序)——**一次全过**,复用打磨模型零返修 |
+| 指示线 | 拖拽中截图亲验(p01 底边蓝线+高亮=drop-after) |
+| 其余档 | check 0/0+phase3 PASS+r3 8/8(git/pdf 未触及免跑;cargo/watcher 零改动免跑) |
+| 版本 | 0.7.17 三处已核;updates=exp 0.7.17(UTF-16 核,无 0.7.16 残留) |
+
 #### 0.7.16 页签 × 二次返修轮(2026-10-12,owner 截图二报"啥回来了?你这是怎么验证的?";全部通过)
 
 | 档 | 结果 |

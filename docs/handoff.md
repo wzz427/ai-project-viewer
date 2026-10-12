@@ -28,6 +28,14 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-12 · spec-015 项目页签拖拽换位 InTest:0.7.17 已发,等 owner 验收
+
+- owner 增量需求"项目页签也能互相移动,吸取文件页签的教训"→**模型 1:1 复用**文件页签 L10 方案
+  (双取消/半区/空带;拖拽≠切换;持久化=数组序零新字段);store 加 reorderProjects/moveProjectToEnd。
+- recent-suite +6 守卫**一次全过**(21/21——复用打磨过的模型,零返修);指示线截图亲验;
+  check 0/0+phase3 PASS+r3 8/8;0.7.17 发体验渠道(UTF-16 核)。
+- 下一步:owner Update→验收原话落 spec-015 §六→Done;spec-014 视觉验收也等他(见上条)。
+
 ### 2026-10-12 · spec-014 视觉改版 InTest:0.7.15 返修已发,等 owner 验收
 
 - owner 经双 Skill 评审(frontend-design+impeccable,19/40,快照 `.impeccable/critique/2026-10-12T09-25-27Z__src-app-svelte.md`)
