@@ -271,6 +271,16 @@
     justify-content: center;
     width: 16px;
     height: 16px;
+    /* padding: 0 — the UA gives buttons 6px side padding; a 16px box
+       minus 12px leaves a 4px content area and the SVG flex item
+       silently shrinks to 4×12px (owner 2026-10-12 二次报障, live-attached
+       geometry). Text glyphs overflow and stay visible; SVGs squeeze. */
+    padding: 0;
+    /* flex-shrink: 0 — without it a clamped tab (max-width 160px, long
+       file names) crushes the button with the name. The name (min-width: 0
+       + ellipsis) absorbs the whole clamp; controls never shrink (same
+       rule as .pin/.type-icon). */
+    flex-shrink: 0;
     border-radius: var(--radius);
     color: var(--text-muted);
     /* Always visible (owner 2026-10-12 报障"×都看不到了"): the

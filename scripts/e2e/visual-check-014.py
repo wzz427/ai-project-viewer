@@ -127,6 +127,20 @@ with sync_playwright() as p:
     open_file("favicon.png")
     shot("02-light-tabs-mixed")
 
+    # 0.7.16 guard: a CLAMPED tab (long file name hits the 160px max-width)
+    # must never crush the close button — live-measured on the owner's
+    # client the × SVG rendered 4×12px. Geometry assertion, not eyeballing.
+    open_file("AI Project Viewer 产品需求与技术设计文档 V1.5 FINAL.md")
+    time.sleep(0.4)
+    boxes = page.evaluate("""() => [...document.querySelectorAll('.file-tab .close svg')]
+        .map(s => { const r = s.getBoundingClientRect();
+                    return { w: Math.round(r.width), h: Math.round(r.height) }; })""")
+    crushed = [b for b in boxes if b["w"] < 11 or b["h"] < 11]
+    print("close-svg boxes:", boxes, "CRUSHED" if crushed else "OK")
+    if crushed:
+        raise SystemExit("close icon crushed on clamped tabs — FAIL")
+    shot("03-light-long-name-tab")
+
     # Git panel: branch icon, pill badge, sections, entries.
     page.locator('.sidebar-header .header-tab', has_text="Git").first.click()
     time.sleep(1.5)

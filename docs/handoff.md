@@ -41,7 +41,11 @@
 - **0.7.15 返修**(owner 截图"×都看不到了"):0.7.14 曾给页签关闭钮加悬停才显形(非方案内)→恢复常显;
   check 0/0+phase3 PASS+r3 8/8+截图重验。同日**异地备份建线**(remote backup=GitHub SSH,规则住
   architecture §0;owner 确认项=库可见性 Private)。
-- 下一步:**owner Update 0.7.15 → 验收原话落 spec-014 §六 → Done**;spec-011 验收仍等他(§〇)。
+- **0.7.16 二次返修**(owner 二报"啥回来了?你这是怎么验证的?"):live-inspect 直连实测=0.7.15
+  修复确已生效但 × svg 只有 4×12px——真根因=按钮 UA 默认 padding 吃掉内容区(SVG 静默缩扁,文字
+  时代无害)+长名截断挤压;修 padding:0+flex-shrink:0;**验证升级=visual-check 几何断言**(svg 盒
+  ≥11px,两轮拦下坏构建);教训 **L45**(截图/视觉模型/像素桶全在 4px 细条上翻车,终审=几何断言)。
+- 下一步:**owner Update 0.7.16 → 验收原话落 spec-014 §六 → Done**;spec-011 验收仍等他(§〇)。
 
 ### 2026-10-12 · 置顶星标改行尾图钉 0.7.13 已发(等 owner 点 Update)
 
