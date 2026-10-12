@@ -94,7 +94,17 @@ pub fn run() {
     if std::env::var_os("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_none() {
         std::env::set_var(
             "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
-            "--remote-debugging-port=9322",
+            // --disable-direct-composition (2026-10-12 black-line hunt,
+            // round 4): a transient black line at the webview's TOP edge
+            // appears to the naked eye on big repaints (project switches),
+            // moves with the window, and is absent from EVERY pixel
+            // capture (owner PixPin + 197 forced-composite CDP frames) —
+            // i.e. it lives in the DirectComposition presentation layer,
+            // not in app pixels. This flag falls back to the conservative
+            // presentation path. Single-variable trial build; revisit if
+            // it costs measurable CPU/GPU. e2e sets its own args env, so
+            // suites keep exercising the default path.
+            "--remote-debugging-port=9322 --disable-direct-composition",
         );
     }
 
