@@ -317,6 +317,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.7.21 HTML 双报修复轮(2026-10-12,owner 报障"HTML 不换行/Open in Browser 弹错";全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 报障 | ①打开 HTML 无软换行,横向滚动条拉特别长(截图);②右键 Open in Browser 弹 Windows 错误框「找不到文件 file:///C:/…」,而资源管理器双击同文件正常开浏览器(截图) |
+| 取证 | ②零打扰证据链定案:`open_in_browser` 把 html 拼成 `file:///` URL 交 `tauri_plugin_opener::open_url` → open crate 5.4.4 Windows 后端(非 ShellExecuteW)=PowerShell 脚本(实测 `Test-Path -LiteralPath 'file:///…'`=**False**)→ Start-Process 失败 → 回落 `explorer.exe file:///…` = 截图里那个错框;本机 `.html` UserChoice=QQBrowser.File,真路径 Test-Path=True→Invoke-Item=双击语义(owner 已亲验双击可开) |
+| 修复 | ①CodeViewer 加 `EditorView.lineWrapping`(短行不受影响,仅超宽行折行);②handoff.rs html/htm 分支改 `open_path(路径)`(=OS 默认处理器=双击语义),`.url` 分支不动(§115 http/https 白名单原样);死码 `file_url_of`+两测试删除;模块头"opener=ShellExecuteW"失真描述更正 |
+| 全档 | cargo 110(112−2 删除)/check 0/0+vitest 84/84+构建过+phase3 **70/70**(含 p10 opener 授权双拒守卫原样通过——修复在 Rust 语义命令侧,不碰渲染层授权) |
+| 定向 | 换行:一次性 CDP 探针(临时目录,零打扰,AIV_HIDDEN+park_offscreen)=373 字符单行在 1018px 视口 scrollWidth==clientWidth+行块高 72.8px≈5.6 行(真折行)PASS;浏览器:证据链闭合(见取证),不真弹窗守零打扰红线 |
+| 版本 | 0.7.21 三处已核(package/tauri.conf/Cargo.toml+lock);**待 owner 点头后 publish**(UTF-16 核随发) |
+
 #### 0.7.20 更新重启丢旗标修复轮(2026-10-12,owner『升级完还是不行,但副本没黑线』;全部通过)
 
 | 档 | 结果 |

@@ -71,6 +71,11 @@
         doc: text,
         extensions: [
           lineNumbers(),
+          // Soft-wrap: this is a reader — a minified HTML/report line must
+          // not become a mile-long horizontal scroll (owner 2026-10-12).
+          // Short code lines are untouched; only lines wider than the
+          // viewport fold, so normal files render identically.
+          EditorView.lineWrapping,
           EditorState.readOnly.of(true),
           EditorView.editable.of(false),
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),

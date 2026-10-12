@@ -6,9 +6,11 @@
 //! inside the project root first via canonicalize + Path::starts_with,
 //! never a raw string prefix check (§144).
 //!
-//! Launch backends: tauri-plugin-opener (ShellExecuteW on Windows — no
-//! `cmd /c` composition, §188 RUN discipline) for OS-associated opens and
-//! reveals; direct `std::process::Command` spawns for Notepad and VS Code.
+//! Launch backends: tauri-plugin-opener for OS-associated opens and reveals
+//! (its `open`/`open_url` on Windows go through the `open` crate —
+//! Invoke-Item, explorer.exe fallback; accepts plain PATHS, not file:///
+//! URLs — no `cmd /c` composition, §188 RUN discipline); direct
+//! `std::process::Command` spawns for Notepad and VS Code.
 
 use std::path::{Path, PathBuf};
 
@@ -241,9 +243,9 @@ fn open_with_default_app_inner(root_path: &str, rel: &str) -> Result<(), String>
     open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
 
-/// §111/§115 Browser: .html/.htm ride a file:// URL (always the browser,
-/// even if .html is associated with an editor); .url shortcuts expose their
-/// URL= line and only http/https ever pass (§115 scheme allowlist).
+/// §111/§115 Browser: .html/.htm open through the OS default handler (the
+/// Explorer double-click open); .url shortcuts expose their URL= line and
+/// only http/https ever pass (§115 scheme allowlist).
 #[tauri::command]
 pub async fn open_in_browser(root_path: String, rel: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || open_in_browser_inner(&root_path, &rel))
@@ -258,8 +260,17 @@ fn open_in_browser_inner(root_path: &str, rel: &str) -> Result<(), String> {
         .and_then(|e| e.to_str())
         .map(str::to_ascii_lowercase)
         .unwrap_or_default();
-    let url = match ext.as_str() {
-        "html" | "htm" => file_url_of(&path),
+    match ext.as_str() {
+        // html/htm: hand the OS the resolved PATH, never a file:/// URL.
+        // opener's Windows backend (the `open` crate: Invoke-Item, then
+        // explorer.exe) does not accept file URLs — Test-Path says the URL
+        // is not a path, Start-Process fails, and explorer.exe pops the
+        // "Windows 找不到文件" dialog (owner 2026-10-12). A plain path runs
+        // Invoke-Item, which IS the double-click open; `open`/`xdg-open`
+        // take plain paths on macOS/Linux too. The old "file URL forces the
+        // browser even when .html is associated with an editor" idea never
+        // worked on Windows — the default-handler open is the real contract.
+        "html" | "htm" => open_path(&path, None::<&str>).map_err(|e| e.to_string()),
         "url" => {
             let u = shortcut_url(&path)?;
             // §115: a shortcut may carry ANY scheme; only http/https ever
@@ -267,34 +278,14 @@ fn open_in_browser_inner(root_path: &str, rel: &str) -> Result<(), String> {
             if !browser_url_allowed(&u) {
                 return Err(format!("Shortcut scheme is not allowed to auto-open: {u}"));
             }
-            u
+            open_url(&u, None::<&str>).map_err(|e| e.to_string())
         }
-        _ => return Err(format!("Not a browser-openable file: {rel}")),
-    };
-    open_url(&url, None::<&str>).map_err(|e| e.to_string())
+        _ => Err(format!("Not a browser-openable file: {rel}")),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Pure helpers (unit-tested without spawning anything).
-
-/// Percent-encode a Windows path into a file:// URL. Unreserved chars plus
-/// `/` (separator) and `:` (drive letter) stay literal; everything else
-/// encodes as UTF-8 bytes so spaces and CJK names survive.
-fn file_url_of(path: &Path) -> String {
-    let s = path.to_string_lossy().replace('\\', "/");
-    let mut out = String::from("file:///");
-    for &b in s.as_bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~'
-            | b'/' | b':' => out.push(b as char),
-            _ => {
-                out.push('%');
-                out.push_str(&format!("{b:02X}"));
-            }
-        }
-    }
-    out
-}
 
 const SHORTCUT_MAX_BYTES: u64 = 1024 * 1024;
 
@@ -399,21 +390,6 @@ mod tests {
     }
 
     // --- §111/§115 browser helpers ---
-
-    #[test]
-    fn file_url_encodes_spaces_and_keeps_drive() {
-        let p = Path::new(r"C:\Projects\My Docs\index.html");
-        assert_eq!(file_url_of(&p), "file:///C:/Projects/My%20Docs/index.html");
-    }
-
-    #[test]
-    fn file_url_encodes_non_ascii_as_utf8() {
-        let p = Path::new(r"C:\t\项目.html");
-        let url = file_url_of(&p);
-        assert!(url.starts_with("file:///C:/t/"));
-        assert!(url.ends_with(".html"));
-        assert!(!url.contains('项'), "must be percent-encoded: {url}");
-    }
 
     #[test]
     fn shortcut_url_extracts_case_insensitive() {

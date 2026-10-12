@@ -381,3 +381,10 @@
 - **机理**:更新器的 relaunch(updater.rs:`Command::new(exe).spawn()`)默认**继承当前进程环境**;旧进程(0.7.18)生前已把该变量设成旧值,新进程里 lib.rs 的"变量未设才写入"闸门一看已有值就跳过——**新增旗标在每次更新重启后静默消失**,而全新启动(资源管理器双击)环境干净、旗标正常。副本与正式版行为分裂的全部原因。
 - **判据**:①给进程自身设默认 env 的补丁,必须问"**这个进程可能被谁孵化**":自重启/更新器/守护进程的子进程都带着父辈 env——**幂等确保**(逐旗标查缺补漏)替代首写即赢;②版本类"更新了但行为没变"的排障,零接触三件套:进程启动时间(psutil create_time)对发布时刻+磁盘 exe 指纹(UTF-16)+**进程环境实读(psutil environ)**——本例三步两分钟定案,一行代码没翻;③"某机制在 A 启动路径好使、B 启动路径不好使"=先查两条路径的 env 继承差异,再查代码。
 - **出处**:owner"升级完还是不行,但副本没黑线"(2026-10-12);修复=lib.rs env 补丁改幂等(端口按旗名查重,e2e 自设端口不会被重复追加),随 0.7.20。
+
+### L49:"Open in Browser"报「Windows 找不到文件」——tauri-plugin-opener 的 Windows 后端不是 ShellExecuteW,是 open crate(PowerShell→explorer 链),不吃 `file:///` URL;打开本地文件一律交**路径**,URL 只留给 http(s)(2026-10-12 HTML 双报)
+
+- **症状**:owner 右键 Open in Browser 弹系统错误框(标题=file:///C:/…,正文「Windows 找不到文件」);同文件资源管理器双击正常开浏览器——**应用路径坏、系统路径好**,第一时间就该对比两条路径差在哪。
+- **机理**:`open_url(file:///…)` → tauri-plugin-opener 2.7 → **open crate 5.4.4**(模块头"ShellExecuteW"的旧认知是错的)→ Windows 上先跑内嵌 PowerShell(`Test-Path` 分流:真路径→`Invoke-Item`,否则→`Start-Process`)。`file:///` URL 对 Test-Path 是 **False**(实测)→ Start-Process 找不到 → 回落 `explorer.exe file:///…` → **弹的就是截图那个框**;且 detached spawn 让 invoke 返回 Ok,应用侧无感。修=html/htm 交**解析后的路径**给 `open_path`:Test-Path=True→Invoke-Item=**双击语义**,三平台通吃(`open`/`xdg-open` 本来就吃路径)。
+- **判据**:①给"打开"类 API 传参前先问:**这个后端认路径还是认 URL**——Windows Shell 生态认路径,浏览器认 URL,`file:///` 是两者的三不管地带;②"代码看着对但行为错"时,把依赖的**插件→crate 链路翻到叶子**(opener→open 5.4.4 的 windows.rs),注释/文档里的后端描述会过期,源码不会;③零打扰验证链:Test-Path 实测(URL False/路径 True)+`.html` UserChoice 注册表读关联+owner 已验的双击行为,三段拼出全程,不弹一个窗;④e2e 零打扰红线下,"真弹浏览器"的终验交给 owner 的 Update 路径,不在测试里破例。
+- **出处**:owner 2026-10-12 报障(截图+「双击能开」关键对照);修复随 0.7.21(handoff.rs html 分支改 open_path,删 file_url_of 死码);同轮顺带修 CodeViewer 无软换行(lineWrapping 一行,probe 实证折行)。
