@@ -203,7 +203,7 @@
   .rendered :global(h3) { font-size: 1.12em; margin: 0.8em 0 0.3em; }
   .rendered :global(p) { margin: 0.5em 0; }
   .rendered :global(code) {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.9em;
     background: var(--bg);
     border: 1px solid var(--border);

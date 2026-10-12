@@ -114,7 +114,7 @@
     position: fixed;
     z-index: 100;
     min-width: 200px;
-    background: var(--bg-raised);
+    background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
@@ -123,7 +123,7 @@
 
   .menu-path {
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     max-width: 360px;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -94,7 +94,7 @@
   }
 
   .path {
-    font-size: 11px;
+    font-size: var(--text-xs);
     padding: 4px 6px;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -108,6 +108,6 @@
 
   .note {
     margin: 0;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 </style>

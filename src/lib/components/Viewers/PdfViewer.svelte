@@ -696,7 +696,7 @@
   .tb {
     padding: 2px 8px;
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
   }
 
@@ -715,7 +715,7 @@
   }
 
   .tb-label {
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     padding: 0 2px;
   }
@@ -725,7 +725,7 @@
     padding: 2px 4px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: var(--text-sm);
     text-align: center;
     background: var(--bg);
     color: var(--text);
@@ -737,7 +737,7 @@
     padding: 2px 8px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: var(--text-sm);
     background: var(--bg);
     color: var(--text);
     user-select: text; /* same as .page-no */
@@ -885,10 +885,10 @@
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .message.error {
-    color: var(--danger, #e5484d);
+    color: var(--danger);
   }
 </style>

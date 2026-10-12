@@ -198,7 +198,8 @@ def expand(page, folder):
 def instance_a(page):
     # V9 startup/Project-Open trigger is proven by the badge appearing.
     badge = badge_text(page)
-    check("git_badge_whole_repo", badge == "[7]", f"badge={badge!r}")
+    # spec-014: badge is an accent pill showing the bare count (was "[7]").
+    check("git_badge_whole_repo", badge == "7", f"badge={badge!r}")
 
     open_git_panel(page)
     panel = wait_git_panel(page)
@@ -223,7 +224,7 @@ def instance_a(page):
     check("git_same_file_two_groups",
           "apps/viewer/both.ts" in staged_titles
           and "apps/viewer/both.ts" in changes_titles
-          and badge == "[7]",  # counted ONCE (not 8)
+          and badge == "7",  # counted ONCE (not 8)
           f"staged={staged_titles} changes={changes_titles}")
 
     # V6/D2: untracked row opens the FILE, not a diff.
@@ -355,29 +356,29 @@ def instance_a(page):
           page.locator(".commit-view").count() == 0
           and page.locator(".file-tab").count() > 0)
 
-    # V9/V10: manual refresh — disk change lands after ↻ (and reverts).
+    # V9/V10: manual refresh — disk change lands after refresh (and reverts).
     probe = os.path.join(BIG, "zz-git-probe.txt")
     try:
         wf(probe, "probe\n")
         page.locator(".sidebar-header .refresh").click()
-        ok_add = badge_becomes(page, "[8]")
+        ok_add = badge_becomes(page, "8")
         check("git_manual_refresh_updates_badge", ok_add,
               f"badge after probe={badge_text(page, timeout_s=2)!r}")
         os.remove(probe)
         page.locator(".sidebar-header .refresh").click()
-        check("git_manual_refresh_reverts", badge_becomes(page, "[7]"),
+        check("git_manual_refresh_reverts", badge_becomes(page, "7"),
               f"badge after revert={badge_text(page, timeout_s=2)!r}")
     finally:
         if os.path.exists(probe):
             os.remove(probe)
 
     # spec-009 V5: the WATCHER refreshes git with no gesture at all —
-    # external write -> badge climbs to [8] on its own, delete -> [7].
+    # external write -> badge climbs to 8 on its own, delete -> 7.
     try:
         wf(probe, "watched probe\n")
-        ok_auto = badge_becomes(page, "[8]")
+        ok_auto = badge_becomes(page, "8")
         os.remove(probe)
-        ok_back = badge_becomes(page, "[7]")
+        ok_back = badge_becomes(page, "7")
         check("git_watcher_auto_refresh_updates_badge", ok_auto and ok_back,
               f"auto={ok_auto} back={ok_back} "
               f"badge={badge_text(page, timeout_s=2)!r}")
@@ -391,12 +392,14 @@ def instance_a(page):
 
 def instance_b(page):
     badge = badge_text(page)
-    check("git_scope_badge_counts_scope_only", badge == "[5]",
+    check("git_scope_badge_counts_scope_only", badge == "5",
           f"badge={badge!r}")
 
+    # spec-014: the dirty indicator is an SVG glyph now — the machine-
+    # readable state lives in data-state (decoupled from the drawing).
     tab_state = page.locator(".project-tabs .tab .git-state").first \
-        .inner_text().strip()
-    check("git_scope_tab_indicator_dirty", tab_state == "●", tab_state)
+        .get_attribute("data-state")
+    check("git_scope_tab_indicator_dirty", tab_state == "dirty", str(tab_state))
 
     open_git_panel(page)
     panel = wait_git_panel(page)

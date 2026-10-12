@@ -135,7 +135,7 @@
     padding: 2px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 11.5px;
+    font-size: var(--text-sm);
   }
 
   .toolbar button.active {
@@ -144,7 +144,7 @@
 
   .toolbar .muted {
     margin-left: 8px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
   }
 

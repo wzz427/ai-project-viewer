@@ -9,6 +9,7 @@
    */
   import { onMount } from "svelte";
   import { settings, setFontSize } from "$lib/stores/settingsStore.svelte";
+  import Icon from "$lib/components/Icon.svelte";
   import { registerFindFocus, unregisterFindFocus } from "./activeFind";
 
   let {
@@ -76,8 +77,8 @@
     />
     {#if query.trim() && total > 0}
       <span class="tb-label">{idx + 1} / {total}</span>
-      <button class="tb" onclick={() => step(-1)} aria-label="Previous match">‹</button>
-      <button class="tb" onclick={() => step(1)} aria-label="Next match">›</button>
+      <button class="tb" onclick={() => step(-1)} aria-label="Previous match"><Icon name="chevron-left" size={14} /></button>
+      <button class="tb" onclick={() => step(1)} aria-label="Next match"><Icon name="chevron-right" size={14} /></button>
     {:else if query.trim()}
       <span class="tb-label">0 results</span>
     {/if}
@@ -98,18 +99,25 @@
   }
 
   .tb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 2px 8px;
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .tb:hover {
     background: var(--bg-hover);
+    color: var(--text);
   }
 
   .tb-label {
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     padding: 0 2px;
   }
@@ -119,7 +127,7 @@
     padding: 2px 8px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: var(--text-sm);
     background: var(--bg);
     color: var(--text);
     user-select: text; /* inherited none from .vtb would kill double-click word selection */
@@ -130,6 +138,6 @@
   }
 
   .mono {
-    font-family: var(--mono, monospace);
+    font-family: var(--font-mono);
   }
 </style>

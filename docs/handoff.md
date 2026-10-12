@@ -11,32 +11,34 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **T3 全量性能基准已跑完(2026-10-12 owner"开跑"授权),A–I+Phase 1 Baseline 门全过** →
-**等 owner 验收 spec-011**(InTest→Done 需他原话)→ NSIS 实际打包届时点头
-(含 webviewInstallMode 三选一,D7/R21)。数字账本=testing.md §4 T3 行;新脚本
-scripts/e2e/benchmark-suite.py;PDF 驻留探针=无应用侧泄漏(渲染进程平台化+GPU 缓存非单调);
-空闲 RAM 200.2MB 未达 150MB target(非 gate,WebView2 底座主导,Rust 仅 6.2)。测试基建发现 **L42**
-(window_of 停错窗,e2e 实际全隐藏口径;基准脚本内已补偿)。
+主线 = **spec-014 视觉改版 InTest**(owner 拍板 A 克制专业版/一步到位/亮色为主,布局不动;
+范围=评审快照 P0–P2 全条目+transition;SPEC=specs/spec-014-visual-refresh.md)——施工完毕
+(tokens 三档字阶/语义色/暗色三面阶梯+Icon.svelte 16 枚 SVG+首字徽标 hash 色身份+类型图标
+与查看器路由同源+两级标签正交 40/28px),截图自检 7 张双主题过(2 处对比返修),全档回归
+→ 发 0.7.14 → **等 owner 验收**。**T3 全过+0.7.12 冻结修复后,spec-011 验收仍等 owner 原话**
+→ Done → NSIS 打包届时点头(webviewInstallMode 三选一)。
 **版本段 0.7.x 固定递增不跳段**。
-挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
-Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
-审计证据表住 specs/spec-011-performance-security-release.md §四。
-**冻结大案(2026-10-12 三次现场)**:根因定位=内容区组件的派生对页签数据断订阅(对项目切换 prop 活→切项目能渲染、切页签永冻,且随切换"扩散");**修复已随 0.7.12 发**(工作区按 rootPath keyed+projectTabs 回读代理),待 owner 现场验证;**若再冻结:别重启,说一声即上门**——dev/体验版常开 9322,`pywork python scripts\e2e\live-inspect.py` 直读活体(项目/页签/DOM 三对照+日志环,L43);应急恢复照旧:切 Git 面板点条目→切回 Files。
+挂账两件见 §三(冻结现场验证 / 异地备份 remote)。
+**冻结大案(2026-10-12 三次现场)**:修复已随 0.7.12 发(工作区 keyed+projectTabs 代理),
+待 owner 现场验证;**若再冻结:别重启,说一声即上门**——dev/体验版常开 9322,
+`pywork python scripts\e2e\live-inspect.py` 直读活体(项目/页签/DOM 三对照+日志环,L43);
+应急恢复照旧:切 Git 面板点条目→切回 Files。
 协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律 aivlaunch(PID 限定)+
 **park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-12 · 视觉改版已拍板(A 方案/一步到位/亮色为主),压缩后开工
+### 2026-10-12 · spec-014 视觉改版 InTest:0.7.14 已发体验渠道,等 owner 验收
 
-- owner 经双 Skill 评审(frontend-design+impeccable,双代理,19/40,快照在
-  `.impeccable/critique/2026-10-12T09-25-27Z__src-app-svelte.md`)拍板:**方案 A 克制专业版
-  ·一步到位·亮色为主**——P0 两级标签正交(项目条 40px 粗 accent 底条+首字徽标/文件 tab 28px
-  细顶线+类型小图标)+SVG 线性图标集替换全部 Unicode/emoji+[7]→accent pill+P1 选中色染+
-  三档字阶+--danger 语义色统一(现 4 红 2 蓝并存,2.86/3.91 不达标)+P2 暗色阶梯。**布局不动**。
-- 下一步:立 spec-014(增量需求,编号顺延;A2 规矩=开工前说人话对齐范围——评审报告+owner 拍板
-  即对齐依据,开工时可免重复对齐,范围=快照 P0–P2 全条目)→ 施工→截图自检+全量回归→发版。
-- 同段欠账:architecture 三处同步+`.gitignore` 在 wrap-todo(压缩后第一动作)。
+- owner 经双 Skill 评审(frontend-design+impeccable,19/40,快照 `.impeccable/critique/2026-10-12T09-25-27Z__src-app-svelte.md`)
+  拍板 **A 克制专业/一步到位/亮色为主,布局不动** → 同日立 spec-014→施工→InTest→发版一条龙:
+  三档字阶+语义色统一(--danger 唯一红/--accent-soft 染层/--accent-strong 实底)+暗色三面阶梯+
+  **Icon.svelte 16 枚内联 SVG**(Unicode/emoji 清零)+项目**首字徽标 hash 色身份**+文件**类型图标族**
+  (与查看器路由同源)+**两级标签正交**(项目条 40px 底条/文件条 28px 顶线)+100ms 过渡。
+- 质量口:对比度 WCAG 全数值实测(SPEC §六账本),两处返修(亮面徽标字母压暗/Up-to-date chip 分主题);
+  截图自检 7 张双主题(visual-check-014.py);全档绿 check 0/0+vitest **84**(+20)+phase3 70+git 33+
+  recent 15+r3 8+pdf 23;e2e 断言按 **L44**(绑 data 属性不绑字形)同步三处。
+- 下一步:**owner Update 0.7.14 → 验收原话落 spec-014 §六 → Done**;spec-011 验收仍等他(§〇)。
 
 ### 2026-10-12 · 置顶星标改行尾图钉 0.7.13 已发(等 owner 点 Update)
 
@@ -138,4 +140,4 @@ Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.
 | 事 | 去处(归谁·什么时候) | 提出日期 |
 |---|---|---|
 | 建异地备份 remote(私有库,SSH 认证),建好当天首推+核 0;建立之前仓库只有本地一份 | owner 亲手(方法:仓内 docs/AI-Project-Guide/07-backup-secrets.md)·**V1 全部完成后、owner 验收时**(2026-10-01 owner 拍板改期,不着急) | 2026-10-01 |
-| **内容区冻结 bug**:owner 客户端切任何页签,页签条/树高亮都变但主区内容停在旧文件(2026-10-11 报障);本机三路复刻未现,phase3 全绿 | owner 复现时点 Settings → Export Diagnostics → 同机直读 %APPDATA%\com.aiprojectviewer.app.exp\diagnostics\aiv-diagnostics-<ts>.txt(live-check 行+带时间戳日志)→ 定位修复随 0.7.x 发 | 2026-10-11 |
+| **内容区冻结 bug**:owner 客户端切任何页签,页签条/树高亮都变但主区内容停在旧文件(2026-10-11 报障,三次现场) | **修复已随 0.7.12 发**(D12 工作区 keyed),待 owner 日常使用现场验证;若再现:别重启,live-inspect 直连 9322(见 §〇) | 2026-10-11 |

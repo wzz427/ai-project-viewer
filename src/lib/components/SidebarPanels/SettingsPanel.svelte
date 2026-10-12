@@ -132,7 +132,7 @@
         />
         Folders First
       </label>
-      <p class="muted hint">Refresh lives in the sidebar header (↻, next to ⚙).</p>
+      <p class="muted hint">Refresh lives in the sidebar header (circular-arrow icon, left of the gear).</p>
     </section>
   {/if}
 
@@ -226,7 +226,7 @@
 
   h3 {
     margin: 0 0 6px;
-    font-size: 12px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -238,7 +238,7 @@
     align-items: center;
     gap: 6px;
     padding: 2px 0;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .spacer {
@@ -266,16 +266,16 @@
   .size {
     min-width: 40px;
     text-align: center;
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 
   .hint {
-    font-size: 11px;
+    font-size: var(--text-xs);
     margin: 2px 0 0;
   }
 
   .note {
     margin: 0;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 </style>

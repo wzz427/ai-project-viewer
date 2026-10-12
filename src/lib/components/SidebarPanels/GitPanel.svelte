@@ -4,6 +4,7 @@
   import { openFile } from "$lib/stores/tabsStore.svelte";
   import { letterClass, relativeTime } from "$lib/services/gitFormat";
   import { fileNameOf } from "$lib/services/viewerType";
+  import Icon from "$lib/components/Icon.svelte";
   import type { GitChangeEntry } from "$lib/services/tauri";
 
   const project = $derived(activeProject());
@@ -74,7 +75,7 @@
   <div class="git-panel">
     <!-- §50 branch row: name + §67 ahead/behind (omitted without upstream). -->
     <div class="branch-row" title={snap.upstream ? `Upstream: ${snap.upstream}` : ""}>
-      <span class="glyph">⎇</span>
+      <span class="glyph"><Icon name="git-branch" size={14} /></span>
       <span class="branch-name">{snap.branch}</span>
       {#if snap.ahead !== undefined || snap.behind !== undefined}
         <span class="ab">↑{snap.ahead ?? 0} ↓{snap.behind ?? 0}</span>
@@ -89,7 +90,7 @@
 
     <section>
       <button class="sec-head" onclick={() => toggle("changes")} aria-expanded={!collapsed.changes}>
-        <span class="chev" class:open={!collapsed.changes}>›</span>
+        <span class="chev" class:open={!collapsed.changes}><Icon name="chevron-right" size={12} /></span>
         <span class="sec-title">Changes</span>
         {#if snap.changes.length}<span class="sec-count">{snap.changes.length}</span>{/if}
       </button>
@@ -114,7 +115,7 @@
     {#if snap.staged.length > 0}
       <section>
         <button class="sec-head" onclick={() => toggle("staged")} aria-expanded={!collapsed.staged}>
-          <span class="chev" class:open={!collapsed.staged}>›</span>
+          <span class="chev" class:open={!collapsed.staged}><Icon name="chevron-right" size={12} /></span>
           <span class="sec-title">Staged Changes</span>
           <span class="sec-count">{snap.staged.length}</span>
         </button>
@@ -136,7 +137,7 @@
 
     <section>
       <button class="sec-head" onclick={() => toggle("commits")} aria-expanded={!collapsed.commits}>
-        <span class="chev" class:open={!collapsed.commits}>›</span>
+        <span class="chev" class:open={!collapsed.commits}><Icon name="chevron-right" size={12} /></span>
         <span class="sec-title">Recent Commits</span>
         {#if snap.commits.length}<span class="sec-count">{snap.commits.length}</span>{/if}
       </button>
@@ -170,7 +171,7 @@
 <style>
   .note {
     margin: 4px 2px;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .state {
@@ -178,7 +179,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: var(--text-base);
   }
 
   .state p {
@@ -190,7 +191,7 @@
   }
 
   .small {
-    font-size: 11px;
+    font-size: var(--text-xs);
     opacity: 0.8;
   }
 
@@ -202,11 +203,12 @@
     align-self: flex-start;
     margin-top: 4px;
     padding: 3px 12px;
-    font-size: 12px;
+    font-size: var(--text-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-hover);
     cursor: pointer;
+    transition: background-color var(--transition-fast);
   }
 
   .git-panel {
@@ -219,14 +221,15 @@
     align-items: center;
     gap: 6px;
     padding: 4px 6px 8px;
-    font-size: 12.5px;
+    font-size: var(--text-base);
     border-bottom: 1px solid var(--border);
     margin-bottom: 2px;
   }
 
   .glyph {
+    display: inline-flex;
+    align-items: center;
     color: var(--text-muted);
-    font-size: 12px;
   }
 
   .branch-name {
@@ -235,16 +238,17 @@
 
   .ab {
     color: var(--text-muted);
-    font-size: 11.5px;
+    font-size: var(--text-sm);
   }
 
-  /* §58: lightweight subdirectory-mode explainer. */
+  /* §58: lightweight subdirectory-mode explainer (spec-014 P3: solid
+     border — the old dashed box was the only dashed surface in the app). */
   .scope-box {
     margin: 6px 0 2px;
     padding: 6px 8px;
-    border: 1px dashed var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 11.5px;
+    font-size: var(--text-sm);
   }
 
   .scope-box .label {
@@ -260,6 +264,7 @@
     border-radius: var(--radius);
     cursor: pointer;
     user-select: none;
+    transition: background-color var(--transition-fast);
   }
 
   .sec-head:hover {
@@ -267,12 +272,12 @@
   }
 
   .chev {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 14px;
-    text-align: center;
     color: var(--text-muted);
-    font-size: 11px;
-    transition: transform 0.1s ease;
+    transition: transform var(--transition-fast);
   }
 
   .chev.open {
@@ -280,7 +285,7 @@
   }
 
   .sec-title {
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -292,10 +297,10 @@
   .sec-count {
     min-width: 18px;
     padding: 0 5px;
-    border-radius: 9px;
+    border-radius: var(--radius-pill);
     background: var(--bg-active);
     color: var(--text-muted);
-    font-size: 10.5px;
+    font-size: var(--text-xs);
     line-height: 16px;
     text-align: center;
   }
@@ -309,9 +314,10 @@
     width: 100%;
     padding: 2px 6px 2px 22px;
     border-radius: var(--radius);
-    font-size: 12.5px;
+    font-size: var(--text-base);
     text-align: left;
     cursor: pointer;
+    transition: background-color var(--transition-fast);
   }
 
   .entry:hover {
@@ -329,7 +335,7 @@
 
   .edir {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--text-xs);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -341,7 +347,7 @@
     flex-shrink: 0;
     margin-left: auto;
     font-weight: 700;
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 
   /* Commit row (VS Code Graph flavor): rail with a dot per commit, hash in
@@ -353,9 +359,10 @@
     width: 100%;
     padding: 3px 6px 3px 8px;
     border-radius: var(--radius);
-    font-size: 12px;
+    font-size: var(--text-base);
     text-align: left;
     cursor: pointer;
+    transition: background-color var(--transition-fast);
   }
 
   .commit:hover {
@@ -401,7 +408,7 @@
     flex-shrink: 0;
     color: var(--git-m);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 
   .csubj {
@@ -415,17 +422,17 @@
   .cbadge {
     flex-shrink: 0;
     padding: 0 6px;
-    border-radius: 8px;
+    border-radius: var(--radius-pill);
     background: var(--bg-active);
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: var(--text-xs);
     line-height: 15px;
   }
 
   .cwhen {
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 10.5px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
   }
 </style>

@@ -2,6 +2,7 @@
   import { clampMenu } from "$lib/components/ContextMenu/menuPosition";
   import { pathsExist } from "$lib/services/tauri";
   import { recentName, recentParent } from "$lib/services/recentList";
+  import Icon from "$lib/components/Icon.svelte";
   import {
     addProjectFromPath,
     addProjectViaPicker,
@@ -109,7 +110,7 @@
             e.stopPropagation();
             removeRecentFolder(path);
           }}
-        >✕</button>
+        ><Icon name="x" size={12} /></button>
       </div>
     {/each}
     <div class="sep"></div>
@@ -129,7 +130,7 @@
     position: fixed;
     z-index: 100;
     width: 340px;
-    background: var(--bg-raised);
+    background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
@@ -142,6 +143,7 @@
     text-align: left;
     padding: 5px 8px;
     border-radius: var(--radius);
+    transition: background-color var(--transition-fast);
   }
 
   .menu-item:hover {
@@ -150,7 +152,7 @@
 
   .menu-label {
     padding: 4px 8px 2px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
   }
 
@@ -185,7 +187,7 @@
   }
 
   .recent-open .name {
-    font-size: 13px;
+    font-size: var(--text-base);
     color: var(--text);
     max-width: 100%;
     overflow: hidden;
@@ -194,7 +196,7 @@
   }
 
   .recent-open .path {
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     max-width: 100%;
     overflow: hidden;
@@ -204,9 +206,10 @@
 
   .recent-remove {
     align-self: center;
+    display: inline-flex;
+    align-items: center;
     margin-right: 4px;
-    padding: 2px 6px;
-    font-size: 11px;
+    padding: 3px 5px;
     color: var(--text-muted);
     border-radius: var(--radius);
     opacity: 0;

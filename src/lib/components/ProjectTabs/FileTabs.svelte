@@ -4,6 +4,9 @@
    * activate, × to close. Pin model (owner 2026-10-01, clarified): tabs
    * accumulate normally until one is pinned; from then on new files recycle
    * an unpinned slot. Tabs drag-reorder; the active tab scrolls into view.
+   * spec-014 R1/R4: browser-style 28px strip (top hairline) — orthogonal
+   * to the 40px project chrome band; each tab leads with a type icon
+   * sourced from the viewer routing table.
    */
   import {
     tabsState,
@@ -13,7 +16,8 @@
     reorderTabs,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
-  import { fileNameOf } from "$lib/services/viewerType";
+  import { fileNameOf, iconFamilyOf } from "$lib/services/viewerType";
+  import Icon, { FILE_ICONS } from "$lib/components/Icon.svelte";
   import TabContextMenu from "./TabContextMenu.svelte";
 
   let { rootPath }: { rootPath: string } = $props();
@@ -136,7 +140,8 @@
         ondragleave={() => (dropAt = null)}
         ondrop={(e) => onDrop(e, t)}
       >
-        {#if t.pinned}<span class="pin" title="Kept open">📌</span>{/if}
+        {#if t.pinned}<span class="pin" title="Kept open"><Icon name="pin" size={12} /></span>{/if}
+        <span class="type-icon"><Icon name={FILE_ICONS[iconFamilyOf(t.relativePath)]} size={14} /></span>
         <span class="name" title={t.relativePath}>{fileNameOf(t.relativePath)}</span>
         <button
           class="close"
@@ -145,7 +150,7 @@
             e.stopPropagation();
             closeFile(rootPath, t.relativePath);
           }}
-        >×</button>
+        ><Icon name="x" size={12} /></button>
       </div>
     {/each}
   </div>
@@ -167,22 +172,20 @@
     align-items: stretch;
     gap: 2px;
     border-bottom: 1px solid var(--viewer-border);
-    background: var(--viewer-bg);
-    padding: 4px 8px 0;
+    background: var(--bg-raised);
+    padding: 3px 6px 0;
     overflow-x: auto;
     flex-shrink: 0;
-    min-height: 32px;
+    min-height: 28px;
   }
 
   .file-tab {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 6px 4px 10px;
-    border: 1px solid transparent;
-    border-bottom: none;
+    padding: 3px 6px 3px 8px;
     border-radius: var(--radius) var(--radius) 0 0;
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     cursor: pointer;
     white-space: nowrap;
@@ -193,16 +196,21 @@
     max-width: 160px;
     position: relative;
     flex-shrink: 0;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .file-tab:hover {
     background: var(--bg-hover);
   }
 
-  /* Item 2: make the active tab unmistakable — accent bar + full contrast. */
+  /* Item 2: make the active tab unmistakable — it merges with the reading
+     surface below and carries a 2px accent hairline on TOP (the project
+     bar marks active with a BOTTOM bar — the two levels never read alike,
+     spec-014 R1). */
   .file-tab.active {
     background: var(--viewer-bg);
-    border-color: var(--viewer-border);
     color: var(--text);
     font-weight: 600;
   }
@@ -212,7 +220,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    top: -1px;
+    top: -3px;
     height: 2px;
     background: var(--accent);
   }
@@ -221,6 +229,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+  }
+
+  .file-tab .type-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  .file-tab.active .type-icon {
+    color: var(--accent);
   }
 
   .file-tab.deleted .name {
@@ -240,18 +259,30 @@
   }
 
   .pin {
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
   }
 
   .close {
-    width: 16px;
-    height: 16px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    font-size: 13px;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius);
     color: var(--text-muted);
+    opacity: 0;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  .file-tab:hover .close,
+  .file-tab.active .close {
+    opacity: 1;
   }
 
   .close:hover {

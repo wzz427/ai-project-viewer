@@ -57,7 +57,7 @@
   .card {
     text-align: center;
     padding: 24px 32px;
-    border: 1px dashed var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     display: flex;
     flex-direction: column;
@@ -66,8 +66,8 @@
   }
 
   .name {
-    font-family: var(--mono);
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
     color: var(--text-muted);
     margin: 0;
     max-width: 480px;
@@ -90,10 +90,10 @@
 
   .muted {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .small {
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 </style>

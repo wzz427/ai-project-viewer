@@ -1,52 +1,79 @@
 /* AI Project Viewer — shell theme tokens (V1.5 §154/§155).
-   Compact developer-tool look; theme driven by [data-theme] on <html>.
-   2026-10-01 owner feedback: nicer font stacks (Cascadia/Segoe UI Variable),
-   pure-white reading surface in light mode, adjustable viewer font size. */
+   2026-10-12 spec-014 visual refresh (owner 方案 A 克制专业版 / 亮色为主):
+   - Type scale collapsed to three steps + 600 weight for hierarchy
+     (spec-014 D2): --text-xs/sm/base. No half-pixel sizes anywhere.
+   - Semantic color tokens: one --danger (was 4 coexisting reds),
+     --accent-soft = active-state tint layer (spec-014 D5), git status
+     hues stay a separate family (spec-014 D7).
+   - Dark theme three-surface ladder (spec-014 D6): shell darkest /
+     reading surface mid / floating overlays brightest + shadow.
+   - Text contrast WCAG AA ≥4.5 verified by script; numbers recorded in
+     specs/spec-014-visual-refresh.md §六.
+   Theme driven by [data-theme] on <html>. */
 
 :root {
   --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
-  --font-size: 13px;
+  /* Type scale (spec-014 D2): exactly three sizes; hierarchy comes from
+     weight (600) and color, never from extra sizes. */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --font-size: var(--text-base);
   --radius: 4px;
+  --radius-pill: 999px;
+  --transition-fast: 100ms ease;
   --viewer-font-size: 13px;
-  --viewer-bg: #ffffff;
-  --viewer-border: #e4e7ec;
 }
 
 :root[data-theme="dark"] {
-  --bg: #1b1d21;
-  --bg-raised: #22252b;
-  --bg-hover: #2a2e36;
-  --bg-active: #31363f;
-  --border: #33363d;
+  /* Three-surface ladder (spec-014 D6): shell (--bg) darkest; reading
+     surface (--viewer-bg) is the stage; overlays (--bg-overlay) float
+     above everything, brightest, with shadow. */
+  --bg: #16181c;
+  --bg-raised: #1c1f24;
+  --bg-hover: #242830;
+  --bg-active: #2b3039;
+  --bg-overlay: #262a31;
+  --border: #2e323a;
   --text: #d6d9de;
-  --text-muted: #8b909a;
-  --accent: #4f8cc9;
+  --text-muted: #989eab;
+  --accent: #5c96d0;
+  --accent-soft: rgba(92, 150, 208, 0.18);
+  /* Solid-fill accent (buttons with light text): the bright accent that
+     reads well as text/lines on dark surfaces is too light under white
+     text (3.1:1) — fills use this deeper shade (white on it = 5.3:1). */
+  --accent-strong: #2f6db3;
   --accent-text: #ffffff;
+  --danger: #f0635a;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --viewer-bg: #1e2126;
-  --viewer-border: #2c3038;
+  --viewer-bg: #202329;
+  --viewer-border: #33373f;
   /* Git letters (§46, spec-007 D5): VS Code-ish hues per status. */
   --git-m: #e2c08d;
   --git-a: #73c991;
   --git-d: #e06c60;
   --git-r: #6cb6ff;
   --git-u: #c58fe0;
-  --git-q: #8b909a;
+  --git-q: #989eab;
   --git-add-bg: rgba(46, 160, 67, 0.25);
   --git-del-bg: rgba(248, 81, 73, 0.25);
 }
 
 :root[data-theme="light"] {
-  --bg: #f5f6f8;
-  --bg-raised: #ffffff;
-  --bg-hover: #e9ebef;
-  --bg-active: #dfe3e9;
-  --border: #d8dce2;
+  --bg: #f0f2f5;
+  --bg-raised: #f8f9fb;
+  --bg-hover: #e7eaf0;
+  --bg-active: #dce1e9;
+  --bg-overlay: #ffffff;
+  --border: #d9dde4;
   --text: #26282c;
-  --text-muted: #6b717c;
+  --text-muted: #5d6470;
   --accent: #2f6db3;
+  --accent-soft: rgba(47, 109, 179, 0.12);
+  --accent-strong: #2f6db3;
   --accent-text: #ffffff;
+  --danger: #cf222e;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   --viewer-bg: #ffffff;
   --viewer-border: #e4e7ec;
@@ -55,7 +82,7 @@
   --git-d: #cf222e;
   --git-r: #0969da;
   --git-u: #8250df;
-  --git-q: #6b717c;
+  --git-q: #5d6470;
   --git-add-bg: rgba(46, 160, 67, 0.18);
   --git-del-bg: rgba(248, 81, 73, 0.18);
 }
@@ -101,7 +128,7 @@ body {
 
 body {
   font-family: var(--font-ui);
-  font-size: var(--font-size);
+  font-size: var(--text-base);
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -161,4 +188,15 @@ input {
    here (owner 2026-10-02), the default arrow reads as non-selectable. */
 .viewer-body {
   cursor: text;
+}
+
+/* Hover tints are 100ms color fades (spec-014 R9); users who ask the OS
+   for reduced motion get instant state changes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

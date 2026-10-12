@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Icon from "$lib/components/Icon.svelte";
+
   let {
     mode,
     onModeChange,
@@ -39,8 +41,8 @@
 </script>
 
 <!-- V1.5 §8: Files / Git as sidebar header tabs; Settings is an entry, not a tab.
-     The refresh icon (owner 2026-10-10) sits LEFT of ⚙, icon-only — the
-     old text button lived buried inside Settings, unreachable when the
+     The refresh icon (owner 2026-10-10) sits LEFT of the gear, icon-only —
+     the old text button lived buried inside Settings, unreachable when the
      tree was showing. -->
 <div class="sidebar-header">
   <button
@@ -55,7 +57,7 @@
     class:active={mode === "git"}
     onclick={() => onModeChange("git")}
   >
-    Git{#if gitBadge}<span class="git-badge">[{gitBadge}]</span>{/if}
+    <Icon name="git-branch" size={14} /><span>Git</span>{#if gitBadge}<span class="git-badge">{gitBadge}</span>{/if}
   </button>
   <div class="spacer"></div>
   {#if onRefresh}
@@ -67,7 +69,7 @@
       aria-label="Refresh"
       aria-busy={spinning}
     >
-      <span class="glyph">↻</span>
+      <span class="glyph"><Icon name="refresh" size={15} /></span>
     </button>
   {/if}
   <button
@@ -77,7 +79,7 @@
     title="Settings"
     aria-label="Settings"
   >
-    ⚙
+    <Icon name="gear" size={15} />
   </button>
 </div>
 
@@ -92,24 +94,42 @@
   }
 
   .header-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     padding: 4px 10px;
     border-radius: var(--radius);
     color: var(--text-muted);
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .header-tab:hover {
     background: var(--bg-hover);
   }
 
+  /* Active mode: accent-soft tint + accent text (spec-014 R5) — the
+     chrome's single accent carries "you are here". */
   .header-tab.active {
-    background: var(--bg-active);
-    color: var(--text);
+    background: var(--accent-soft);
+    color: var(--accent);
   }
 
-  /* §8: plain UI badge on the Git tab ("Git [7]"). */
+  /* §9 badge on the Git tab: accent pill (was debug-looking "[7]"). */
   .git-badge {
-    margin-left: 4px;
-    font-size: 11px;
+    min-width: 16px;
+    padding: 0 5px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    line-height: 15px;
+    text-align: center;
+  }
+
+  .header-tab:not(.active) .git-badge {
+    background: var(--bg-active);
     color: var(--text-muted);
   }
 
@@ -118,14 +138,20 @@
   }
 
   .header-icon {
-    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 7px;
     border-radius: var(--radius);
     color: var(--text-muted);
-    font-size: 14px;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .header-icon:hover:not(:disabled) {
     background: var(--bg-hover);
+    color: var(--text);
   }
 
   .header-icon:disabled {
@@ -134,8 +160,8 @@
   }
 
   .settings.active {
-    background: var(--bg-active);
-    color: var(--text);
+    background: var(--accent-soft);
+    color: var(--accent);
   }
 
   .refresh .glyph {

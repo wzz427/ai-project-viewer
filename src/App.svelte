@@ -433,20 +433,22 @@
   .placeholder-card {
     text-align: center;
     padding: 24px 32px;
-    border: 1px dashed var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
+    background: var(--bg-raised);
   }
 
   .copy-menu {
     position: fixed;
     z-index: 200;
     padding: 5px 14px;
-    background: var(--bg-raised);
+    background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    font-size: 12px;
+    font-size: var(--text-sm);
     cursor: pointer;
+    transition: background-color var(--transition-fast);
   }
 
   .copy-menu:hover {
@@ -455,7 +457,8 @@
 
   .placeholder-card h2 {
     margin: 0 0 8px;
-    font-size: 15px;
+    font-size: var(--text-base);
+    font-weight: 600;
   }
 
   .placeholder-card p {

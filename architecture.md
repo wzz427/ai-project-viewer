@@ -36,6 +36,7 @@
 | D11 | cmd.exe 宿主传脚本路径 | `raw_arg` 双层引号 `""path""`(SpawnArg::CmdPath) | 否决裸 argv/单层引号:cmd 的 /K 文档行为=引号内含元字符即剥外层引号重析,单层引号下 `a&calc&` 文件夹实证跑出 calc(§145) | spec-011 §四 D7;2026-10-11 |
 | D12 | 前端工作区生命周期 | 每项目 viewer 区按 rootPath `{#key}` 整体重挂载(App.svelte);`projectTabs()` 创建分支返回 store 代理而非裸局部对象 | 否决"逐点修补订阅失效":ActiveViewer 的 `$derived(activeTab)` 与 tabsState 失联且跨项目蔓延(0.7.12 冻结大案,诊断 #3 MISMATCH 行+机理定位);keyed 重挂=订阅不可能跨项目变陈;本地复现率仅 ~2%,统计证不出但机理修(L43) | 0.7.12 冻结案;docs/testing.md §4 |
 | D13 | 常开探查端口 | lib.rs 启动时(env 未设则)给 WebView2 加 CDP `--remote-debugging-port=9322`;配合 `__aiv.snapshot()`(debugHook.ts)供 live-inspect.py 只读直连 | 否决"只靠诊断日志复盘":owner 指令——软件就在本地开着,应当能直接取现场信息;只读不控、不启不杀;**生产打包必须关**(债务记 spec-011 上下文+lib.rs 注释) | owner 2026-10-12 指令 |
+| D14 | UI 皮肤体系(spec-014) | app.css 单文件 tokens:三档字阶 11/12/13(600 字重做层级,唯一例外=EmptyState hero 20px)+语义色(--danger 唯一错误红/--accent-soft 染色层/--accent-strong 实底专用)+暗色三面阶梯(壳/阅读面/浮层)+Icon.svelte 内联 SVG 单表(16 枚,2px 描边 24 网格,currentColor)+项目首字徽标 hash(rootPath)→8 色板稳定身份+文件类型图标族复用 viewerType 路由 | 否决图标库/五档字阶/随机徽标色/实底徽标:零依赖+内存最小化+颜色身份可学习+quiet 基调(论据全表=specs/spec-014 §四 D1–D8);对比度全数值化实测(WCAG AA) | owner 2026-10-12 拍板(A 方案/一步到位/亮色为主);评审快照 .impeccable/critique/2026-10-12T09-25-27Z |
 
 ## 1.5 待决问题(摆上桌但"以后再说"的;不是 bug 不是待办,是没被遗忘也没被拍死的取舍)
 
@@ -96,7 +97,8 @@ ProjectViewer/(仓库根)
 │   ├── 回归五套:phase3-suite / git-suite / recent-suite / acceptance-r3 / pdf-suite(夹具自建,make-fixtures/oracle 供)
 │   ├── benchmark-suite.py —— T3 全量性能档(A–I+Baseline;🔴 owner 批准才跑,结果落 %TEMP%\aiv-bench)
 │   ├── freeze-repro.py / freeze-probe.py —— 内容冻结复现器/探针(0.7.12 大案工装;probe 支持 FREEZE_PROBE_EXE/FAST)
-│   └── live-inspect.py —— 活体直连(CDP 9322 只读快照;不启不杀不聚焦;现场报障第一动作,D13)
+│   ├── live-inspect.py —— 活体直连(CDP 9322 只读快照;不启不杀不聚焦;现场报障第一动作,D13)
+│   └── visual-check-014.py —— spec-014 视觉自检(双主题 7 张截图,offscreen 显示窗口 CDP 出图;截图供人眼/视觉模型终审)
 ├── src-tauri/experience.conf.json(体验版构建片段:identifier .exp,数据/单实例与开发版全隔离)
 ├── public/favicon.png
 ├── src/ —— Svelte + TypeScript 前端
@@ -123,6 +125,8 @@ ProjectViewer/(仓库根)
 │       ├── stores/recentStore.svelte.ts(0.7.3 Open Recent MRU 态,§198:≤10 条 canonical 路径 record/remove/clear/restore;持久化搭 appState.recentFolders 可选字段与 stateSync 既有防抖车,零新增定时器)
 │       ├── services/appState.ts(持久化纯函数:白名单序列化+自愈解析;0.7.3 recentFolders 可选字段——非空才写、读取截断自愈,恢复只 adopt 不 record)+ sessionRestore.svelte.ts(启动恢复编排:resolve 校验,失效项目跳过)+ stateSync.svelte.ts($effect.root 防抖 800ms 保存+pagehide flush)
 │       ├── services/debugHook.ts(0.7.11:window.__aiv.snapshot() 只读探查钩子——projects/tabs 每根态/DOM 查看器身份(data-rel 对照)/日志环摘要;live-inspect.py 经 CDP 9322 直取,pre-0.7.12 客户端自动回退 DOM 比对)
+│       ├── services/avatarColor.ts(0.7.14:rootPath FNV-1a hash→8 色板稳定徽标色+首字母,spec-014 D3)
+│       ├── components/Icon.svelte(0.7.14:全应用唯一图标表——16 枚内联 SVG/2px 描边/currentColor,替换全部 Unicode/emoji 字形;FILE_ICONS 类型族映射消费 viewerType 路由,spec-014 D1/D4)+ services/viewerType.ts iconFamilyOf(类型图标族=查看器路由同源)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家;**Phase 9 起为 Rust watcher.rs 同款清单的 TS 侧镜像(注释互指,D8)**)/
@@ -175,6 +179,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-12 | 0.7.14 | 视觉改版落地(spec-014,owner 拍板 A 克制专业/一步到位/亮色为主,布局不动):tokens 三档字阶+语义色统一(--danger 唯一错误红,--accent-soft 染色层)+暗色三面阶梯+Icon.svelte 内联 SVG 图标集(16 枚,替换全部 Unicode/emoji)+项目首字徽标 hash 色身份+文件类型图标族(路由同源)+两级标签正交(项目条 40px 底条/文件条 28px 顶线)+交互态 100ms 过渡;对比度 WCAG AA 全数值实测(含 2 处返修:亮面徽标字母压暗/Up-to-date chip 分主题);e2e 断言与字形解耦(徽章去括号+指示器 data-state);**D14** | owner"整个页面设计得特别土…调用 frontend-design 和 impeccable";评审 19/40 后拍板 |
 | 2026-10-12 | 0.7.10–0.7.13 | T3 全量性能档跑通(A–I+Baseline 全过;idle 200MB 记账未达 150 目标,WebView2 基座占大头,非门);内容冻结大案修复:根因=ActiveViewer `$derived` 与 tabsState 失联跨项目蔓延 → 工作区按 rootPath keyed + projectTabs 返回 store 代理(**D12**);取证升级 0.7.11(data-rel 渲染标记/console 捕获/`__aiv.snapshot`);常开 CDP 9322 探查端口(**D13**);0.7.13 置顶图钉移行尾(层级对齐,owner 提案) | owner 报障"切页签内容不变"+活体直连指令;T3 预授权"开跑" |
 | 2026-10-12 | 0.7.8/0.7.9 | 全面 code review 后修复批(spec-012,报告 44 条):同步命令 IO/进程清零(13 命令补转 async+updater exists() 前置门)、watcher 升 WatchState 代次(切换乱序自弃)、gitStore 单飞、PDF 三处取消语义(RenderTask cancel/搜索代次/scrollTimer+lastScrollTop 兜底)、open_with_default_app 可执行拒绝表(msi 豁免 §126)、CSP 补 base-uri/form-action 'none'、md5→RustCrypto md-5;0.7.9 返修=右键动作后树高亮保持(L41)。硬规则未变(0.7.6 已立),本批=全量执行;L29 警示重申:GUI 二进制只认 tauri CLI 产物 | owner"开工,完成spec012";InTest 报障返修 0.7.9 |
 | 2026-10-11 | 0.7.6 | Phase 10 体检落地(spec-011):审计 20 项(九泄漏+十一风险)逐项留证;修三缺口+两主线程隐患——git show 补 §70 旗标、cmd /K raw_arg 双引号防注入(D11)、opener 授权收紧到 open_url http/https(D10)、git_diff/git_commit_detail+四读通道全转 async;发版三决定拍板(NSIS/不签/关更新,Q1 归档);硬规则新增"外部进程/大文件命令一律 async"+"渲染层插件授权最小化"+"产生补丁的 git 调用必带双旗标" | owner"开工"(Phase 10 A2 对齐) |

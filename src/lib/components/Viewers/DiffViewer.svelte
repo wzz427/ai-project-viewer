@@ -6,6 +6,7 @@
     type GitDiffResult,
   } from "$lib/services/tauri";
   import { fileNameOf } from "$lib/services/viewerType";
+  import Icon from "$lib/components/Icon.svelte";
   import {
     diffPathOf,
     parseUnifiedDiff,
@@ -71,7 +72,7 @@
 <div class="diff-viewer">
   <div class="diff-head">
     {#if view?.commitHash}
-      <button class="back" onclick={backToCommit} title="Back to commit">‹</button>
+      <button class="back" onclick={backToCommit} title="Back to commit"><Icon name="chevron-left" size={14} /></button>
     {/if}
     <span class="title" title={view?.rel}>
       <span class="pair">⇄</span>
@@ -79,7 +80,7 @@
       <span class="kind">{kindLabel}</span>
     </span>
     <span class="path mono">{view?.rel}</span>
-    <button class="close" onclick={closeGitView} title="Close diff" aria-label="Close diff">×</button>
+    <button class="close" onclick={closeGitView} title="Close diff" aria-label="Close diff"><Icon name="x" size={14} /></button>
   </div>
   <div class="diff-body">
     {#if error}
@@ -140,7 +141,7 @@
     padding: 4px 10px;
     border-bottom: 1px solid var(--viewer-border);
     background: var(--bg-raised);
-    font-size: 12.5px;
+    font-size: var(--text-base);
     flex-shrink: 0;
   }
 
@@ -164,21 +165,23 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
   }
 
   .back,
   .close {
-    padding: 0 8px;
-    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
     color: var(--text-muted);
     border-radius: var(--radius);
-  }
-
-  .back {
-    font-size: 17px;
-    line-height: 1;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .back:hover,
@@ -198,7 +201,7 @@
      one visual row even then. */
   .table {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: var(--text-sm);
     line-height: 18px;
     width: 100%;
   }
@@ -215,7 +218,7 @@
     background: var(--viewer-bg);
     border-bottom: 1px solid var(--viewer-border);
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--text-xs);
     z-index: 1;
   }
 
@@ -232,7 +235,7 @@
     text-align: right;
     color: var(--text-muted);
     opacity: 0.7;
-    font-size: 10.5px;
+    font-size: var(--text-xs);
     user-select: none;
     border-right: 1px solid var(--viewer-border);
   }
@@ -269,7 +272,7 @@
     padding: 2px 12px;
     background: color-mix(in srgb, var(--bg-raised) 60%, transparent);
     color: var(--text-muted);
-    font-size: 10.5px;
+    font-size: var(--text-xs);
     font-family: var(--font-ui);
     border-block: 1px solid var(--viewer-border);
     user-select: none;
@@ -298,6 +301,7 @@
     border-radius: var(--radius);
     background: var(--bg-hover);
     cursor: pointer;
-    font-size: 12.5px;
+    font-size: var(--text-base);
+    transition: background-color var(--transition-fast);
   }
 </style>

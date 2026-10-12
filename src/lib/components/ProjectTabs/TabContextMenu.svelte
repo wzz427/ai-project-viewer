@@ -132,7 +132,7 @@
     position: fixed;
     z-index: 100;
     min-width: 200px;
-    background: var(--bg-raised);
+    background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);

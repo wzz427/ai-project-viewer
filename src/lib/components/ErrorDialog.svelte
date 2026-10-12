@@ -53,7 +53,7 @@
   .dialog {
     min-width: 320px;
     max-width: 520px;
-    background: var(--bg-raised);
+    background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
@@ -65,14 +65,14 @@
 
   .title {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-base);
     font-weight: 600;
   }
 
   .message {
     margin: 0;
-    font-size: 12px;
-    font-family: var(--mono);
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
     color: var(--text-muted);
     overflow-wrap: anywhere;
     white-space: pre-wrap;
@@ -88,7 +88,8 @@
     padding: 5px 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: var(--bg);
+    background: var(--bg-overlay);
+    transition: background-color var(--transition-fast);
   }
 
   button:hover {

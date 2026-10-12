@@ -110,6 +110,6 @@
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 </style>

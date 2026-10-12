@@ -15,6 +15,8 @@
   import { settings } from "$lib/stores/settingsStore.svelte";
   import { gitMarkOf } from "$lib/stores/gitStore.svelte";
   import { letterClass } from "$lib/services/gitFormat";
+  import { iconFamilyOf } from "$lib/services/viewerType";
+  import Icon, { FILE_ICONS } from "$lib/components/Icon.svelte";
   import NodeContextMenu from "$lib/components/FileTree/NodeContextMenu.svelte";
   // Self-import is the Svelte 5 way to recurse (`<svelte:self>` is legacy).
   import Self from "$lib/components/FileTree/TreeItem.svelte";
@@ -166,9 +168,11 @@
     <span class="indent-guide" style="left: {8 + i * 14 + 6}px"></span>
   {/each}
   {#if entry.isDir}
-    <span class="chevron" class:faded={emptyDir} class:open={expanded}>▸</span>
+    <span class="chevron" class:faded={emptyDir} class:open={expanded}><Icon name="chevron-right" size={12} /></span>
   {:else}
-    <span class="dot"></span>
+    <!-- spec-014 R4: the old 12px "dot bar" marker becomes a type icon in
+         the SAME 12px slot — geometry unchanged, wayfinding gained. -->
+    <span class="ficon"><Icon name={FILE_ICONS[iconFamilyOf(entry.name)]} size={12} /></span>
   {/if}
   <span class="name" class:muted={entry.systemGenerated}>{entry.name}</span>
   {#if gitMark}<span class="git-mark {letterClass(gitMark)}">{gitMark}</span>{/if}
@@ -177,7 +181,7 @@
        a pinned folder's name and its children aligned and the hierarchy
        became unreadable. A trailing pushpin (same glyph as tab pins) keeps
        every name column depth-true. -->
-  {#if pinned}<span class="pin" title="Pinned">📌</span>{/if}
+  {#if pinned}<span class="pin" title="Pinned"><Icon name="pin" size={12} /></span>{/if}
 </div>
 
 {#if expanded && entry.isDir}
@@ -223,6 +227,7 @@
     user-select: none;
     white-space: nowrap;
     position: relative;
+    transition: background-color var(--transition-fast);
   }
 
   .indent-guide {
@@ -238,24 +243,28 @@
     background: var(--bg-hover);
   }
 
+  /* Selected row (spec-014 R5): accent-soft tint + 2px accent guide on
+     the left — "which file am I on" survives at a glance. */
   .row.selected {
-    background: var(--bg-active);
+    background: var(--accent-soft);
+    box-shadow: inset 2px 0 0 var(--accent);
   }
 
   .row.drop-before {
-    box-shadow: inset 0 2px 0 var(--accent, var(--text));
+    box-shadow: inset 0 2px 0 var(--accent);
   }
 
   .row.drop-after {
-    box-shadow: inset 0 -2px 0 var(--accent, var(--text));
+    box-shadow: inset 0 -2px 0 var(--accent);
   }
 
   .chevron {
     width: 12px;
     flex-shrink: 0;
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
     color: var(--text-muted);
-    transition: transform 0.1s ease;
+    transition: transform var(--transition-fast);
   }
 
   .chevron.open {
@@ -266,21 +275,20 @@
     opacity: 0.35;
   }
 
-  .dot {
+  .ficon {
     width: 12px;
     flex-shrink: 0;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--text-muted);
-    opacity: 0.4;
-    margin: 0 1px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
   }
 
   .pin {
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 10px;
-    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
   }
 
   .name {
@@ -296,27 +304,27 @@
   .git-mark {
     flex-shrink: 0;
     margin-left: auto;
-    font-size: 10.5px;
+    font-size: var(--text-xs);
     font-weight: 700;
     padding-left: 6px;
   }
 
   .row.dir .name {
-    font-weight: 550;
+    font-weight: 600;
   }
 
   .hint {
     display: flex;
     align-items: center;
     height: 22px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     font-style: italic;
     user-select: none;
   }
 
   .hint.error {
-    color: var(--danger, #d1866e);
+    color: var(--danger);
     font-style: normal;
   }
 </style>

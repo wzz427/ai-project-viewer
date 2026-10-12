@@ -167,7 +167,7 @@
   .code-viewer {
     height: 100%;
     overflow: hidden;
-    font-size: 12.5px;
+    font-size: var(--text-base);
     display: flex;
     flex-direction: column;
   }

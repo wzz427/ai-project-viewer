@@ -62,6 +62,8 @@
 
   h1 {
     margin: 0;
+    /* The single documented exception to the 3-step type scale
+       (spec-014 D2): one hero moment on the empty screen. */
     font-size: 20px;
     font-weight: 600;
   }
@@ -73,10 +75,11 @@
   .open-folder {
     margin-top: 12px;
     padding: 7px 20px;
-    background: var(--accent);
+    background: var(--accent-strong);
     color: var(--accent-text);
     border-radius: var(--radius);
-    font-size: 13px;
+    font-size: var(--text-base);
+    transition: filter var(--transition-fast);
   }
 
   .open-folder:hover {
@@ -93,7 +96,7 @@
   }
 
   .recent-title {
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     padding: 0 8px 4px;
   }
@@ -116,7 +119,7 @@
   }
 
   .recent-item .name {
-    font-size: 13px;
+    font-size: var(--text-base);
     color: var(--text);
     max-width: 100%;
     overflow: hidden;
@@ -125,7 +128,7 @@
   }
 
   .recent-item .path {
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     max-width: 100%;
     overflow: hidden;
@@ -136,6 +139,6 @@
   .tagline {
     margin-top: 10px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 </style>

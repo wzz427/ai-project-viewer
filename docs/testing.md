@@ -95,6 +95,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `freeze-repro.py` | **冻结大案复现器**(v4):4 项目/开机激活≠列表首位/先健康两切/三连快切(1.2s)+10s+切嵌套项目+0.8s 连点+扩散期;每步断言**内容身份**(data-rel+marker);2026-10-12 战绩:v3 配方第 0 轮命中一次(页签条+viewer 同死),其余 96 轮活(≈2%) | 冻结大案再现时先跑;凡动 ActiveViewer/tabsStore 激活路径/项目切换 |
 | `freeze-probe.py` | 冻结**解剖器**:循环配方直至冻结,活体解剖(JS 直发点击/项目往返 store 真值读回/控制台全收);`FREEZE_PROBE_EXE`+`FREEZE_PROBE_FAST=1` 支持 A/B 与放大 | 冻结命中后的分层定位 |
 | `live-inspect.py` | **活体直连**(owner 2026-10-12 指令):只读附身正在运行的实例(常开端口 9322),调 `window.__aiv.snapshot()` 吐项目/页签/DOM 三对照/日志环;**绝不 launch/kill/focus** | owner 客户端任何异常现场的第一动作;0.7.12 起有效 |
+| `visual-check-014.py` | spec-014 视觉自检:双主题 7 张截图(offscreen 显示窗口 CDP 出图,L42 口径);截图供人眼/视觉模型终审+像素抽样核染色层 | 凡动主题 tokens/图标体系/两级标签样式 |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
 | `oracle/` | 官方查看器对照基准(搭建见 README) | 疑上游问题 |
 
@@ -315,6 +316,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | phase3/git/recent/r3/pdf | 68/68、33/33、15/15、8/8、23/23 |
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
+
+#### 0.7.14 视觉改版轮(2026-10-12,spec-014;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 变更 | 布局零变化纯换皮:tokens 三档字阶(11/12/13,砍 10/10.5/11.5/12.5/14/15/16 全档)+语义色(--danger 唯一错误红,4 红并存清零;--accent-soft 染色层;--accent-strong 实底专用)+暗色三面阶梯(壳 #16181c/阅读面 #202329/浮层 #262a31+阴影)+Icon.svelte 内联 SVG 16 枚(全 Unicode/emoji 清零)+项目首字徽标 hash 色+文件类型图标族(viewerType 路由同源)+两级标签正交(项目条 40px accent 底条/文件条 28px 细顶线)+100ms 过渡+reduced-motion |
+| 对比度 | WCAG 全数值实测(SPEC §六):muted/danger 全底 ≥4.5 两主题;两处返修=亮面徽标字母 72% 混墨(曾低至 2.73)/Up-to-date chip 分主题(暗 0.8=4.68,亮不透明) |
+| e2e 同步 | git-suite 徽章 "[7]"→"7"(6 处)+指示器改读 data-state;recent-suite 活动页签改读 .tab-name(L44:断言绑语义元素不绑字形——本轮 1 败即此,修后 15/15) |
+| 全档 | check 0/0+vitest **84**(+20:avatarColor 5+iconFamily 15)+phase3 70+git 33+recent 15+r3 8+pdf 23;cargo/watcher 零改动免跑 |
+| 视觉自检 | visual-check-014.py 7 张双主题(两级正交/图标/染色层/三面阶梯/浮层全落地);徽标染色层像素抽样证实(视觉模型误读为实底) |
+| 版本 | 0.7.14 三处已核;updates=exp 0.7.14(UTF-16 核) |
 
 #### 0.7.13 置顶标记返修轮(2026-10-12,owner 截图报"置顶后子级与名称同列,层级不可辨";全部通过)
 

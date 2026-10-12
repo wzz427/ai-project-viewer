@@ -10,6 +10,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { applyUpdate, checkUpdate, relaunch } from "$lib/services/tauri";
   import { toast } from "$lib/stores/toastStore.svelte";
+  import Icon from "$lib/components/Icon.svelte";
 
   // Scripted runs pick "Later" automatically: the native dialog is a
   // TaskDialog (no clickable child HWNDs, lessons L7 addendum) and would
@@ -76,7 +77,7 @@
     : `Version ${__APP_VERSION__} — you are on the latest build`}
   aria-label="Update"
 >
-  {#if status === "available"}⬆ Update{:else if status === "busy"}Updating…{:else}Up to date{/if}
+  {#if status === "available"}<span class="btn-inner"><Icon name="arrow-up" size={12} />Update</span>{:else if status === "busy"}Updating…{:else}Up to date{/if}
 </button>
 
 <style>
@@ -88,24 +89,43 @@
     align-self: center;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     background: var(--bg);
-    opacity: 0.6;
     cursor: default;
     white-space: nowrap;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast),
+      border-color var(--transition-fast);
   }
 
+  .btn-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Available: accent-tinted chip (spec-014 D5 — quiet accent, never a
+     solid fill). */
   .update-btn.available {
     opacity: 1;
-    color: var(--text);
-    border-color: var(--accent, #4c8bf5);
-    background: var(--bg-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
     cursor: pointer;
     font-weight: 600;
   }
 
   .update-btn.busy {
+    opacity: 0.8;
+  }
+
+  /* Dim-while-current (SPEC-INFRA-001) is a DARK-theme-only opacity now:
+     0.6 measured ~3.4:1 there (spec-014 V10 返修; 0.8 = 4.68:1). In light,
+     the muted text + hairline border already read as subdued at full
+     opacity (muted-on-bg = 5.3:1) — dimming further broke legibility. */
+  :global([data-theme="dark"]) .update-btn:not(.available):not(.busy) {
     opacity: 0.8;
   }
 </style>

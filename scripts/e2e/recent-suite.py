@@ -108,7 +108,12 @@ def toast_contains(page, sub, timeout_s=6):
 
 
 def active_project_tab(page):
+    # spec-014 (L44): the project tab now leads with an avatar letter —
+    # read the NAME span, not the whole tab's innerText ("P\np01").
     tab = page.locator(".project-tabs .tab.active")
+    name = tab.locator(".tab-name")
+    if name.count():
+        return name.inner_text()
     return tab.inner_text() if tab.count() else ""
 
 

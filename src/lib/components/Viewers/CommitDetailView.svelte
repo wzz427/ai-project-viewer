@@ -6,6 +6,7 @@
   } from "$lib/services/tauri";
   import { fileNameOf } from "$lib/services/viewerType";
   import { letterClass } from "$lib/services/gitFormat";
+  import Icon from "$lib/components/Icon.svelte";
 
   const view = $derived(
     gitViewSlot.current?.kind === "commit" ? gitViewSlot.current : null,
@@ -48,10 +49,10 @@
 
 <div class="commit-view">
   <div class="c-head">
-    <span class="title"><span class="glyph">◉</span> Commit</span>
+    <span class="title"><span class="glyph"><Icon name="dot" size={12} /></span> Commit</span>
     <span class="hash mono">{detail?.hash.slice(0, 7) ?? ""}</span>
     <span class="spacer"></span>
-    <button class="close" onclick={closeGitView} title="Close" aria-label="Close">×</button>
+    <button class="close" onclick={closeGitView} title="Close" aria-label="Close"><Icon name="x" size={14} /></button>
   </div>
   <div class="c-body">
     {#if error}
@@ -96,22 +97,26 @@
     padding: 4px 10px;
     border-bottom: 1px solid var(--viewer-border);
     background: var(--bg-raised);
-    font-size: 12.5px;
+    font-size: var(--text-base);
     flex-shrink: 0;
   }
 
   .title {
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .glyph {
+    display: inline-flex;
+    align-items: center;
     color: var(--text-muted);
-    font-weight: 400;
   }
 
   .hash {
     color: var(--git-m);
-    font-size: 11.5px;
+    font-size: var(--text-sm);
   }
 
   .spacer {
@@ -119,10 +124,17 @@
   }
 
   .close {
-    padding: 0 8px;
-    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
     color: var(--text-muted);
     border-radius: var(--radius);
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .close:hover {
@@ -147,7 +159,7 @@
   .message {
     margin: 0;
     font-family: var(--font-ui);
-    font-size: 13px;
+    font-size: var(--text-base);
     white-space: pre-wrap;
     word-break: break-word;
   }
@@ -157,7 +169,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .meta div {
@@ -178,7 +190,7 @@
 
   .files-title {
     margin: 18px 0 6px;
-    font-size: 10.5px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.06em;
     color: var(--text-muted);
@@ -196,9 +208,10 @@
     max-width: 720px;
     padding: 2px 6px;
     border-radius: var(--radius);
-    font-size: 12.5px;
+    font-size: var(--text-base);
     text-align: left;
     cursor: pointer;
+    transition: background-color var(--transition-fast);
   }
 
   .entry:hover {
@@ -209,7 +222,7 @@
     flex-shrink: 0;
     width: 10px;
     font-weight: 700;
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 
   .ename {
@@ -219,7 +232,7 @@
 
   .edir {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--text-xs);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

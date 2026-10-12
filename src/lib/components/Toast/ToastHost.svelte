@@ -33,17 +33,17 @@
     pointer-events: auto;
     max-width: 70%;
     padding: 8px 14px;
-    background: var(--bg-raised);
+    background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--text-sm);
     text-align: left;
   }
 
   .toast.error {
-    border-left-color: #c0504d;
+    border-left-color: var(--danger);
   }
 </style>

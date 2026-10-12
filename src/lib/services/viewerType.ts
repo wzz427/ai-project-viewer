@@ -48,6 +48,29 @@ export function isPdfName(name: string): boolean {
   return extOf(name) === "pdf";
 }
 
+export type IconFamily = "markdown" | "pdf" | "code" | "json" | "image" | "file";
+
+/** Tab/tree icon family (spec-014 D4): derived from the SAME routing that
+ *  decides which viewer opens — the icon is a true preview of the click,
+ *  never a second classification table that could drift from the viewer
+ *  mapping. */
+export function iconFamilyOf(name: string): IconFamily {
+  switch (viewerTypeFor(name)) {
+    case "markdown":
+      return "markdown";
+    case "pdf":
+      return "pdf";
+    case "code":
+      return "code";
+    case "json":
+      return "json";
+    case "image":
+      return "image";
+    default:
+      return "file";
+  }
+}
+
 export function isImageName(name: string): boolean {
   return IMAGE.has(extOf(name));
 }

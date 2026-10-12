@@ -50,7 +50,7 @@
   .card {
     text-align: center;
     padding: 24px 32px;
-    border: 1px dashed var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     display: flex;
     flex-direction: column;
@@ -60,8 +60,9 @@
   }
 
   .exe-name {
-    font-family: var(--mono);
-    font-size: 14px;
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: 600;
     margin: 0;
     max-width: 480px;
     overflow-wrap: anywhere;
@@ -69,7 +70,7 @@
 
   .kind {
     margin: 0;
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -86,7 +87,7 @@
     display: flex;
     gap: 8px;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   dt {
@@ -95,7 +96,7 @@
 
   dd {
     margin: 0;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
   }
 
   .row.path dd {
@@ -107,6 +108,6 @@
   .muted {
     margin: 6px 0 0;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 </style>

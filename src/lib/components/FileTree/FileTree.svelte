@@ -77,7 +77,7 @@
 
 <style>
   .file-tree {
-    font-size: 12.5px;
+    font-size: var(--text-base);
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1;
@@ -90,14 +90,14 @@
     align-items: center;
     padding-left: 8px;
     height: 22px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     font-style: italic;
     user-select: none;
   }
 
   .hint.error {
-    color: var(--danger, #d1866e);
+    color: var(--danger);
     font-style: normal;
   }
 </style>
