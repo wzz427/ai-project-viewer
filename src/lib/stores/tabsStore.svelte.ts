@@ -286,6 +286,7 @@ export function closeFile(rootPath: string, rel: string) {
   if (st.activeFileRelativePath === rel) {
     const next = st.openFiles[Math.min(idx, st.openFiles.length - 1)];
     st.activeFileRelativePath = next ? next.relativePath : null;
+    if (next) diagEvent(`tab-activate ${next.relativePath} (neighbor)`);
   }
 }
 
@@ -299,6 +300,10 @@ export function cycleTab(rootPath: string, direction: 1 | -1) {
     st.openFiles[(idx + direction + st.openFiles.length) % st.openFiles.length];
   if (!next) return;
   closeGitView();
+  // Suffix "(cycle)": the 2026-10-12 field log had a viewer swap with NO
+  // tab event before it — Ctrl+Tab was the only store-active writer that
+  // did not trace. Same for the neighbor promotion in closeFile below.
+  diagEvent(`tab-activate ${next.relativePath} (cycle)`);
   st.activeFileRelativePath = next.relativePath;
   void revealInTree(rootPath, next.relativePath);
 }

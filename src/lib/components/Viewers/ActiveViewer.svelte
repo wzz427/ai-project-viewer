@@ -58,7 +58,13 @@
 </script>
 
 {#if tab}
-  <!-- Keyed by file + content revision: switching files always remounts
+  <!-- data-rel (2026-10-12 field freeze): the DOM states which file the
+       viewer BELIEVES it is rendering. It rides the same render path as
+       the content, so a frozen derived leaves it at the last-rendered
+       file while the store's active moves on — the diagnostics live-check
+       prints both and names the mismatch instead of guessing. -->
+  <div class="viewer-slot" data-rel={tab.relativePath}>
+  <!-- Inner key = file + content revision: switching files always remounts
        the viewer (content can never go stale, owner 2026-10-01 items
        3/10), and an external reload (watcher/Ctrl+R, spec-009 D3) bumps
        contentRev so mount-built viewers (CodeMirror, PDF) pick up the
@@ -84,9 +90,16 @@
     <div class="loading">Loading…</div>
   {/if}
   {/key}
+  </div>
 {/if}
 
 <style>
+  /* display:contents — layout-transparent wrapper (its only job is the
+     data-rel marker); viewers keep sizing off .viewer-body as before. */
+  .viewer-slot {
+    display: contents;
+  }
+
   .code-host {
     height: 100%;
   }

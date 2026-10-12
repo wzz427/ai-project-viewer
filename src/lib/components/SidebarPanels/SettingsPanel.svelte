@@ -69,7 +69,25 @@
                 : document.querySelector(".unsupported")
                   ? "unsupported"
                   : "(none)";
-      lines.push(`live-check: dom-active-tab=${activeTabDom} dom-viewer=${viewerDom}`);
+      // data-rel (2026-10-12 field freeze): what the VIEWER thinks it is
+      // rendering vs. what the store says is active — the freeze kept the
+      // component class correct while the content stayed on the previous
+      // file, so class alone could not name the mismatch.
+      const viewerRel =
+        document.querySelector(".viewer-body [data-rel]")?.getAttribute("data-rel")
+        ?? "(none)";
+      lines.push(
+        `live-check: dom-active-tab=${activeTabDom} dom-viewer=${viewerDom} viewer-rel=${viewerRel}`,
+      );
+      if (project && viewerRel !== "(none)") {
+        const st = tabsState.byRoot[project.rootPath];
+        const storeRel = st?.activeFileRelativePath ?? "(none)";
+        if (storeRel !== viewerRel) {
+          lines.push(
+            `MISMATCH: store-active=${storeRel} viewer-showing=${viewerRel}`,
+          );
+        }
+      }
       for (const p of projectState.tabs) {
         const st = tabsState.byRoot[p.rootPath];
         lines.push(

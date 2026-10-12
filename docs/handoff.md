@@ -21,13 +21,28 @@ scripts/e2e/benchmark-suite.py;PDF 驻留探针=无应用侧泄漏(渲染进程�
 挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
-**未结大案:内容区冻结 bug**(owner 报"切换任何页签内容都不变",本机三路复刻未现;0.6.12 起诊断已装)——
-复现时 Settings → Export Diagnostics,文件在 %APPDATA%\com.aiprojectviewer.app.exp\diagnostics\
-aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
+**未结大案:内容区冻结 bug**(owner 2026-10-12 现场二次报+**首次带诊断取证**:
+断点=三次快速项目切换(1.2s 间隔)后 store/页签条活而 ActiveViewer 派生死,环内零异常;
+本地两版 42 轮未复现;根因未定,0.7.11 已装取证升级=下次现场必中)——再现时照用,然后
+Settings → Export Diagnostics(文件在 %APPDATA%\com.aiprojectviewer.app.exp\diagnostics\,
+新导出带 viewer-rel+MISMATCH 行+console 捕获,同机直读即定位);**应急恢复(免重启):切 Git
+面板点任一改动条目(DiffViewer 接管主区=ActiveViewer 卸载)→切回 Files 即重挂**。
 协作习惯:高频验收、编号反馈、返工轮是常态;测试零打扰红线(testing.md §1.2);e2e 一律 aivlaunch(PID 限定)+
 **park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-12 · 冻结大案二次现场+取证升级 0.7.11 已发(等 owner 点 Update)
+
+- owner 现场报"切任何页签内容不变"+导诊断:**铁证**=14:09:50–53 三次快速项目切换后,四次页签
+  操作零 viewer 事件(store/页签条活性正常,live-check 双证一致;环零报错=信号图级静默失联,
+  非异常);本地两版 42 轮(快速切换/嵌套项目根/盘上搅动)未复现——按纪律不动行为代码,装取证。
+- 0.7.11(取证向):viewer `data-rel` 标记+诊断导出 **MISMATCH 行**+console.error/warn 入环(去重)
+  +四条盲路径补记(cycle/neighbor/re-open/add);phase3 +2 **内容身份守卫**(70/70——此前所有
+  套件只查页签名+类名,从不查内容身份,这正是三轮复刻全绿而 owner 客户端冻结的原因);
+  r3 8/8+pdf 23/23+vitest 64+check 0/0;已发体验渠道(UTF-16 核)。
+- 下一步:owner 点 Update 装上取证版;**再现即导出**(新导出自带 mismatch 行)→根因→修复;
+  T3 已全过,spec-011 验收仍等 owner;应急恢复配方见 §〇。
 
 ### 2026-10-12 · T3 全量基准跑完(A–I+Baseline 全过),等 owner 验收 spec-011
 

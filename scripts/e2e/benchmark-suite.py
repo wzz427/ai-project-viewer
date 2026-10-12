@@ -955,12 +955,16 @@ def main():
     ap.add_argument("--tiers", default="A,B,C,D,E,F,G,H,I")
     args = ap.parse_args()
     os.makedirs(BENCH, exist_ok=True)
-    # Global preflight: dev binary, correct version.
+    # Global preflight: dev binary at the version tauri.conf.json declares.
+    with open(os.path.normpath(os.path.join(
+            HERE, "..", "..", "src-tauri", "tauri.conf.json")),
+            encoding="utf-8") as f:
+        version = json.load(f)["version"]
     with open(EXE, "rb") as f:
         blob = f.read()
-    assert "0.7.10".encode("utf-16-le") in blob, "dev exe is not 0.7.10"
+    assert version.encode("utf-16-le") in blob, f"dev exe is not {version}"
     aivlaunch._assert_dev_binary(EXE)
-    print(f"binary OK: 0.7.10 dev ({len(blob)//1024//1024}MB)")
+    print(f"binary OK: {version} dev ({len(blob)//1024//1024}MB)")
     t0 = time.time()
     for t in args.tiers.split(","):
         t = t.strip().upper()

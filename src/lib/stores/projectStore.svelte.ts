@@ -94,6 +94,10 @@ export async function addProjectFromPath(rawPath: string) {
     const existing = projectState.tabs.find((t) => t.rootPath === resolved.rootPath);
     if (existing) {
       projectState.activeId = existing.id;
+      // Suffix "(re-open)": the 2026-10-12 field log showed a switch to an
+      // already-open project with NO project-active line — this path (and
+      // the fresh add below) are the only store-active writers untraced.
+      diagEvent(`project-active ${resolved.name} (re-open)`);
       toast(`"${resolved.name}" is already open — switched to its tab.`);
       return;
     }
@@ -108,6 +112,7 @@ export async function addProjectFromPath(rawPath: string) {
     };
     projectState.tabs.push(tab);
     projectState.activeId = tab.id;
+    diagEvent(`project-active ${tab.name} (add)`);
   } catch (err) {
     toast(`Cannot open folder: ${err}`, { kind: "error" });
   }

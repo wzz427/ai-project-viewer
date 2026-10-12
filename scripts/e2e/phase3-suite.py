@@ -96,6 +96,31 @@ with sync_playwright() as p:
     open_file("index.html")
     check("html_after_text", body_contains("<h1>HTML viewed as Code</h1>") or body_contains("HTML viewed as Code"))
 
+    # --- 0.7.11 content-identity guard (owner 2026-10-12 field freeze:
+    # tab strip AND viewer component class both stayed correct while the
+    # content froze on the previous file — every suite asserted names and
+    # classes, never CONTENT identity). The viewer's data-rel must equal
+    # the active tab's file after every switch, and the body must carry
+    # the new file's text — not the old one's. ---
+    def viewer_rel():
+        return page.evaluate(
+            "() => document.querySelector('.viewer-body [data-rel]')"
+            "?.getAttribute('data-rel') ?? null")
+
+    open_file("main.py")
+    r1 = viewer_rel()
+    check("viewer_rel_matches_active",
+          r1 is not None and r1.replace("\\", "/").endswith("/main.py")
+          and body_contains("Entry point"),
+          f"rel={r1}")
+    open_file("index.html")
+    r2 = viewer_rel()
+    body2 = page.locator(".viewer-body").inner_text()
+    check("viewer_identity_follows_switch",
+          r2 is not None and r2.replace("\\", "/").endswith("/index.html")
+          and "HTML viewed as Code" in body2 and "Entry point" not in body2,
+          f"rel={r2}")
+
     # --- #10 regression: image -> image switch shows the NEW image ---
     expand("assets")
     open_file("logo.svg")
