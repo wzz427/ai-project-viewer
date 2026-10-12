@@ -170,9 +170,14 @@
   {:else}
     <span class="dot"></span>
   {/if}
-  {#if pinned}<span class="star" title="Pinned">★</span>{/if}
   <span class="name" class:muted={entry.systemGenerated}>{entry.name}</span>
   {#if gitMark}<span class="git-mark {letterClass(gitMark)}">{gitMark}</span>{/if}
+  <!-- Pin marker trails at the row's far RIGHT (owner 2026-10-12): the old
+       leading star occupied the column where the children's indent lands —
+       a pinned folder's name and its children aligned and the hierarchy
+       became unreadable. A trailing pushpin (same glyph as tab pins) keeps
+       every name column depth-true. -->
+  {#if pinned}<span class="pin" title="Pinned">📌</span>{/if}
 </div>
 
 {#if expanded && entry.isDir}
@@ -271,10 +276,11 @@
     margin: 0 1px;
   }
 
-  .star {
-    color: var(--text-muted);
-    font-size: 11px;
+  .pin {
+    margin-left: auto;
     flex-shrink: 0;
+    font-size: 10px;
+    line-height: 1;
   }
 
   .name {
