@@ -11,12 +11,12 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-013 InTest,体验渠道当前版 0.7.10(2026-10-12)**:前端加固清偿批(60 处"下标取空"
-见底+索引访问检查常开,零行为变化)。owner 客户端点 Update 复验 → 验收原话落 SPEC → Done →
-**回 T3 全量基准主线**(A–I 档+Phase 1 Baseline,口径=V1.5 §162–§173+testing.md §4.9;
-owner 已预告授权,开跑前按红线再确认一次;owner"发版没那么急"=T3 顺延到本批之后)→
-spec-011 复验转 Done → NSIS 实际打包届时点头(含 webviewInstallMode 三选一,D7/R21)。
-评审报告已归 history/code-reviews/(快照轴)。**版本段 0.7.x 固定递增不跳段**。
+主线 = **spec-013 已 Done(2026-10-12 owner 验收"过了"),下一步=T3 全量性能基准**(spec-011 的
+收口门):A–I 档+Phase 1 Baseline 重跑,口径=V1.5 §162–§173+testing.md §4.9;
+owner 已预告授权,**开跑前按红线再确认一次**(2026-10-12 已向他说明 T3 是什么,待点头)→
+跑完对目标判读 → spec-011 复验转 Done → NSIS 实际打包届时点头
+(含 webviewInstallMode 三选一,D7/R21)。评审报告已归 history/code-reviews/(快照轴)。
+**版本段 0.7.x 固定递增不跳段**。
 挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
 审计证据表住 specs/spec-011-performance-security-release.md §四。
@@ -28,13 +28,20 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-12 · spec-013 前端加固批 0.7.10 已发,等 owner 验收
+### 2026-10-12 · spec-013 验收 Done(0.7.10),主线=T3 全量基准待 owner 点头
+
+- owner 验收原话"过了。进入下一个需求"落 SPEC §六,spec-013 Done(遗留零,开关常开)。
+- 下一步 = T3 全量性能基准(A–I 档+Phase 1 Baseline,数小时):**红线=开跑前 owner 批**;
+  已向他说明 T3 内容,等点头。跑完 → spec-011 复验 → Done → NSIS 打包三选一点头。
+- 挂账不变:冻结 bug 取证(§〇)/异地备份 remote。
+
+### 2026-10-12 · spec-013 前端加固批 0.7.10 已发,等 owner 验收(已验收,留档)
 
 - owner"发版没那么急,先做这个需求,清掉这个问题"(=清 spec-012 D12 记档的 60 处,T3 顺延)
   → spec-013 立项开工;60 处清零(产线 22 守卫/结构改写+测试 38 断言,归型清单 SPEC §六),
   **noUncheckedIndexedAccess 常开**——此后新代码同类隐患编译期拦截。
 - 全档全绿:check 0/0+vitest 64+phase3 68+git 33+recent 15+r3 8+pdf 23;cargo/watcher 零改动免跑;
-  0.7.10 体验渠道已发(VERSIONINFO 核过)。**owner 点 Update 验收** → 原话落 §六 → Done → 回 T3 主线。
+  0.7.10 体验渠道已发(VERSIONINFO 核过)。
 - 挂账不变:冻结 bug 取证(§〇)/异地备份 remote。
 
 ### 2026-10-12 · spec-012 验收 Done,主线交棒 T3 全量基准
