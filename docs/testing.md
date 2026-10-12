@@ -317,6 +317,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.7.18 页签拖拽黑线修复轮(2026-10-12,owner 报障"拖动页签冒黑线,连拖必现,瞬态消失";全部通过——**含一次发布事故与重发**)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 黑线=**横向滚动条滑块**(overlay 平时隐藏;拖拽把 ghost 拖出条外→Chromium 越缘自动滚→滚动条浮现 ~1.5s 淡出)——owner 副屏窗口(1280)项目条真溢出,主屏黑线为**视口级**滚动条(拖出窗缘时 html 可横滚)。探针复现:帧 3 黑线 y=35 纯黑 74px=thumb(位置=滚动比例),帧 6 视口黑线 x=317,ghost 在条外 |
+| 修复 | 三处 `scrollbar-width: none`:html(视口永不横滚)+项目条+文件条(滚动功能保留:滚轮/触摸板/scrollIntoView 照用,VS Code 同做法) |
+| 复验 | 探针同场景复跑 6 帧:黑像素计数 0→0;check 0/0+phase3 PASS+recent 21/21+r3 8/8 |
+| **发布事故** | **首轮"0.7.18"发布漏 bump 版本号**(tauri.conf 仍 0.7.17)→上架了贴错标签的修复构建;owner 点更新一次成功一次报错("Update failed",疑 AV/transient 锁,重试即过),此后按钮灰"Up to date"而运行进程无修复(磁盘=修复版/进程=旧版)——live-inspect 直连定案(scrollbarWidth=auto+版本 0.7.17) |
+| 事故修复 | 真 bump 0.7.18 重发(UTF-16 核 0.7.18 FOUND/0.7.17 absent);**publish-experience.ps1 加同版本拒发闸**(staged update.json 版本==conf 版本→abort,本轮实测"staged 0.7.17→publishing 0.7.18"通过);教训 **L46** |
+| 版本 | 0.7.18 三处已核;updates=exp 0.7.18(21:41,UTF-16 核);owner 侧待 Update+重启生效 |
+
 #### 0.7.17 项目页签拖拽换位轮(2026-10-12,spec-015;全部通过)
 
 | 档 | 结果 |

@@ -360,3 +360,10 @@
 - **机理**:①`<button>` UA 默认 `padding: 1px 6px`:16px 盒−12px 垫=**4px 内容区**;SVG 是 flex item,`flex-shrink:1` 下**安静缩到 4px**;旧的文字 × 不缩、溢出边界照样可见——**同一个盒子,文字时代无害、SVG 时代成雷**,换图标那天才引爆。②长名页签(160px 截断)叠加 flex 挤压,按钮本身也被压。修=`padding: 0`+`flex-shrink: 0`。
 - **判据**:①固定宽高的按钮一律显式 `padding: 0`(本仓 audit:FileTabs .close 是唯一漏网,Diff/Commit 的 .close 当时写对了);②**视觉验证三件套全在 4px 细条上翻车**:视觉模型顺着提问点头("每个页签都有 ×✅")、像素桶扫描把细条的暗像素数当成了图标、我的截图夹具文件名太短没踩到 clamp 路径——**终审=几何断言**(`getBoundingClientRect` 逐个量 svg 盒 ≥11px,坏构建当场拦);③夹具必须覆盖触发边界(长名/多页签/截断),只测常态=只测了一半;④live-inspect 直连是报障第一动作:这次它 30 秒区分了"没更新/更新没生效/修复没修到根"三种假设。
 - **出处**:owner 二次报障(2026-10-12 19:31);修复随 0.7.16;守卫=visual-check 几何断言(两轮拦下坏构建)。
+
+### L46:发布三步(版本 bump→publish→UTF-16 核)是闭环,跳一步就出"贴错标签的幽灵构建"——发布脚本必须自断言,人记步骤不算数(2026-10-12 0.7.18 事故)
+
+- **症状**:owner"无法 update"+Update failed toast+按钮卡 Updating…;现场取证=updates/安装盘/target-exp 三个 exe 指纹全同且 update.json 写"[0.7.17|20:37]"——黑线修复以 0.7.17 的标签发了出去(漏 bump);owner 点击一次成功(磁盘换上修复)一次失败(疑 AV/transient 文件锁),此后 md5 相等按钮永远灰,运行进程到不了修复。
+- **机理**:发版流程靠人记"先 bump 三处再 publish 再 UTF-16 核"——那轮 bump 和核都跳了,publish 照常打印 PUBLISHED,**没有任何机械环节会红**;"发布成功"的表象和"发错了东西"长得一模一样,直到 owner 的更新按钮行为反常才现形。
+- **判据**:①**发布脚本必须自断言版本已变**:staged update.json 里的版本==conf 版本→拒发(已加,首战即拦:"staged 0.7.17→publishing 0.7.18");②**UTF-16 核一步不可省**——它是唯一能把"标签"和"内容"对上号的机械检查;③experi­ence 渠道排障三件套:update.json note(版本+时刻)/三处 exe md5 指纹/updates 与安装盘 mtime(PS Copy-Item 保 mtime→可还原发布-换装时间线);④同内容重发必须带新版本号:md5 判定下"内容相同标签相同"=客户端永远收不到。
+- **出处**:owner 21:32 报障"无法 update";live-inspect 直连定案;重发 0.7.18(UTF-16 核过)。
