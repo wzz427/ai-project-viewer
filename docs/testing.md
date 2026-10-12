@@ -317,6 +317,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.7.15 页签关闭钮返修轮(2026-10-12,spec-014 InTest 期间 owner 截图报障"×都看不到了";全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 0.7.14 给文件页签关闭钮加了"悬停才显形"(opacity:0+hover/active 提亮)——不在 owner 拍板的方案里,自作主张的 VS Code 式收笔;活动页签可见、未活动页签不可见,用户可感即修 |
+| 修复 | 关闭钮恢复**常显**:平时 muted 灰、悬停提亮(静音≠隐形);transition 保留 |
+| 全档 | check 0/0+phase3 VERDICT PASS+r3 8/8+visual-check 重拍 4 页签 × 全显(git/recent/pdf 未触及免跑);cargo/watcher 零改动免跑 |
+| 版本 | 0.7.15 三处已核;updates=exp 0.7.15(UTF-16 核,无 0.7.14 残留) |
+
 #### 0.7.14 视觉改版轮(2026-10-12,spec-014;全部通过)
 
 | 档 | 结果 |

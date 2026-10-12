@@ -28,7 +28,7 @@
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-12 · spec-014 视觉改版 InTest:0.7.14 已发体验渠道,等 owner 验收
+### 2026-10-12 · spec-014 视觉改版 InTest:0.7.15 返修已发,等 owner 验收
 
 - owner 经双 Skill 评审(frontend-design+impeccable,19/40,快照 `.impeccable/critique/2026-10-12T09-25-27Z__src-app-svelte.md`)
   拍板 **A 克制专业/一步到位/亮色为主,布局不动** → 同日立 spec-014→施工→InTest→发版一条龙:
@@ -38,7 +38,10 @@
 - 质量口:对比度 WCAG 全数值实测(SPEC §六账本),两处返修(亮面徽标字母压暗/Up-to-date chip 分主题);
   截图自检 7 张双主题(visual-check-014.py);全档绿 check 0/0+vitest **84**(+20)+phase3 70+git 33+
   recent 15+r3 8+pdf 23;e2e 断言按 **L44**(绑 data 属性不绑字形)同步三处。
-- 下一步:**owner Update 0.7.14 → 验收原话落 spec-014 §六 → Done**;spec-011 验收仍等他(§〇)。
+- **0.7.15 返修**(owner 截图"×都看不到了"):0.7.14 曾给页签关闭钮加悬停才显形(非方案内)→恢复常显;
+  check 0/0+phase3 PASS+r3 8/8+截图重验。同日**异地备份建线**(remote backup=GitHub SSH,规则住
+  architecture §0;owner 确认项=库可见性 Private)。
+- 下一步:**owner Update 0.7.15 → 验收原话落 spec-014 §六 → Done**;spec-011 验收仍等他(§〇)。
 
 ### 2026-10-12 · 置顶星标改行尾图钉 0.7.13 已发(等 owner 点 Update)
 

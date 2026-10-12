@@ -273,16 +273,12 @@
     height: 16px;
     border-radius: var(--radius);
     color: var(--text-muted);
-    opacity: 0;
+    /* Always visible (owner 2026-10-12 报障"×都看不到了"): the
+       hover-only reveal was an unapproved 0.7.14 flourish — quiet means
+       muted color, never invisible. */
     transition:
       background-color var(--transition-fast),
-      color var(--transition-fast),
-      opacity var(--transition-fast);
-  }
-
-  .file-tab:hover .close,
-  .file-tab.active .close {
-    opacity: 1;
+      color var(--transition-fast);
   }
 
   .close:hover {

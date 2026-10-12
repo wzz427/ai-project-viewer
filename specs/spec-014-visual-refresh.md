@@ -95,6 +95,7 @@
 | 2026-10-12 | 创建(Ready→InDev 同日:范围=评审快照 P0–P2 全条目+transition,owner 已拍) | 本页;INDEX 行 |
 | 2026-10-12 | InDev 施工完毕→InTest(截图自检 7 张过,2 处对比返修) | 见下账本 |
 | 2026-10-12 | 全档回归绿→**0.7.14 发体验渠道**(UTF-16 核 0.7.14 无 0.7.13 残留);e2e 断言 L44 同步 3 处(git 徽章/指示器 data-state/recent .tab-name) | INDEX→InTest;testing.md §4 0.7.14 行;等 owner 验收 |
+| 2026-10-12 | InTest 报障返修 **0.7.15**(owner 截图"×都看不到了"):0.7.14 曾给页签关闭钮加悬停才显形——非方案内、自作主张,恢复常显(muted/悬停提亮);check 0/0+phase3 PASS+r3 8/8+截图重验 4 页签 × 全显;已发体验渠道 | testing.md §4 0.7.15 行 |
 
 ### InTest 自检账本(2026-10-12)
 
