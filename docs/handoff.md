@@ -11,11 +11,12 @@
 
 ## 〇、现在主线是什么(最先读)
 
-主线 = **spec-013 已 Done(2026-10-12 owner 验收"过了"),下一步=T3 全量性能基准**(spec-011 的
-收口门):A–I 档+Phase 1 Baseline 重跑,口径=V1.5 §162–§173+testing.md §4.9;
-owner 已预告授权,**开跑前按红线再确认一次**(2026-10-12 已向他说明 T3 是什么,待点头)→
-跑完对目标判读 → spec-011 复验转 Done → NSIS 实际打包届时点头
-(含 webviewInstallMode 三选一,D7/R21)。评审报告已归 history/code-reviews/(快照轴)。
+主线 = **T3 全量性能基准已跑完(2026-10-12 owner"开跑"授权),A–I+Phase 1 Baseline 门全过** →
+**等 owner 验收 spec-011**(InTest→Done 需他原话)→ NSIS 实际打包届时点头
+(含 webviewInstallMode 三选一,D7/R21)。数字账本=testing.md §4 T3 行;新脚本
+scripts/e2e/benchmark-suite.py;PDF 驻留探针=无应用侧泄漏(渲染进程平台化+GPU 缓存非单调);
+空闲 RAM 200.2MB 未达 150MB target(非 gate,WebView2 底座主导,Rust 仅 6.2)。测试基建发现 **L42**
+(window_of 停错窗,e2e 实际全隐藏口径;基准脚本内已补偿)。
 **版本段 0.7.x 固定递增不跳段**。
 挂账两件见 §三(冻结 bug 取证 / 异地备份 remote)。
 Phase 10 全程蒸馏在 history/progress/progress-2026-10.md(Grep spec-011/0.7.6/0.7.7/L39/L40);
@@ -27,6 +28,16 @@ aiv-diagnostics-<ts>.txt,同机直读定位;修复随 0.7.x 发。
 **park_offscreen(L34)**。
 
 ## 一、现在在哪(最新在上)
+
+### 2026-10-12 · T3 全量基准跑完(A–I+Baseline 全过),等 owner 验收 spec-011
+
+- owner"开跑"(红线授权)→ 新建 scripts/e2e/benchmark-suite.py(A–I+Baseline 合一,九档全跑门全过,
+  私有字节全进程树口径)。关键数:前端就绪 ≤1.2s/空闲 CPU 0.12 CPU·s/min/空闲 RAM 200.2(150 target ⚠ 非 gate)/
+  10 页签 +25MB/4 项目恢复 685ms/10.5 万文件零递归扫描/Agent 锤击防抖 3.5:1/PDF 5 页签 1.6×/25k 行 diff 截断 182ms/
+  git-suite 33/33。全文=testing.md §4 T3 行。
+- 附带两判:①PDF 反复开关 5 轮+强制 GC 探针=渲染进程平台化、GPU 光栅缓存非单调 ⇒ **无应用侧无界泄漏**
+  (Phase 5 单轮"无泄漏"弱判断升级为有界判读);②基建发现 **L42**(window_of 停错窗)。
+- 下一步:owner 验收原话落 spec-011 §六 → Done → NSIS(webviewInstallMode 三选一点头)。
 
 ### 2026-10-12 · spec-013 验收 Done(0.7.10),主线=T3 全量基准待 owner 点头
 

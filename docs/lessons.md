@@ -334,3 +334,10 @@
 - **机理**:两条规矩的乘积——①树高亮单一真值=激活页签(2026-10-10,治"树和页签高亮漂移");②右键高亮=菜单期瞬态独占(0.6.12,治"右键不高显")。①×② ⇒ 菜单一关,高亮必然还给激活页签;而用户刚对 X 做了动作,感知上"高亮跳到了别的文件"。规矩各自正确、组合翻车,且潜伏到 owner 真用"右键→移交"才现形。
 - **判据**:①"瞬态/持久"这类交互取舍,必须枚举**关闭路径**逐条问用户感知:点了动作关闭≠点空处关闭——前者是"对 X 的操作完成",X 应保持高亮;后者是"取消",回落才对。②修法=动作关闭不清 contextMenuTarget(acted 标记),下次文件激活(revealInTree 单一咽喉)交还;③守卫载荷**别用会弹系统窗口的动作**(reveal)——零打扰红线,用同语义的无害动作(Copy Path)替代。
 - **出处**:owner 2026-10-12 报障;探针五步实证(激活/菜单开/动作后/无动作关/再激活)全部符合预期后收;守卫=phase3 `context_action_keeps_row_highlight`,修复随 0.7.9 发。
+
+### L42:AIV_HIDDEN 下主窗从未 show,window_of 按"可见"找到的是单实例哨兵窗——park_offscreen 一直停错窗,全部 e2e 实际跑在"rAF 冻结"口径(2026-10-12 T3 轮)
+
+- **发现**:基准轮测"窗口可见"启动耗时时枚举实证:AIV_HIDDEN=1 下主窗(title=AI Project Viewer)IsWindowVisible=False——tauri.conf `visible:false` 创建+setup 里 AIV_HIDDEN 分支跳过 show();进程里另有一扇**始终可见**的 `com.aiprojectviewer.app-siw`(单实例哨兵窗)。aivlaunch.window_of 按 IsWindowVisible 过滤 ⇒ 返回的永远是哨兵窗,park_offscreen 的 SetWindowPos+ShowWindow 全打在哨兵窗上,主窗保持全隐藏。
+- **机理**:testing.md §2.1"移屏幕外保持渲染"公式的"找到主窗"一步从未真正成立;套件一直绿是因为 L34 修复(refreshGitNow 直取)+各断言不依赖 rAF/paint(canvas 计数不 paint 也真)。被冻结的实际只有 setTimeout/rAF 一类——"隐藏窗定时器冻结(L28)"口径覆盖全部 e2e。
+- **判据**:①要"真实渲染/定时器活"的测量(基准空闲 CPU、启动可见口径),必须按 (pid,title) 找主窗(不看可见位)再 SetWindowPos 屏外+SW_SHOWNOACTIVATE(benchmark-suite.py `show_main_offscreen`);②"窗口可见"口径零打扰下不可复刻,启动改记两段:窗口创建(title 枚举)+前端就绪(CDP body 挂载);③aivlaunch 是全套件共享基建,本轮不动它、在基准脚本内补偿;要统一翻案先全套件对照跑。
+- **出处**:T3 全量基准 A 档计时探针(2026-10-12);补偿实现=scripts/e2e/benchmark-suite.py。

@@ -15,7 +15,7 @@
 | T0 秒级自测 | `pnpm check` + `cargo test` + debug 构建启动冒烟 | 每次改动后 | <2 min |
 | T1 Phase 功能自测 | §3 脚本清单按域跑(逐项实测留证据) | 每个 Phase 交付前 | 0.5–1 h |
 | T2 Phase Baseline | §4.9(每 Phase 增量记录) | Phase 交付时 | ~10 min |
-| T3 全量 Benchmark | V1.5 §166–§174 A–I 档 | owner 批准后(V1 收口前) | 数小时 |
+| T3 全量 Benchmark | V1.5 §166–§174 A–I 档(**脚本已建:`benchmark-suite.py`) | owner 批准后(V1 收口前) | ~1.5 h |
 
 ## 1. 环境与命令
 
@@ -91,6 +91,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
 | `watcher-freeze-guard.py` | 监听抗冻守卫(0.7.0 启动卡死教训,L35):%TEMP% 夹具(300 文件/30 提交 git 仓)+持续写盘锤击(改写+增删 ~33 周期/秒)25s,`SendMessageTimeout(WM_NULL)` 测**原生窗口线程**(渲染进程健康≠窗口没冻);PASS=无响应采样≤2 | **凡动 watcher 链/git_snapshot/事件刷新路径,发版前必跑** |
+| `benchmark-suite.py` | **T3 全量基准**(A–I+Phase 1 Baseline 重跑,V1.5 §161–§174):A 壳启动/RAM/CPU(双口径:隐藏=下限+`show_main_offscreen`=真实,L42)·B 常规页签/切换·C 多项目预置恢复·D node_modules>10 万文件·E Agent 锤击 60s·F/G PDF RAM 增量·H 大 diff 截断·I=复跑 git-suite;psutil 全进程树**私有字节**口径(§161);结果落 %TEMP%\aiv-bench\results.json | T3 轮(owner 批准后);性能回归疑点复测 |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
 | `oracle/` | 官方查看器对照基准(搭建见 README) | 疑上游问题 |
 
@@ -311,6 +312,24 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | phase3/git/recent/r3/pdf | 68/68、33/33、15/15、8/8、23/23 |
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
+
+#### 0.7.10 T3 全量基准轮(2026-10-12,spec-011 InTest 收口门;owner 批准"开跑";全部通过)
+
+新建 `scripts/e2e/benchmark-suite.py`(A–I+Baseline 合一;psutil 全进程树**私有字节**口径 §161;结果 %TEMP%\aiv-bench\results.json)。受测=dev release 0.7.10。数字均为实测单轮(启动类 3 次)。
+
+| 档 | 关键数(门全过) |
+|---|---|
+| A/Baseline | 窗口创建 43ms;**前端就绪 1150/917/1003ms**(CDP 口径,≤2s 门过;可见窗口径零打扰不可复刻,L42);空闲 RAM **私有 200.2MB**(Rust 6.2+WebView2 194.0;WS 429.6)vs §163 target 150 ⚠ 非 gate;空闲 CPU **0.12 CPU·s/60s**(屏外可见口径;隐藏口径 0.3);WebView2 进程 6 |
+| B 常规 | 10 页签(5md+3py+2json)+24.9MB;文件切换 p50 34ms/max 42ms |
+| C 多项目 | 4 项目×10 页签预置:会话恢复 685ms/重启恢复 718ms/项目切换 p50 33ms(4/4);RAM 223.1(CDP 底座内,看增量) |
+| D 大库 | node_modules **105,000 文件**(52s 造,硬链接);启动=常规模(**无递归扫描**);树首显 31ms;监听空闲 CPU 0.03 CPU·s/30s;目录内 300 写风暴 CPU≈0.03+零无响应(忽略过滤实证) |
+| E Agent | 60s 278 次写 10 文件:零无响应(WM_NULL 采样);git.exe **79 个**(400ms 防抖合并 3.5:1,理论顶 150;100ms 轮询=下限);徽标终值 10 正确 |
+| F PDF | 增量(私有 MB,CDP 底座在增量里消掉):text10 开+101/深滚+233;text100 开+87/深滚+194(**虚拟化:100 页≈10 页**);scan100 开+171/深滚+291 |
+| G 多 PDF | 1 页签 +86 vs 5 页签(1 激活)+139 = **1.6×**(线性 5×=+430) |
+| H 大 diff | 25k 行工作区 diff → 截断分支 **182ms**("Diff is too large to display."+"Open in VS Code" 在场未点);不渲染全量表(2MB/20k 行后端截断实证);小 diff 176ms 正常;全程零无响应 |
+| I 子目录 scope | git-suite 复跑 exit 0(**33/33**,§174 七查在其 BigRepo apps/viewer 实例) |
+
+**PDF 反复开关驻留探针**(5 轮+CDP 强制 GC,补 Phase 5 单轮判断):渲染进程 42→71→81→84MB **平台化**=无 JS 侧泄漏;GPU 进程 94→292→184MB **非单调**=Chromium 光栅缓存自管;Rust/网络/存储全程平 ⇒ **无应用侧无界泄漏**;F 档"close 不立即回落"判读=GC 迟还+GPU 缓存,有界。§163"≤ VS Code 50%"参考项未测(不动 owner 的编辑器实例)。测试基建发现 **L42**(window_of 停错窗,e2e 实际全隐藏口径)。
 
 ### 4.1 Phase 1 应用壳(2026-10-01,全部通过)
 
