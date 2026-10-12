@@ -30,3 +30,6 @@ build/
 Thumbs.db
 .idea/
 __pycache__/
+
+# 工具产物(impeccable 评审快照目录;快照文件本身留在本地用,不入库)
+.impeccable/

@@ -13,6 +13,7 @@
 | 装依赖 | `pnpm install`(前端);Rust 依赖随首次构建自动拉取,`cd src-tauri && cargo fetch` 可预取 |
 | 启动(开发) | `pnpm tauri dev`(起 Vite:1420 + debug exe);要可独立运行的 debug exe:`pnpm tauri build --debug --no-bundle` → `src-tauri/target/debug/ai-project-viewer.exe` |
 | 跑测试 | 见 docs/testing.md §1(唯一真值):`pnpm check` / `cd src-tauri && cargo test` / 构建;Benchmark 档位见 V1.5 §162–§173 |
+| 调试端口(CDP) | dev/体验版**常开** 9322:lib.rs 启动时若 env 未设则给 WebView2 加 `--remote-debugging-port=9322`(e2e 自设端口优先);活体直连=`scripts/e2e/live-inspect.py` 只读快照(owner 2026-10-12 指令,现场报障第一动作)。**生产/NSIS 打包必须关**(spec-011 记档债务) |
 | 平台已知坑 | ① 路径含空格/中文必须加引号;② WebView2 浏览器加速键抢占应用快捷键 → 已在 Rust 侧 COM 禁用(§147,src-tauri/src/lib.rs);③ git 输出路径基准不一致:status 相对 cwd、diff/log 相对 Git Root,一律用 `git -C <GitRoot>` 规避(V1.5 §196 附注A);④ Rust `canonicalize` 产生 `\\?\` 前缀 → 用 dunce crate(V1.5 §144);⑤ 无 BOM UTF-8 的 .ps1 含中文会被 PS5.1 按 GBK 误读导致解析错乱(lessons L2) |
 | 🚫 别碰 | 需求文档是唯一基线,不得未经 owner 修改;密钥文件别读(见 AGENTS.md 红线);不得绕过 V1.5 §143–§147 安全章节"图快" |
 
@@ -33,6 +34,8 @@
 | D9 | UI 布局 | Sidebar Header Tabs(Files/Git),非 Activity Bar | 否决竖向 Activity Bar:两个工作区不值得占一列 | V1.5 §7–§8 |
 | D10 | opener 插件授权(渲染层) | capabilities 只授 `opener:allow-open-url`(http/https);**不授 open-path/reveal/mailto** | 否决 `allow-open-path **`:渲染层处理不可信 PDF/代码文件(pdf.js/CM 为现实攻击面),曾授权任意路径 OS 关联打开=可执行程序;插件文档证实 scope 仅 IPC 层强制,Rust 自由函数(open_path/reveal)不受影响——收紧零代价(spec-011 R20/phase3 双拒探针) | spec-011 §四 D8;2026-10-11 |
 | D11 | cmd.exe 宿主传脚本路径 | `raw_arg` 双层引号 `""path""`(SpawnArg::CmdPath) | 否决裸 argv/单层引号:cmd 的 /K 文档行为=引号内含元字符即剥外层引号重析,单层引号下 `a&calc&` 文件夹实证跑出 calc(§145) | spec-011 §四 D7;2026-10-11 |
+| D12 | 前端工作区生命周期 | 每项目 viewer 区按 rootPath `{#key}` 整体重挂载(App.svelte);`projectTabs()` 创建分支返回 store 代理而非裸局部对象 | 否决"逐点修补订阅失效":ActiveViewer 的 `$derived(activeTab)` 与 tabsState 失联且跨项目蔓延(0.7.12 冻结大案,诊断 #3 MISMATCH 行+机理定位);keyed 重挂=订阅不可能跨项目变陈;本地复现率仅 ~2%,统计证不出但机理修(L43) | 0.7.12 冻结案;docs/testing.md §4 |
+| D13 | 常开探查端口 | lib.rs 启动时(env 未设则)给 WebView2 加 CDP `--remote-debugging-port=9322`;配合 `__aiv.snapshot()`(debugHook.ts)供 live-inspect.py 只读直连 | 否决"只靠诊断日志复盘":owner 指令——软件就在本地开着,应当能直接取现场信息;只读不控、不启不杀;**生产打包必须关**(债务记 spec-011 上下文+lib.rs 注释) | owner 2026-10-12 指令 |
 
 ## 1.5 待决问题(摆上桌但"以后再说"的;不是 bug 不是待办,是没被遗忘也没被拍死的取舍)
 
@@ -89,6 +92,11 @@ ProjectViewer/(仓库根)
 ├── index.html / vite.config.ts / tsconfig.json / svelte.config.js / package.json / .npmrc —— 前端工程(纯 Vite+Svelte5,无 SvelteKit)
 ├── scripts/install-experience.ps1(体验版一次性装机:独立目录+state 迁移+快捷方式)
 ├── scripts/publish-experience.ps1(每轮交付:构建 .exp 配置+放 updates+写 update.json——交付流程见 testing.md §2f)
+├── scripts/e2e/ —— e2e/工装脚本集群(档位与跑法唯一真值=docs/testing.md §1/§3;⚠️ 零打扰红线:aivlaunch.py PID 限定启动,绝不按进程名杀/按标题找窗)
+│   ├── 回归五套:phase3-suite / git-suite / recent-suite / acceptance-r3 / pdf-suite(夹具自建,make-fixtures/oracle 供)
+│   ├── benchmark-suite.py —— T3 全量性能档(A–I+Baseline;🔴 owner 批准才跑,结果落 %TEMP%\aiv-bench)
+│   ├── freeze-repro.py / freeze-probe.py —— 内容冻结复现器/探针(0.7.12 大案工装;probe 支持 FREEZE_PROBE_EXE/FAST)
+│   └── live-inspect.py —— 活体直连(CDP 9322 只读快照;不启不杀不聚焦;现场报障第一动作,D13)
 ├── src-tauri/experience.conf.json(体验版构建片段:identifier .exp,数据/单实例与开发版全隔离)
 ├── public/favicon.png
 ├── src/ —— Svelte + TypeScript 前端
@@ -114,6 +122,7 @@ ProjectViewer/(仓库根)
 │       ├── stores/gitStore.svelte.ts(Phase 7 运行时 git 态,§20 零持久化:每项目快照+marks 缓存;refreshGit 400ms 防抖/refreshGitNow 启动直取(隐藏窗口 timer 冻结,lessons L28);单槽 gitViewSlot(diff/commit 两态,0.6.8 返修;Git 视图接管主区时 App 隐藏 FileTabs);forgetGit 随项目移除)/
 │       ├── stores/recentStore.svelte.ts(0.7.3 Open Recent MRU 态,§198:≤10 条 canonical 路径 record/remove/clear/restore;持久化搭 appState.recentFolders 可选字段与 stateSync 既有防抖车,零新增定时器)
 │       ├── services/appState.ts(持久化纯函数:白名单序列化+自愈解析;0.7.3 recentFolders 可选字段——非空才写、读取截断自愈,恢复只 adopt 不 record)+ sessionRestore.svelte.ts(启动恢复编排:resolve 校验,失效项目跳过)+ stateSync.svelte.ts($effect.root 防抖 800ms 保存+pagehide flush)
+│       ├── services/debugHook.ts(0.7.11:window.__aiv.snapshot() 只读探查钩子——projects/tabs 每根态/DOM 查看器身份(data-rel 对照)/日志环摘要;live-inspect.py 经 CDP 9322 直取,pre-0.7.12 客户端自动回退 DOM 比对)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家;**Phase 9 起为 Rust watcher.rs 同款清单的 TS 侧镜像(注释互指,D8)**)/
@@ -147,6 +156,7 @@ ProjectViewer/(仓库根)
 | Git 只读检视(徽标/页签 ✓●/树标记/Git 面板/并排 diff/提交详情/刷新触发,Phase 7+0.6.8 返修) | src-tauri/src/git.rs(命令+解析) + src/lib/stores/gitStore.svelte.ts(态+防抖) + gitFormat.ts/diffSideBySide.ts(纯函数) + GitPanel(0.6.8 照 VS Code 重排:分段文件名/计数徽章/提交图形列)/DiffViewer/CommitDetailView 组件 |
 | 文件变化实时监听(Phase 9:树/查看器/Git 自动刷新+删除改名同步) | src-tauri/src/watcher.rs(监听+防抖+忽略+配对) + stores/watcherStore.svelte.ts(批次编排) + services/watcherApply.ts(纯匹配) + tabsStore.reloadFile/applyTabRenames + fileTreeStore.applyTreeRenames/pruneRemovedDirs + App.svelte(激活项目 start/stop effect+initWatcher) |
 | 主题/外观 tokens | src/app.css + stores/settingsStore.svelte.ts |
+| 现场冻结/内容不一致取证(活体直连) | scripts/e2e/live-inspect.py(CDP 9322 只读,不启不杀)+ src/lib/services/debugHook.ts(__aiv 快照)+ freeze-probe.py(本地复现探针;诊断日志导出=Settings→Export Diagnostics) |
 | 快捷键拦截/新组合注册 | src/lib/services/shortcuts.ts(禁用浏览器加速键在 src-tauri/src/lib.rs) |
 | 窗口/安全策略 | src-tauri/tauri.conf.json |
 
@@ -165,6 +175,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-12 | 0.7.10–0.7.13 | T3 全量性能档跑通(A–I+Baseline 全过;idle 200MB 记账未达 150 目标,WebView2 基座占大头,非门);内容冻结大案修复:根因=ActiveViewer `$derived` 与 tabsState 失联跨项目蔓延 → 工作区按 rootPath keyed + projectTabs 返回 store 代理(**D12**);取证升级 0.7.11(data-rel 渲染标记/console 捕获/`__aiv.snapshot`);常开 CDP 9322 探查端口(**D13**);0.7.13 置顶图钉移行尾(层级对齐,owner 提案) | owner 报障"切页签内容不变"+活体直连指令;T3 预授权"开跑" |
 | 2026-10-12 | 0.7.8/0.7.9 | 全面 code review 后修复批(spec-012,报告 44 条):同步命令 IO/进程清零(13 命令补转 async+updater exists() 前置门)、watcher 升 WatchState 代次(切换乱序自弃)、gitStore 单飞、PDF 三处取消语义(RenderTask cancel/搜索代次/scrollTimer+lastScrollTop 兜底)、open_with_default_app 可执行拒绝表(msi 豁免 §126)、CSP 补 base-uri/form-action 'none'、md5→RustCrypto md-5;0.7.9 返修=右键动作后树高亮保持(L41)。硬规则未变(0.7.6 已立),本批=全量执行;L29 警示重申:GUI 二进制只认 tauri CLI 产物 | owner"开工,完成spec012";InTest 报障返修 0.7.9 |
 | 2026-10-11 | 0.7.6 | Phase 10 体检落地(spec-011):审计 20 项(九泄漏+十一风险)逐项留证;修三缺口+两主线程隐患——git show 补 §70 旗标、cmd /K raw_arg 双引号防注入(D11)、opener 授权收紧到 open_url http/https(D10)、git_diff/git_commit_detail+四读通道全转 async;发版三决定拍板(NSIS/不签/关更新,Q1 归档);硬规则新增"外部进程/大文件命令一律 async"+"渲染层插件授权最小化"+"产生补丁的 git 调用必带双旗标" | owner"开工"(Phase 10 A2 对齐) |
 | 2026-10-02 | — | 基建落地:体验版客户端与更新机制(SPEC-INFRA-001)——owner 客户端独立 identifier/目录/数据,开发构建永不触碰;交付=scripts/publish-experience.ps1+客户端内 Update 按钮(md5 判定+rename 自替换);诊断面板加 Channel/Build 时间 | owner 立规("根治开发/体验共用 exe") |

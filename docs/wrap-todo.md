@@ -8,7 +8,4 @@
 
 ## 当前清单
 
-| 执行项 | 状态 |
-|---|---|
-| architecture.md 三处同步(2026-10-12 段落欠账):§3 代码地图补 `src/lib/services/debugHook.ts`+`scripts/e2e/live-inspect.py`+`freeze-probe.py`;§0 开发环境补「dev/体验版常开 CDP 9322(lib.rs,e2e 端口优先;生产打包必须关)」;§1 决策表+§12 修订记录补两行(工作区按 rootPath keyed=冻结修复主决策;常开探查端口=owner 活体直连指令) | 待做 |
-| `.gitignore` 加一行 `.impeccable/`(impeccable 评审快照目录,工具产物不入库;快照文件本身留着用) | 待做 |
+(空——上一轮两条已于 2026-10-12 压缩后第一个动作做完并清空)
