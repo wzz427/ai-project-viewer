@@ -187,12 +187,14 @@
      Contrast pairs verified ≥4.5:1 (WCAG AA) by script, recorded in
      docs/testing.md 0.7.23 row. ---- */
   .rendered {
-    /* light paper */
-    --md-bg: #faf8f4;
-    --md-text: #2b2620;
+    /* light paper — bg/text/border ride the GLOBAL ink&paper tokens since
+       0.8.0 (whole-app ladder); only the code surface + syntax tokens stay
+       markdown-scoped. */
+    --md-bg: var(--viewer-bg);
+    --md-text: var(--text);
     --md-muted: #6b6356;
-    --md-link: #9a4722;
-    --md-border: #e5dfd2;
+    --md-link: var(--accent);
+    --md-border: var(--viewer-border);
     --md-code-bg: #f0ece2;
     --hl-kw: #a0431f;
     --hl-str: #566d16;
@@ -205,11 +207,11 @@
 
   :global([data-theme="dark"]) .rendered {
     /* warm charcoal */
-    --md-bg: #211f1c;
-    --md-text: #ddd6cb;
+    --md-bg: var(--viewer-bg);
+    --md-text: var(--text);
     --md-muted: #a39a8b;
-    --md-link: #d08c5f;
-    --md-border: #3a352e;
+    --md-link: var(--accent);
+    --md-border: var(--viewer-border);
     --md-code-bg: #1a1815;
     --hl-kw: #e89a6f;
     --hl-str: #b3c77e;

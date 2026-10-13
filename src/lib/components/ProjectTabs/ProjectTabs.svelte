@@ -211,12 +211,14 @@
     background: var(--bg-hover);
   }
 
-  /* Active project: chrome-level emphasis — accent-soft tint fills the
-     tab and a 2px accent bar anchors it to the band (spec-014 R1/R5). */
+  /* Active project: fill chip (owner 0.8.0 方案 C) — the old 2px bottom
+     accent bar is GONE by decision: it collided with the file tab's top
+     hairline whenever the two active tabs sat near each other. Depth now
+     comes from the band↔frame value ladder, the chip fill + weight. */
   .tab.active {
     background: var(--accent-soft);
     color: var(--text);
-    box-shadow: inset 0 -2px 0 var(--accent);
+    font-weight: 600;
   }
 
   /* Drop indicators (spec-015, same language as file tabs): line above

@@ -1,14 +1,20 @@
 /* AI Project Viewer — shell theme tokens (V1.5 §154/§155).
-   2026-10-12 spec-014 visual refresh (owner 方案 A 克制专业版 / 亮色为主):
-   - Type scale collapsed to three steps + 600 weight for hierarchy
-     (spec-014 D2): --text-xs/sm/base. No half-pixel sizes anywhere.
-   - Semantic color tokens: one --danger (was 4 coexisting reds),
-     --accent-soft = active-state tint layer (spec-014 D5), git status
-     hues stay a separate family (spec-014 D7).
-   - Dark theme three-surface ladder (spec-014 D6): shell darkest /
-     reading surface mid / floating overlays brightest + shadow.
-   - Text contrast WCAG AA ≥4.5 verified by script; numbers recorded in
-     specs/spec-014-visual-refresh.md §六.
+   2026-10-12 spec-014 visual refresh (owner 方案 A 克制专业版 / 亮色为主);
+   2026-10-14 0.8.0 ink&paper round (owner demo 三选 C + 层次加强 + 代码面同纸):
+   - The WHOLE app moves into one warm ink-and-paper world — chrome tokens
+     warmed to match the paper reading surface (0.7.23 made the document
+     warm and left the chrome cool: two temperatures in one window).
+   - Deliberate three-level ladder for instant depth read (owner 报障
+     "项目和文件标签层次感不够"): band (--bg, deepest ink) → frame
+     (--bg-raised: sidebar + file strip) → paper stage (--viewer-bg).
+   - Accent family switches blue → sienna (same family as document links,
+     owner-picked C): one accent for the entire app. Git status hues and
+     --danger are FUNCTIONAL colors and stay untouched.
+   - Active tab semantics lose their lines (owner C): project tab = fill
+     chip, file tab = merges into paper + one top hairline. The old
+     bottom-line(project) + top-line(file) collision is structurally gone.
+   - Text contrast WCAG AA ≥4.5 verified by script; recorded in
+     docs/testing.md 0.8.0 row.
    Theme driven by [data-theme] on <html>. */
 
 :root {
@@ -27,28 +33,27 @@
 }
 
 :root[data-theme="dark"] {
-  /* Three-surface ladder (spec-014 D6): shell (--bg) darkest; reading
-     surface (--viewer-bg) is the stage; overlays (--bg-overlay) float
-     above everything, brightest, with shadow. */
-  --bg: #16181c;
-  --bg-raised: #1c1f24;
-  --bg-hover: #242830;
-  --bg-active: #2b3039;
-  --bg-overlay: #262a31;
-  --border: #2e323a;
-  --text: #d6d9de;
-  --text-muted: #989eab;
-  --accent: #5c96d0;
-  --accent-soft: rgba(92, 150, 208, 0.18);
-  /* Solid-fill accent (buttons with light text): the bright accent that
-     reads well as text/lines on dark surfaces is too light under white
-     text (3.1:1) — fills use this deeper shade (white on it = 5.3:1). */
-  --accent-strong: #2f6db3;
+  /* Ink & paper ladder: band #100e0b (deepest ink) < frame #26221b <
+     overlay #2b2721; the paper stage itself is --viewer-bg #211f1c,
+     framed by --viewer-border. */
+  --bg: #100e0b;
+  --bg-raised: #26221b;
+  --bg-hover: #2e2921;
+  --bg-active: #363025;
+  --bg-overlay: #2b2721;
+  --border: #3a352c;
+  --text: #ddd6cb;
+  --text-muted: #a39a8b;
+  --accent: #d08c5f;
+  --accent-soft: rgba(208, 140, 95, 0.16);
+  /* Solid-fill accent (buttons with light text): sienna deepened so white
+     on it clears AA (5.28:1). */
+  --accent-strong: #a9541f;
   --accent-text: #ffffff;
   --danger: #f0635a;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --viewer-bg: #202329;
-  --viewer-border: #33373f;
+  --viewer-bg: #211f1c;
+  --viewer-border: #3a352e;
   /* Git letters (§46, spec-007 D5): VS Code-ish hues per status. */
   --git-m: #e2c08d;
   --git-a: #73c991;
@@ -61,22 +66,24 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #f0f2f5;
-  --bg-raised: #f8f9fb;
-  --bg-hover: #e7eaf0;
-  --bg-active: #dce1e9;
-  --bg-overlay: #ffffff;
-  --border: #d9dde4;
-  --text: #26282c;
-  --text-muted: #5d6470;
-  --accent: #2f6db3;
-  --accent-soft: rgba(47, 109, 179, 0.12);
-  --accent-strong: #2f6db3;
+  /* Ink & paper ladder, light: band #e2dbcc (deepest warm gray) → frame
+     #f2eee5 → paper #faf8f4. */
+  --bg: #e2dbcc;
+  --bg-raised: #f2eee5;
+  --bg-hover: #eae5d9;
+  --bg-active: #e0dacb;
+  --bg-overlay: #fffdf9;
+  --border: #d9d2c2;
+  --text: #2b2620;
+  --text-muted: #635b4e;
+  --accent: #9a4722;
+  --accent-soft: rgba(154, 71, 34, 0.12);
+  --accent-strong: #9a4722;
   --accent-text: #ffffff;
   --danger: #cf222e;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  --viewer-bg: #ffffff;
-  --viewer-border: #e4e7ec;
+  --viewer-bg: #faf8f4;
+  --viewer-border: #e5dfd2;
   --git-m: #9a6700;
   --git-a: #1a7f37;
   --git-d: #cf222e;
@@ -142,6 +149,13 @@ body {
    selected anywhere while body carried user-select: none). */
 .viewer-body {
   user-select: text;
+}
+
+/* Text selection inside viewers tints with the app accent (0.8.0): the
+   WebView default selection blue was the last cold spot in the paper
+   world — selection reads as ink highlight now. */
+.viewer-body ::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 #app {

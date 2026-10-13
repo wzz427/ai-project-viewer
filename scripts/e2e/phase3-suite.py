@@ -186,6 +186,31 @@ with sync_playwright() as p:
     check("md_task_checkbox_drawn", m["cbAppear"] == "none", str(m["cbAppear"]))
     check("md_hljs_python_tokens", m["kw"] >= 1, str(m["kw"]))
 
+    # --- 0.8.0 ink&paper chrome guards (owner 方案 C + 层次加强) ---
+    chrome = page.evaluate("""() => {
+        const band = document.querySelector('.project-tabs');
+        const strip = document.querySelector('.file-tabs');
+        const main = document.querySelector('.viewer-body');
+        const ptA = document.querySelector('.project-tabs .tab.active');
+        const ftA = document.querySelector('.file-tab.active');
+        const rgb = (el) => el ? getComputedStyle(el).backgroundColor : null;
+        const cs = ftA ? getComputedStyle(ftA, '::after') : null;
+        return { band: rgb(band), strip: rgb(strip), paper: rgb(main),
+                 ptLine: ptA ? getComputedStyle(ptA).boxShadow : null,
+                 ftLineH: cs ? cs.height : null,
+                 ftLineC: cs ? cs.backgroundColor : null };
+    }""")
+    check("chrome_ladder_three_levels",
+          chrome["band"] and chrome["strip"] and chrome["paper"]
+          and len({chrome["band"], chrome["strip"], chrome["paper"]}) == 3,
+          str(chrome))
+    check("proj_active_no_line",
+          chrome["ptLine"] == "none", str(chrome["ptLine"]))
+    check("file_active_single_hairline",
+          chrome["ftLineH"] == "2px"
+          and chrome["ftLineC"] in ("rgb(208, 140, 95)", "rgb(154, 71, 34)"),
+          f"h={chrome['ftLineH']} c={chrome['ftLineC']}")
+
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
     # pinned tabs protected, anchor survives and takes over activation ---
     while tab_count() > 0:  # deterministic scene: clear, then five known tabs
@@ -302,7 +327,11 @@ with sync_playwright() as p:
     time.sleep(0.3)
     page.click('button[title="Settings"]')
     bg = page.evaluate("() => getComputedStyle(document.querySelector('.viewer')).backgroundColor")
-    check("light_viewer_white", bg in ("rgb(255, 255, 255)", "#ffffff"), bg)
+    # 0.8.0 ink&paper (owner 方案 C): the light reading stage is warm paper
+    # #faf8f4, not pure white — the whole-app paper contract replaced the
+    # old "viewer must be #ffffff" one (0.7.23 scoped paper to markdown
+    # only; 0.8.0 made every reading surface paper).
+    check("light_viewer_paper", bg in ("rgb(250, 248, 244)", "#faf8f4"), bg)
     # back to system
     page.click('button[title="Settings"]')
     page.locator('input[name="theme"][value="system"]').check()
