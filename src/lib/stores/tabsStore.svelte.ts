@@ -295,6 +295,45 @@ export function closeFile(rootPath: string, rel: string) {
   }
 }
 
+/** Batch closes from the tab context menu (owner 2026-10-13): every tab
+ *  left/right of the anchor, or every other tab. Pinned tabs are protected
+ *  — pinning is the "keep this around" contract (slot recycling already
+ *  honors it), so a bulk close never yanks a pinned tab; unpin or close it
+ *  individually. The anchor itself always survives and takes over
+ *  activation if the active tab was among the closed. Returns the number
+ *  of closed tabs (0 = nothing eligible). */
+export function closeSiblingTabs(
+  rootPath: string,
+  anchorRel: string,
+  scope: "left" | "right" | "others",
+): number {
+  const st = projectTabs(rootPath);
+  const idx = st.openFiles.findIndex((t) => t.relativePath === anchorRel);
+  if (idx === -1) return 0;
+  const doomed = new Set(
+    st.openFiles
+      .filter(
+        (t, i) =>
+          !t.pinned &&
+          t.relativePath !== anchorRel &&
+          (scope === "others" || (scope === "left" ? i < idx : i > idx)),
+      )
+      .map((t) => t.relativePath),
+  );
+  if (doomed.size === 0) return 0;
+  for (let i = st.openFiles.length - 1; i >= 0; i--) {
+    const t = st.openFiles[i];
+    if (t && doomed.has(t.relativePath)) {
+      st.openFiles.splice(i, 1);
+      contentCache.delete(cacheKey(rootPath, t.relativePath));
+    }
+  }
+  if (st.activeFileRelativePath && doomed.has(st.activeFileRelativePath)) {
+    activateFile(rootPath, anchorRel);
+  }
+  return doomed.size;
+}
+
 export function cycleTab(rootPath: string, direction: 1 | -1) {
   const st = projectTabs(rootPath);
   if (st.openFiles.length < 2) return;

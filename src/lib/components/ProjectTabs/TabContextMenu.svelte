@@ -7,9 +7,11 @@
    */
   import {
     closeFile,
+    closeSiblingTabs,
     setJsonMode,
     setMarkdownMode,
     setTabPinned,
+    tabsState,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
   import { fileHandoffGroups } from "$lib/services/handoffMenu";
@@ -40,6 +42,24 @@
       { includeOpen: false },
     ),
   );
+
+  // Eligible batch-close targets per side (owner 2026-10-13). Pinned tabs
+  // never count — the batch items go dead when a side holds only pinned
+  // tabs, so the menu itself says "nothing to close" instead of a silent
+  // no-op click.
+  const sideCounts = $derived.by(() => {
+    const files = tabsState.byRoot[rootPath]?.openFiles ?? [];
+    const anchor = files.findIndex((t) => t.relativePath === tab.relativePath);
+    let left = 0;
+    let right = 0;
+    for (let i = 0; i < files.length; i++) {
+      const t = files[i]!;
+      if (t.pinned || t.relativePath === tab.relativePath) continue;
+      if (i < anchor) left++;
+      else right++;
+    }
+    return { left, right, others: left + right };
+  });
 
   let el = $state<HTMLElement | null>(null);
 
@@ -125,6 +145,27 @@
   <button class="menu-item" onclick={() => act(() => closeFile(rootPath, tab.relativePath))}>
     Close Tab
   </button>
+  <button
+    class="menu-item"
+    disabled={sideCounts.others === 0}
+    onclick={() => act(() => closeSiblingTabs(rootPath, tab.relativePath, "others"))}
+  >
+    Close Others
+  </button>
+  <button
+    class="menu-item"
+    disabled={sideCounts.left === 0}
+    onclick={() => act(() => closeSiblingTabs(rootPath, tab.relativePath, "left"))}
+  >
+    Close to the Left
+  </button>
+  <button
+    class="menu-item"
+    disabled={sideCounts.right === 0}
+    onclick={() => act(() => closeSiblingTabs(rootPath, tab.relativePath, "right"))}
+  >
+    Close to the Right
+  </button>
 </div>
 
 <style>
@@ -149,6 +190,17 @@
 
   .menu-item:hover {
     background: var(--bg-hover);
+  }
+
+  /* Batch-close items with nothing eligible on that side (e.g. only pinned
+     tabs to the left): dead look, no hover affordance. */
+  .menu-item:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .menu-item:disabled:hover {
+    background: none;
   }
 
   .sep {

@@ -161,6 +161,69 @@ with sync_playwright() as p:
     time.sleep(0.3)
     check("md_rendered_via_menu", page.locator(".markdown-viewer .rendered").count() == 1)
 
+    # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
+    # pinned tabs protected, anchor survives and takes over activation ---
+    while tab_count() > 0:  # deterministic scene: clear, then five known tabs
+        page.locator(".file-tab .close").first.click()
+        time.sleep(0.12)
+    open_file("notes.txt")
+    expand("data")
+    open_file("sample.csv")
+    open_file("server.log")
+    open_file("metrics.json")
+    open_file("README.md")
+    anchor = page.locator(".file-tab", has_text="server.log")
+    # pin sample.csv (left of anchor): bulk closes must never touch it
+    page.locator(".file-tab", has_text="sample.csv").click(button="right")
+    page.locator(".menu button", has_text="Pin Tab").click()
+    time.sleep(0.2)
+    anchor.click(button="right")  # right-click does NOT activate the anchor
+    page.locator(".menu button", has_text="Close to the Left").click()
+    time.sleep(0.3)
+    names_left = page.locator(".file-tab .name").all_inner_texts()
+    check("close_left_drops_unpinned_left",
+          "notes.txt" not in names_left
+          and all(n in names_left for n in
+                  ("sample.csv", "server.log", "metrics.json", "README.md")),
+          str(names_left))
+    check("close_left_keeps_active",
+          page.locator(".file-tab.active .name").inner_text() == "README.md")
+    # active tab (README.md) sits right of the anchor: closing the right
+    # side must promote the anchor, and the pinned tab must survive again
+    anchor.click(button="right")
+    page.locator(".menu button", has_text="Close to the Right").click()
+    time.sleep(0.3)
+    names_right = page.locator(".file-tab .name").all_inner_texts()
+    check("close_right_drops_right",
+          all(n not in names_right for n in ("metrics.json", "README.md")),
+          str(names_right))
+    check("close_right_promotes_anchor",
+          page.locator(".file-tab.active .name").inner_text() == "server.log")
+    check("close_right_keeps_pinned", page.locator(".file-tab .pin").count() == 1)
+    # others: rebuild to four tabs, keep only anchor + one pinned
+    page.locator(".file-tab", has_text="sample.csv").click(button="right")
+    page.locator(".menu button", has_text="Unpin Tab").click()
+    time.sleep(0.2)
+    open_file("notes.txt")      # nothing pinned now -> tabs accumulate
+    open_file("metrics.json")
+    page.locator(".file-tab", has_text="sample.csv").click(button="right")
+    page.locator(".menu button", has_text="Pin Tab").click()
+    time.sleep(0.2)
+    anchor.click(button="right")
+    page.locator(".menu button", has_text="Close Others").click()
+    time.sleep(0.3)
+    names_others = page.locator(".file-tab .name").all_inner_texts()
+    check("close_others_keeps_anchor_and_pinned",
+          set(names_others) == {"server.log", "sample.csv"}, str(names_others))
+    check("close_others_promotes_anchor",
+          page.locator(".file-tab.active .name").inner_text() == "server.log")
+    # dead look when a side holds nothing eligible (only a pinned tab left)
+    anchor.click(button="right")
+    check("close_left_disabled_when_only_pinned_left",
+          page.locator(".menu button", has_text="Close to the Left").is_disabled())
+    page.mouse.click(400, 250)  # outside-mousedown closes (capture)
+    time.sleep(0.25)
+
     # --- #1: tab strip auto-reveals active tab ---
     page.evaluate("""() => {
       const bar = document.querySelector('.file-tabs');
