@@ -161,6 +161,31 @@ with sync_playwright() as p:
     time.sleep(0.3)
     check("md_rendered_via_menu", page.locator(".markdown-viewer .rendered").count() == 1)
 
+    # --- 0.7.23 paper-typography guards (owner direction C, demo-picked) ---
+    m = page.evaluate("""() => {
+        const r = document.querySelector('.rendered.md');
+        const prose = r.querySelector('.prose');
+        const h1 = r.querySelector('h1');
+        const a = r.querySelector('a');
+        const cb = r.querySelector('input[type="checkbox"]');
+        return {
+            bg: getComputedStyle(r).backgroundColor,
+            size: getComputedStyle(r).fontSize,
+            proseW: Math.round(prose.getBoundingClientRect().width),
+            h1Font: getComputedStyle(h1).fontFamily,
+            link: getComputedStyle(a).color,
+            cbAppear: cb ? getComputedStyle(cb).appearance : null,
+            kw: r.querySelectorAll('.hljs-keyword').length,
+        };
+    }""")
+    check("md_paper_theme", m["bg"] in ("rgb(250, 248, 244)", "rgb(33, 31, 28)"), str(m["bg"]))
+    check("md_font_uplift_15px", m["size"] == "15px", m["size"])
+    check("md_measure_cap", 560 <= m["proseW"] <= 780, str(m["proseW"]))
+    check("md_serif_heading", "Georgia" in m["h1Font"], m["h1Font"])
+    check("md_link_sienna", m["link"] in ("rgb(154, 71, 34)", "rgb(208, 140, 95)"), m["link"])
+    check("md_task_checkbox_drawn", m["cbAppear"] == "none", str(m["cbAppear"]))
+    check("md_hljs_python_tokens", m["kw"] >= 1, str(m["kw"]))
+
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
     # pinned tabs protected, anchor survives and takes over activation ---
     while tab_count() > 0:  # deterministic scene: clear, then five known tabs
@@ -407,31 +432,56 @@ with sync_playwright() as p:
           sel_after_dbl == "" and sel_after_tri == "",
           f"dbl={sel_after_dbl!r} tri={sel_after_tri!r}")
 
-    # centered reading column + resize guard (owner 2026-10-10 bug class)
+    # centered reading column + resize guard (owner 2026-10-10 bug class;
+    # contract REVERSED 2026-10-13 with owner via demo AIV-MD渲染对比: the
+    # reading column is capped at 88ch and centered, and the blank beside it
+    # is the SAME warm paper as the column — no cold band can exist. Assert
+    # the paper fills the pane, the column is capped + centered, and a long
+    # paragraph fills the capped column.)
     open_file("README.md")
     cdp = page.context.new_cdp_session(page)
     cdp.send("Emulation.setDeviceMetricsOverride",
              {"width": 1600, "height": 900, "deviceScaleFactor": 1, "mobile": False})
     time.sleep(0.8)
-    # owner 2026-10-10 round 2: "MD 右侧空白还是很明显" — assert against the
-    # OWNER's words (no big blank band), not against a fix's own invention:
-    # the reading column must have no max-width cap and a long paragraph
-    # must reach across the text area.
     fills = page.evaluate(r"""() => {
       const el = document.querySelector('.markdown-viewer .rendered');
       if (!el) return { ok: false, why: 'no .rendered' };
-      const cap = getComputedStyle(el).maxWidth;
-      const parentW = el.parentElement.getBoundingClientRect().width;
-      const blocks = [...el.querySelectorAll('p, li, h1, h2, h3, h4, pre')]
+      const prose = el.querySelector('.prose');
+      if (!prose) return { ok: false, why: 'no .prose' };
+      const bg = getComputedStyle(el).backgroundColor;
+      const paper = bg === 'rgb(250, 248, 244)' || bg === 'rgb(33, 31, 28)';
+      // ch scales with the font knob (A+/A−) and getComputedStyle keeps
+      // min() unevaluated — measure the cap with an in-page 88ch probe
+      // instead, then assert the CONTRACT: column = min(cap, available),
+      // centered, on full-bleed paper.
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;visibility:hidden;width:88ch';
+      prose.appendChild(probe);
+      const capPx = Math.round(probe.getBoundingClientRect().width);
+      probe.remove();
+      const capped = capPx > 0;
+      const pr = prose.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      const proseW = Math.round(pr.width);
+      const avail = Math.round(er.width
+          - parseFloat(getComputedStyle(el).paddingLeft)
+          - parseFloat(getComputedStyle(el).paddingRight));
+      const gapL = Math.round(pr.left - er.left);
+      const gapR = Math.round(er.right - pr.right);
+      const blocks = [...prose.querySelectorAll('p, li, h1, h2, h3, h4, pre')]
         .filter(x => (x.innerText || '').trim().length > 30);
       const pw = blocks.length
         ? Math.round(Math.max(...blocks.map(b => b.getBoundingClientRect().width)))
         : -1;
-      return { cap, pw, parentW: Math.round(parentW),
-               ok: cap === 'none' && pw >= parentW - 80 };
+      const expectW = capped ? Math.min(capPx, avail) : avail;
+      return { bg, capPx, proseW, avail, gapL, gapR, pw,
+               ok: paper && capped && Math.abs(proseW - expectW) <= 2
+                   && Math.abs(gapL - gapR) <= 40 && pw >= proseW - 4 };
     }""")
     check("md_text_fills_area", bool(fills["ok"]),
-          f"cap={fills['cap']} paraW={fills['pw']} parentW={fills['parentW']}")
+          f"bg={fills.get('bg')} cap={fills.get('capPx')} proseW={fills.get('proseW')} "
+          f"avail={fills.get('avail')} gaps={fills.get('gapL')}/{fills.get('gapR')} "
+          f"paraW={fills.get('pw')}")
     open_file("metrics.json")
     ok_json = page.locator(".code-viewer").count() == 1
     open_file("README.md")

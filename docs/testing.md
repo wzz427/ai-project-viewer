@@ -84,7 +84,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **78 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** + **0.7.6 opener 授权守卫(p10_×2):渲染层直调 plugin:opener|open_path 与 open_url file:// 必须双拒(断言 rejection,不弹任何窗口)** + **0.7.7 工具栏防选中守卫:双击+三连击 A+ 后 selection 必空(L40)** + 0.7.9 右键动作保高亮 + **0.7.11 内容身份守卫×2(data-rel==激活页签文件+正文新旧互斥;冻结大案的守卫缺口——此前全部断言只查页签名+类名,不查内容身份)** + **0.7.22 页签批量关闭守卫(×8):左清/右清/其他清的幸存集+置顶豁免+锚点接管激活+无对象侧禁用态** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径/**capabilities 授权** |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **85 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** + **0.7.6 opener 授权守卫(p10_×2):渲染层直调 plugin:opener|open_path 与 open_url file:// 必须双拒(断言 rejection,不弹任何窗口)** + **0.7.7 工具栏防选中守卫:双击+三连击 A+ 后 selection 必空(L40)** + 0.7.9 右键动作保高亮 + **0.7.11 内容身份守卫×2(data-rel==激活页签文件+正文新旧互斥;冻结大案的守卫缺口——此前全部断言只查页签名+类名,不查内容身份)** + **0.7.22 页签批量关闭守卫(×8):左清/右清/其他清的幸存集+置顶豁免+锚点接管激活+无对象侧禁用态** + **0.7.23 纸感守卫(×7):暖纸底双主题/15px 提升/88ch 限宽居中(行宽闸改判新契约)/衬线标题/赭石链接/自绘复选框/hljs token** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径/**capabilities 授权** |
 | `git-suite.py` | Phase 7 Git 检视 33 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + 0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭 + **Phase 9:外部写/删探针→徽标自动 [8]/[7](零手势,V5;窗口 park offscreen——L34)**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换/watcher→git 链 |
 | `recent-suite.py` | Open Recent **15 项**(0.7.3,spec-010):预置状态文件+AIV_TEST_PROJECT 自动加两路驱动(原生选框绝不驱动,D4)——记录+MRU+cap 挤旧/菜单结构(Browse 首项+Clear 底部)/失效置灰+报错/打开新项目与切换已开/Esc 关闭/重启持久化/行内✕与 Clear 落盘/空白欢迎页列表;夹具 %TEMP%iv-p10-recent 每次重建;**Clear 之后严禁再点 +(空表会弹原生选框)** | 凡动 recentStore/AddProjectMenu/EmptyState/appState recentFolders 字段 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
@@ -316,6 +316,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | phase3/git/recent/r3/pdf | 68/68、33/33、15/15、8/8、23/23 |
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
+
+#### 0.7.23 Markdown 纸感编辑部改版(2026-10-13,owner demo 三选:C 方向+88ch 限宽+语法着色;全部通过)
+
+| 档 | 结果 |
+|---|---|
+| 调研 | 计算样式取证:正文 13px(外壳小字漏进阅读面)/标题与正文同色梯度弱(H1 仅 20.8px)/链接裸 UA 蓝 rgb(0,0,238)/引用灰字灰边/块级元素无节奏;桌面 demo(AIV-MD渲染对比-demo.html)四方案双主题+行宽开关交 owner 实判 |
+| 实现 | MarkdownViewer 渲染态换「纸感编辑部」令牌(scoped,不进 app.css——外壳/代码面保持 spec-014 冷灰界,温度切换是渲染↔源码的模式信号):暖纸底/墨字/衬线标题(拉丁 Georgia+中文黑体)/赭石链接(45% 下划线,悬停加深)/编辑部表格(粗横线无竖线+淡斑马)/❧ 分隔线/自绘任务复选框(勾选行退灰);正文 calc(旋钮+2px)=默认 15px;.prose 88ch 限宽居中(**推翻 2026-10-10 不限宽——当年拒的是冷底空白带,新方案纸底铺满无冷带**);**行宽闸 md_text_fills_area 同步改判新契约**(88ch 页内探针实测+居中±40+段落填满+纸底)。渲染器抽 services/markdownRender.ts:highlight.js(core+19 语言+别名)接 markdown-it highlight 回调,html:false 安全语义零变化(未知语言回落转义纯文本) |
+| 对比度 | 全对令牌 WCAG AA 脚本过秤(≥4.5):亮 #2b2620/#9a4722/#6b6356 于 #faf8f4;暗 #ddd6cb/#d08c5f/#a39a8b 于 #211f1c;代码 token 两主题各 7 色全过(初版 L-string 4.15/L-comment 3.86 调深至 #566d16/#6d6558) |
+| 全档 | vitest **90/90**(+6 markdownRender:HTML 转义/hljs span/别名/未知语言回落/任务清单/linkify)+构建过+phase3 **85/85**(+7 纸感守卫:纸底双主题/15px/限宽/衬线标题/赭石链接/自绘复选框/hljs token);实拍计算值+视觉评审确认(demo 对齐) |
+| 体积账 | JS 914→1007KB(+93 原始/gzip 318→348):highlight.js 19 语言一次装载驻留模块缓存(与页签数无关);CSS +2KB |
+| 版本 | 0.7.23 三处已核;**待 owner 点头后 publish**(UTF-16 核随发);桌面 demo 文件验收后可删 |
 
 #### 0.7.22 页签批量关闭(2026-10-13,owner 需求"右键页签可关闭左/右/其他";全部通过)
 

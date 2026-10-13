@@ -1,7 +1,7 @@
 {
   "name": "ai-project-viewer",
   "private": true,
-  "version": "0.7.22",
+  "version": "0.7.23",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,6 +24,7 @@
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-opener": "^2.7.0",
     "codemirror": "^6.0.2",
+    "highlight.js": "^11.12.0",
     "markdown-it": "^15.0.2",
     "markdown-it-task-lists": "^2.1.1",
     "pdfjs-dist": "^6.3.289"
