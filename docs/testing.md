@@ -326,7 +326,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 对比度 | 全对令牌 WCAG AA 脚本过秤(≥4.5):亮 #2b2620/#9a4722/#6b6356 于 #faf8f4;暗 #ddd6cb/#d08c5f/#a39a8b 于 #211f1c;代码 token 两主题各 7 色全过(初版 L-string 4.15/L-comment 3.86 调深至 #566d16/#6d6558) |
 | 全档 | vitest **90/90**(+6 markdownRender:HTML 转义/hljs span/别名/未知语言回落/任务清单/linkify)+构建过+phase3 **85/85**(+7 纸感守卫:纸底双主题/15px/限宽/衬线标题/赭石链接/自绘复选框/hljs token);实拍计算值+视觉评审确认(demo 对齐) |
 | 体积账 | JS 914→1007KB(+93 原始/gzip 318→348):highlight.js 19 语言一次装载驻留模块缓存(与页签数无关);CSS +2KB |
-| 版本 | 0.7.23 三处已核;**待 owner 点头后 publish**(UTF-16 核随发);桌面 demo 文件验收后可删 |
+| 版本 | 0.7.23 三处已核;updates=exp 0.7.23(2026-10-14 00:48,UTF-16 核:0.7.23 FOUND/0.7.22 absent,拒发闸 staged 0.7.22→publishing 0.7.23);owner 路径=Update→重启→开任意 MD 双主题验收;桌面 demo 文件验收后可删 |
 
 #### 0.7.22 页签批量关闭(2026-10-13,owner 需求"右键页签可关闭左/右/其他";全部通过)
 
