@@ -326,7 +326,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 修复 | ①CodeViewer 加 `EditorView.lineWrapping`(短行不受影响,仅超宽行折行);②handoff.rs html/htm 分支改 `open_path(路径)`(=OS 默认处理器=双击语义),`.url` 分支不动(§115 http/https 白名单原样);死码 `file_url_of`+两测试删除;模块头"opener=ShellExecuteW"失真描述更正 |
 | 全档 | cargo 110(112−2 删除)/check 0/0+vitest 84/84+构建过+phase3 **70/70**(含 p10 opener 授权双拒守卫原样通过——修复在 Rust 语义命令侧,不碰渲染层授权) |
 | 定向 | 换行:一次性 CDP 探针(临时目录,零打扰,AIV_HIDDEN+park_offscreen)=373 字符单行在 1018px 视口 scrollWidth==clientWidth+行块高 72.8px≈5.6 行(真折行)PASS;浏览器:证据链闭合(见取证),不真弹窗守零打扰红线 |
-| 版本 | 0.7.21 三处已核(package/tauri.conf/Cargo.toml+lock);**待 owner 点头后 publish**(UTF-16 核随发) |
+| 版本 | 0.7.21 三处已核;updates=exp 0.7.21(11:01,UTF-16 核:0.7.21 FOUND/0.7.20 absent,拒发闸 staged 0.7.20→publishing 0.7.21);owner 路径=Update→重启→开 HTML 验收 |
 
 #### 0.7.20 更新重启丢旗标修复轮(2026-10-12,owner『升级完还是不行,但副本没黑线』;全部通过)
 

@@ -12,7 +12,7 @@
 ## 〇、现在主线是什么(最先读)
 
 主线 = **三件验收全过(2026-10-12 夜,spec-011/014/015 → Done;owner 原话『可以都先过了,但过了不代表后面不会改』)——进入使用反馈模式**:owner 日常用、发现问题报、按增量报障修(每报必带截图/触发条件,黑线案 L47 的教训先问操作节奏)。
-**挂起的发布动作**:NSIS 打包(届时问 owner webviewInstallMode 三选一,spec-011 收尾遗留)——他喊启动才动;**0.7.21(HTML 双报修复)已测完待他点头发**。
+**挂起的发布动作**:NSIS 打包(届时问 owner webviewInstallMode 三选一,spec-011 收尾遗留)——他喊启动才动;**0.7.21(HTML 双报修复)已发,等他 Update 验收**。
 **冻结修复(0.7.12)持续现场验证中**:0.7.20 以来重度使用无再报——弱通过,再冻结仍按 §〇 老配方(别重启,live-inspect 直连)。
 黑线案七轮全线收口(0.7.18 滚动条/0.7.19 DComp 旗标/0.7.20 幂等防顶掉,L44–L48 五条教训)。
 **版本段 0.7.x 固定递增不跳段**。
@@ -31,7 +31,7 @@
 - owner 使用反馈第一报(带两截图):①打开 HTML 无软换行,横向拉特别长;②右键 Open in Browser 弹「Windows 找不到文件 file:///C:/…」,而**双击同文件正常开浏览器**(关键对照)。触发条件明确,免问节奏。
 - 根因②:`open_in_browser` 把 html 拼 `file:///` URL 交 opener→**open crate 5.4.4**(Windows 后端=PowerShell→explorer 链,非 ShellExecuteW);Test-Path 对 URL=False→Start-Process 失败→explorer 弹错框(detached spawn 让应用侧无感)。修=html 交**路径**给 `open_path`(=双击语义,owner 机器 .html→QQBrowser);`.url` 分支白名单不动。①=CodeViewer 缺 `lineWrapping`,一行补上(短行不受影响)。**教训 L49**(file:/// 是 Windows Shell 与浏览器的三不管地带)。
 - 验证:cargo 110/check 0/0+vitest 84/84+phase3 70/70(opener 授权双拒守卫原样过);换行=一次性 CDP 探针实证折行;浏览器=零打扰证据链闭合(Test-Path 实测+注册表关联+owner 已验双击),终验走 owner Update 路径。
-- **待办:owner 点头即 publish 0.7.21**(三处已 bump+lock 已核;UTF-16 核随发)。他侧验收=开那个 HTML 文件看换行+右键 Open in Browser 看进浏览器。
+- **0.7.21 已发体验渠道(owner 点头『发』,2026-10-13 11:01)**:拒发闸过(staged 0.7.20→publishing 0.7.21)+UTF-16 核过(FOUND/absent)。他侧验收=Update→重启→开那个 HTML 文件看换行+右键 Open in Browser 看进浏览器。
 
 ### 2026-10-12 · 三件验收全过(spec-011/014/015 → Done),进入使用反馈模式
 
@@ -192,6 +192,6 @@
 
 | 事 | 去处(归谁·什么时候) | 提出日期 |
 |---|---|---|
-| **0.7.21 HTML 双报修复待发**:换行+Open in Browser,修复已全档通过,版本三处已 bump | owner 点头 → `publish-experience.ps1 -Note` 发体验渠道(UTF-16 核随发);他 Update 后开那个 HTML 验收(换行+右键进浏览器) | 2026-10-12 |
+| **0.7.21 HTML 双报修复验收**:已发体验渠道(2026-10-13 11:01,owner 点头) | owner Update→重启→开 HTML 看换行+右键 Open in Browser 看进浏览器;过了就在本表划掉 | 2026-10-12 |
 | ~~建异地备份 remote~~ | **已建线清偿(2026-10-12 owner 委托指令)**:remote `backup`=GitHub SSH,首推 main 核 0;规则八条住 architecture §0「备份规则」;遗留 owner 确认项=网页上看一眼库是 **Private** | 2026-10-01(2026-10-12 清) |
 | **内容区冻结 bug**:owner 客户端切任何页签,页签条/树高亮都变但主区内容停在旧文件(2026-10-11 报障,三次现场) | **修复已随 0.7.12 发**(D12 工作区 keyed),待 owner 日常使用现场验证;若再现:别重启,live-inspect 直连 9322(见 §〇) | 2026-10-11 |
