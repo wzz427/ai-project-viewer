@@ -324,7 +324,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 需求 | owner 原话三条:关闭该页签左侧所有/右侧所有/该页签之外所有(在既有 Close Tab 之外) |
 | 实现 | tabsStore 新增 `closeSiblingTabs(scope: left/right/others)`:锚点=右键的页签必存活;**置顶页签豁免**(Pin=留住的契约,槽位回收已遵循,批量关闭同守约;要关先取消置顶);激活页签被关→锚点接管激活(走 activateFile 全路径:关 Git 视图+树跟随);逐个释放 contentCache(内存纪律)。菜单三项(Close Others/Close to the Left/Close to the Right)+无对象侧禁用态(菜单自己说"没得关",不搞静默空点) |
 | 全档 | vitest 84/84+构建过+phase3 **78/78**(+8 批量关闭守卫:左清/右清/其他清×置顶存活+锚点接管+激活保持+禁用态;label 用 Close to the …避开 Close Tab 子串,既有断言零改动) |
-| 版本 | 0.7.22 三处已核;**待 owner 点头后 publish**(UTF-16 核随发) |
+| 版本 | 0.7.22 三处已核;updates=exp 0.7.22(17:08,UTF-16 核:0.7.22 FOUND/0.7.21 absent,拒发闸 staged 0.7.21→publishing 0.7.22);owner 路径=Update→重启→开一堆页签右键中间项试三项 |
 
 #### 0.7.21 HTML 双报修复轮(2026-10-12,owner 报障"HTML 不换行/Open in Browser 弹错";全部通过)
 
