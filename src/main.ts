@@ -76,8 +76,9 @@ async function boot() {
   installDebugHook();
   // Restore first, then start tracking: mount reads the restored stores,
   // and the sync loop's first write lands after the session is back.
-  // Theme applies here — BEFORE mount/first paint — so a paper user never
-  // flashes glacier (owner theme pack 2026-10-14).
+  // Theme applies here — BEFORE mount/first paint — matching app.css's
+  // :root defaults (paper) so no user ever sees the wrong skin flash
+  // (owner theme pack 2026-10-14, default = paper by owner's order).
   await restoreAppState();
   initTheme();
   startStateSync();

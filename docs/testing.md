@@ -317,16 +317,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
-#### 0.8.1 双主题包换装(2026-10-14,owner 交 reference/AI_Project_Viewer_Theme_Pack:system/dark/light 全退役,只留 glacier 冰川蓝[默认]+paper 暖纸书卷;开发完待发)
+#### 0.8.1 双主题包换装(2026-10-14,owner 交 reference/AI_Project_Viewer_Theme_Pack:system/dark/light 全退役,只留 paper 暖纸书卷[默认]+glacier 冰川蓝——**默认=paper 是 owner 2026-10-14 晚指定,覆盖包 JSON 的 defaultTheme: glacier,勿照 spec 改回**;开发完待发)
 
 | 档 | 结果 |
 |---|---|
 | 依据 | 主题包 spec 2026-10-14.2 + Tokens.json(每套 123 token):只改颜色不动布局/尺寸/字体;亮 accent.main 只做指示线,小字用 accent.ink;Git/状态语义色双主题同值;主题切换不得关文件/丢滚动/重置选择 |
-| 实现 | app.css 换血:`:root`=glacier 定值(**首帧即正确底色,JS 前不白闪**)+`[data-theme="paper"]` 覆盖;新面 token(--bg-secondary 文件条/差异页头、--bg-input 搜索/路径框、--toolbar-bg、--border-strong 输入边界、--text-faint 占位、--sel-fg 选中行字、--project-* 项目带专属、--icon-active 当前文件橙图标);语法/编辑器/选区/命中 token 全局化(--sy-×9/--editor-×5,CM 与 markdown 围栏共用一套,零散 hardcoded 色绝迹:PDF 文本层选区最后一块 rgba 冷蓝改挂 token;markdown 围栏底=raised 白[input 底过秤 3.8–4.5 不及 AA]);头像 8 色相→包内 6 色相(--av-* 双主题各一套,fg 预调,废除亮色补暗规则);**CM 语法高亮弃 oneDark/defaultHighlightStyle**→自建 HighlightStyle 全 CSS 变量(**主题切换=纯 CSS 重绘,零 CM 重配**,滚动/选择天然不丢);settingsStore 去 system/matchMedia,initTheme 提前到 main.ts boot(restore 后 mount 前);appState THEMES 白名单一行即迁移(旧值自愈 glacier,单测覆盖);Settings 面板=Glacier Blue/Warm Paper 双选 |
+| 实现 | app.css 换血:`:root`=paper 定值(**默认主题首帧即正确底色,JS 前不闪 glacier**)+`[data-theme="glacier"]` 覆盖;新面 token(--bg-secondary 文件条/差异页头、--bg-input 搜索/路径框、--toolbar-bg、--border-strong 输入边界、--text-faint 占位、--sel-fg 选中行字、--project-* 项目带专属、--icon-active 当前文件橙图标);语法/编辑器/选区/命中 token 全局化(--sy-×9/--editor-×5,CM 与 markdown 围栏共用一套,零散 hardcoded 色绝迹:PDF 文本层选区最后一块 rgba 冷蓝改挂 token;markdown 围栏底=raised 白[input 底过秤 3.8–4.5 不及 AA]);头像 8 色相→包内 6 色相(--av-* 双主题各一套,fg 预调,废除亮色补暗规则);**CM 语法高亮弃 oneDark/defaultHighlightStyle**→自建 HighlightStyle 全 CSS 变量(**主题切换=纯 CSS 重绘,零 CM 重配**,滚动/选择天然不丢);settingsStore 去 system/matchMedia,initTheme 提前到 main.ts boot(restore 后 mount 前);appState THEMES 白名单+DEFAULT_THEME=paper 一行即迁移(旧值自愈 paper,单测覆盖);Settings 面板=Warm Paper/Glacier Blue 双选(默认者居首) |
 | 对比度 | WCAG 脚本全对过秤:正文/次级/链接/选中/项目芯片/主按钮/编辑器正文/行号/头像≥3.0 全过;**两处包定值不及 4.5 记账不改值**(规范明示图标不作正文):当前文件橙图标 glacier 2.91@纸面、git 忽略字母 #717782 4.1–4.3@侧栏(粗体单字母);占位文字 4.06–4.31(占位非正文,规范豁免);围栏底由 input 改 raised 后语法 token 全过(首版 5 项 FAIL) |
 | 全档 | svelte-check 0/0(顺手修 0.7.23 存量错:markdownRender 返回类型 MarkdownIt→InstanceType)+vitest **91/91**(avatarColor 改 6 色相 var() 引用+appState 旧主题自愈新证;+1 净增)+构建过(JS 1007→1005KB:oneDark 出/lezer tags 入;**依赖:卸 @codemirror/theme-one-dark、补 @lezer/highlight 直接依赖,pnpm**)+cargo check 0/0+phase3 **91/91**(+4 主题守卫:paper 视面/paper 项目带/切换不丢会话/glacier 视面;−1 light_viewer_paper 退役;0.7.23 色断言改判包值);实拍双主题像素采样=token 定值逐一命中,视觉模型复核无硬伤(激活页签顶线按包规格 2px 不加粗——0.8.0 双线相撞的结构解不受影响;橙色文件图标=包规格 activeFile 色,非脏标记) |
 | 实拍 | `docs/shots-theme/`(md/code ×glacier/paper+settings,~500K;owner 验收后可删) |
-| 版本 | **待发**:owner 点头发版时升 0.8.1 三处+publish-experience.ps1;owner 路径=Update→重启→Settings 切 Glacier Blue/Warm Paper 对比验收;旧主题选择(system/dark/light)自愈到 Glacier Blue |
+| 版本 | **待发**:owner 点头发版时升 0.8.1 三处+publish-experience.ps1;owner 路径=Update→重启→默认即 Warm Paper,Settings 切 Glacier Blue 对比验收;旧主题选择(system/dark/light)自愈到 Warm Paper;**默认切换返修(2026-10-14 晚)**:check 0/0+vitest 91/91+tauri 重建+phase3 91/91(**清状态文件全新启动跑全套**=默认路径端到端)+fresh-boot 探针实证 data-theme=paper/视面 #fffcf5/项目带 #f2e9da |
 
 #### 0.8.0 墨与纸·全套界面统一(2026-10-14,owner 报障树不和谐+双蓝线相撞+两栏无层次,demo 三选 C+层次加强+代码面同纸;全部通过)
 

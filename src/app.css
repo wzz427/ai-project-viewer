@@ -1,11 +1,12 @@
 /* AI Project Viewer — shell theme tokens (V1.5 §154/§155).
    2026-10-14 双主题换血 (owner: reference/AI_Project_Viewer_Theme_Pack,
    spec 2026-10-14.2 + Theme_Tokens.json): system/dark/light 全部退役,
-   只留两套浅色主题 — glacier「冰川蓝」(默认,冷白+清浅蓝+深海军蓝文字)
-   与 paper「暖纸书卷」(浅奶油纸+干邑棕强调)。规则:只改颜色,布局/
-   尺寸/字体一概不动;明亮 accent.main 只做指示线,小字正文用 accent.ink。
-   - :root 携带 glacier 定值 → 首帧即有正确底色(无 JS 前不白闪);
-     :root[data-theme="paper"] 覆盖纸卷值。
+   只留两套浅色主题 — paper「暖纸书卷」(默认,owner 2026-10-14 指定——
+   覆盖主题包 JSON 的 defaultTheme: glacier)与 glacier「冰川蓝」。
+   规则:只改颜色,布局/尺寸/字体一概不动;明亮 accent.main 只做指示线,
+   小字正文用 accent.ink。
+   - :root 携带 paper 定值 → 首帧即默认主题的正确底色(无 JS 前不闪别家);
+     :root[data-theme="glacier"] 覆盖冰川蓝值。
    - 阶梯仍是三级:band (--bg, 最深) → frame (--bg-raised 侧栏 /
      --bg-secondary 文件条) → paper stage (--viewer-bg)。
    - Git/状态语义色与主题无关(spec §六),两套主题同一组值,住 :root。
@@ -27,56 +28,56 @@
   --transition-fast: 100ms ease;
   --viewer-font-size: 13px;
 
-  /* ---- glacier (default): surface.projectStrip 系 JSON 定值 ---- */
-  --bg: #e4f0fd; /* surface.projectStrip — 项目带(全窗最深一级) */
-  --bg-raised: #f7fafc; /* surface.sidebar — 侧栏 */
-  --bg-secondary: #f1f6fd; /* surface.secondaryBar — 文件条/差异页头 */
-  --bg-hover: #eaf2fc; /* interaction.hoverBg */
-  --bg-active: #dae8f8; /* interaction.pressedBg */
-  --bg-overlay: #ffffff; /* surface.raised — 菜单/浮层 */
-  --bg-input: #e9f1fc; /* surface.input — 搜索框/路径框 */
-  --toolbar-bg: #f8fbff; /* surface.toolbar — 查看器工具条 */
-  --border: #dbe7f4; /* border.subtle — 装饰分隔线 */
-  --border-strong: #c8d9eb; /* border.default — 输入框边界 */
-  --text: #18304f; /* text.primary */
-  --text-muted: #4d6484; /* text.secondary */
-  --text-faint: #637286; /* text.muted — 占位/最静提示 */
-  --accent: #3b8efb; /* accent.main — 指示线/图标强调,不作小字正文 */
-  --accent-ink: #155ccc; /* accent.ink — 强调文字与链接 */
-  --accent-soft: #deedfd; /* accent.soft — 选中填充(= selection.bg) */
-  --accent-strong: #256ce6; /* button.primaryBg — 实底主按钮 */
+  /* ---- paper「暖纸书卷」(DEFAULT, owner 2026-10-14): 浅奶油纸+干邑棕 ---- */
+  --bg: #f2e9da;
+  --bg-raised: #f8f4ea; /* surface.sidebar — 侧栏 */
+  --bg-secondary: #f5efe5; /* surface.secondaryBar — 文件条/差异页头 */
+  --bg-hover: #f0e8da; /* interaction.hoverBg */
+  --bg-active: #e7dbc8; /* interaction.pressedBg */
+  --bg-overlay: #fffdf8; /* surface.raised — 菜单/浮层 */
+  --bg-input: #efe7d9; /* surface.input — 搜索框/路径框 */
+  --toolbar-bg: #fcf9f3; /* surface.toolbar — 查看器工具条 */
+  --border: #e4daca; /* border.subtle — 装饰分隔线 */
+  --border-strong: #d3c5b1; /* border.default — 输入框边界 */
+  --text: #352f29; /* text.primary */
+  --text-muted: #655a4d; /* text.secondary */
+  --text-faint: #796e61; /* text.muted — 占位/最静提示 */
+  --accent: #a65b2b; /* accent.main — 指示线/图标强调,不作小字正文 */
+  --accent-ink: #8b471f; /* accent.ink — 强调文字与链接 */
+  --accent-soft: #f1dfc7; /* accent.soft — 选中填充(= selection.bg) */
+  --accent-strong: #9c5428; /* button.primaryBg — 实底主按钮 */
   --accent-text: #ffffff; /* button.primaryFg */
-  --sel-fg: #124eac; /* selection.fg — 选中行文字 */
-  --icon-active: #f27018; /* icon.activeFile — 当前文件类型图标(橙) */
-  --viewer-bg: #fdfdfe; /* surface.editor — 纸面 */
-  --viewer-border: #dbe7f4; /* 纸面框线(border.subtle) */
-  --project-fg: #344e73; /* project.fg — 项目标签常态文字 */
-  --project-hover: #dcebfd; /* project.hoverBg */
-  --project-sel-bg: #d3e4fa; /* project.selectedBg — 当前项目芯片 */
-  --project-sel-fg: #123e7b; /* project.selectedFg */
-  --project-sep: #d5e3f3; /* project.separator — 项目分隔线 */
+  --sel-fg: #6d3e1d; /* selection.fg — 选中行文字 */
+  --icon-active: #bf641e; /* icon.activeFile — 当前文件类型图标(橙) */
+  --viewer-bg: #fffcf5; /* surface.editor — 纸面 */
+  --viewer-border: #e4daca; /* 纸面框线(border.subtle) */
+  --project-fg: #5d5142; /* project.fg — 项目标签常态文字 */
+  --project-hover: #eaddcb; /* project.hoverBg */
+  --project-sel-bg: #ebdcc6; /* project.selectedBg — 当前项目芯片 */
+  --project-sel-fg: #543a23; /* project.selectedFg */
+  --project-sep: #e3d6c3; /* project.separator — 项目分隔线 */
   /* editor + syntax(spec §五,CM 与 markdown hljs 共用) */
-  --editor-text: #16283e;
-  --editor-linenum: #657382;
-  --editor-sel: #cce1ff; /* editor.selectionBg */
-  --editor-match-bg: #fff0ae; /* editor.matchBg */
-  --editor-match-border: #b88b00; /* editor.matchBorder */
-  --sy-keyword: #9400f7;
-  --sy-string: #e11d2e;
-  --sy-boolean: #243ddf;
-  --sy-number: #185ea6;
-  --sy-comment: #647486;
-  --sy-function: #2c57a1;
-  --sy-type: #007a83;
-  --sy-operator: #394f6c;
-  --sy-punctuation: #4d6484;
+  --editor-text: #302f2b;
+  --editor-linenum: #82715b;
+  --editor-sel: #ead4b7; /* editor.selectionBg */
+  --editor-match-bg: #f8e6a6; /* editor.matchBg */
+  --editor-match-border: #9d791b; /* editor.matchBorder */
+  --sy-keyword: #7b36b0;
+  --sy-string: #b84e25;
+  --sy-boolean: #17776b;
+  --sy-number: #346c8a;
+  --sy-comment: #7a7469;
+  --sy-function: #81562d;
+  --sy-type: #3f746a;
+  --sy-operator: #645343;
+  --sy-punctuation: #6e6255;
   /* avatar 前景(项目字母);底 = 15% 色相淡染(color-mix) */
-  --av-blue: #1c61bd;
-  --av-green: #237b34;
-  --av-orange: #b85216;
-  --av-rose: #b82b6c;
-  --av-lavender: #7951c8;
-  --av-purple: #7547d3;
+  --av-blue: #3e6684;
+  --av-green: #57743a;
+  --av-orange: #9b5c30;
+  --av-rose: #9e5261;
+  --av-lavender: #775e95;
+  --av-purple: #77568d;
 
   /* ---- 两主题共用:Git/状态语义色(spec §六,不随强调色染色) ---- */
   --danger: #be3043; /* status.error.fg */
@@ -92,55 +93,55 @@
   --git-del-bg: #fdecef;
 }
 
-:root[data-theme="paper"] {
-  /* ---- paper「暖纸书卷」:浅奶油纸 + 干邑棕强调 ---- */
-  --bg: #f2e9da;
-  --bg-raised: #f8f4ea;
-  --bg-secondary: #f5efe5;
-  --bg-hover: #f0e8da;
-  --bg-active: #e7dbc8;
-  --bg-overlay: #fffdf8;
-  --bg-input: #efe7d9;
-  --toolbar-bg: #fcf9f3;
-  --border: #e4daca;
-  --border-strong: #d3c5b1;
-  --text: #352f29;
-  --text-muted: #655a4d;
-  --text-faint: #796e61;
-  --accent: #a65b2b;
-  --accent-ink: #8b471f;
-  --accent-soft: #f1dfc7;
-  --accent-strong: #9c5428;
+:root[data-theme="glacier"] {
+  /* ---- glacier「冰川蓝」:冷白+清浅蓝+鲜明蓝选择态 ---- */
+  --bg: #e4f0fd; /* surface.projectStrip — 项目带(全窗最深一级) */
+  --bg-raised: #f7fafc;
+  --bg-secondary: #f1f6fd;
+  --bg-hover: #eaf2fc;
+  --bg-active: #dae8f8;
+  --bg-overlay: #ffffff;
+  --bg-input: #e9f1fc;
+  --toolbar-bg: #f8fbff;
+  --border: #dbe7f4;
+  --border-strong: #c8d9eb;
+  --text: #18304f;
+  --text-muted: #4d6484;
+  --text-faint: #637286;
+  --accent: #3b8efb;
+  --accent-ink: #155ccc;
+  --accent-soft: #deedfd;
+  --accent-strong: #256ce6;
   --accent-text: #ffffff;
-  --sel-fg: #6d3e1d;
-  --icon-active: #bf641e;
-  --viewer-bg: #fffcf5;
-  --viewer-border: #e4daca;
-  --project-fg: #5d5142;
-  --project-hover: #eaddcb;
-  --project-sel-bg: #ebdcc6;
-  --project-sel-fg: #543a23;
-  --project-sep: #e3d6c3;
-  --editor-text: #302f2b;
-  --editor-linenum: #82715b;
-  --editor-sel: #ead4b7;
-  --editor-match-bg: #f8e6a6;
-  --editor-match-border: #9d791b;
-  --sy-keyword: #7b36b0;
-  --sy-string: #b84e25;
-  --sy-boolean: #17776b;
-  --sy-number: #346c8a;
-  --sy-comment: #7a7469;
-  --sy-function: #81562d;
-  --sy-type: #3f746a;
-  --sy-operator: #645343;
-  --sy-punctuation: #6e6255;
-  --av-blue: #3e6684;
-  --av-green: #57743a;
-  --av-orange: #9b5c30;
-  --av-rose: #9e5261;
-  --av-lavender: #775e95;
-  --av-purple: #77568d;
+  --sel-fg: #124eac;
+  --icon-active: #f27018;
+  --viewer-bg: #fdfdfe;
+  --viewer-border: #dbe7f4;
+  --project-fg: #344e73;
+  --project-hover: #dcebfd;
+  --project-sel-bg: #d3e4fa;
+  --project-sel-fg: #123e7b;
+  --project-sep: #d5e3f3;
+  --editor-text: #16283e;
+  --editor-linenum: #657382;
+  --editor-sel: #cce1ff;
+  --editor-match-bg: #fff0ae;
+  --editor-match-border: #b88b00;
+  --sy-keyword: #9400f7;
+  --sy-string: #e11d2e;
+  --sy-boolean: #243ddf;
+  --sy-number: #185ea6;
+  --sy-comment: #647486;
+  --sy-function: #2c57a1;
+  --sy-type: #007a83;
+  --sy-operator: #394f6c;
+  --sy-punctuation: #4d6484;
+  --av-blue: #1c61bd;
+  --av-green: #237b34;
+  --av-orange: #b85216;
+  --av-rose: #b82b6c;
+  --av-lavender: #7951c8;
+  --av-purple: #7547d3;
 }
 
 /* Git status letters, shared by tree marks and the Git panel rows. */

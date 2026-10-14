@@ -20,9 +20,11 @@
 
   // Theme pack (owner 2026-10-14): exactly two light skins — UI copy stays
   // English per the language discipline; owner-facing names 冰川蓝/暖纸书卷.
+  // Default-first ordering: paper is the default (owner's 2026-10-14 order,
+  // overriding the pack JSON's glacier default).
   const themes: { value: Theme; label: string }[] = [
-    { value: "glacier", label: "Glacier Blue" },
     { value: "paper", label: "Warm Paper" },
+    { value: "glacier", label: "Glacier Blue" },
   ];
 
   const project = $derived(activeProject());

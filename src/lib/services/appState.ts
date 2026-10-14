@@ -32,9 +32,11 @@ const VIEWER_TYPES = new Set([
 const SIDEBAR_MODES: SidebarMode[] = ["files", "git", "settings"];
 /** Valid persisted themes (owner 2026-10-14 theme pack): legacy
  * "system"/"light"/"dark" values heal to DEFAULT_THEME here — one line is
- * the whole migration. */
+ * the whole migration. Default is paper per owner's 2026-10-14 order,
+ * which OVERRIDES the pack JSON's defaultTheme: glacier — don't "fix" it
+ * back from the spec. */
 export const THEMES: Theme[] = ["glacier", "paper"];
-export const DEFAULT_THEME: Theme = "glacier";
+export const DEFAULT_THEME: Theme = "paper";
 
 export interface PersistedTab {
   relativePath: string;

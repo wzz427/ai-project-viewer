@@ -6,9 +6,9 @@ import {
 
 /**
  * App themes (owner 2026-10-14, reference/AI_Project_Viewer_Theme_Pack):
- * exactly two LIGHT skins — "glacier" (default, 冰川蓝) and "paper"
- * (暖纸书卷). system/dark/light retired; legacy persisted values heal to
- * glacier in parseSettings.
+ * exactly two LIGHT skins — "paper" (default 暖纸书卷, owner's explicit
+ * order 2026-10-14) and "glacier" (冰川蓝). system/dark/light retired;
+ * legacy persisted values heal to the default in parseSettings.
  */
 export type Theme = "glacier" | "paper";
 
@@ -62,8 +62,8 @@ export function setVsCodeNewWindow(value: boolean) {
 
 /** Applies the persisted theme + font knob. Called from main.ts AFTER
  * restoreAppState and BEFORE mount — the theme lands before first paint,
- * so a paper user never sees a glacier flash (app.css :root carries the
- * glacier defaults for the pre-JS frame). */
+ * so a glacier user never sees a paper flash (app.css :root carries the
+ * paper/DEFAULT-theme values for the pre-JS frame). */
 export function initTheme() {
   applyTheme();
   applyFontSize();

@@ -162,8 +162,8 @@ with sync_playwright() as p:
     check("md_rendered_via_menu", page.locator(".markdown-viewer .rendered").count() == 1)
 
     # --- 0.7.23 paper-typography guards (owner direction C, demo-picked);
-    # colors re-based 2026-10-14 onto the theme pack (glacier default /
-    # paper) — bg/link assertions accept BOTH skins, the rest is skinless. ---
+    # colors re-based 2026-10-14 onto the theme pack (paper default /
+    # glacier) — bg/link assertions accept BOTH skins, the rest is skinless. ---
     m = page.evaluate("""() => {
         const r = document.querySelector('.rendered.md');
         const prose = r.querySelector('.prose');
@@ -322,10 +322,11 @@ with sync_playwright() as p:
     page.click('button[title="Settings"]')
     check("font_size_setting", before.strip() != after.strip(), f"{before} -> {after}")
 
-    # --- #7: theme pack (owner 2026-10-14) — glacier/paper switch LIVE ---
-    # Both are light skins (system/dark/light retired). The switch must
-    # apply instantly (pure CSS repaint) AND leave the session untouched:
-    # same open tabs, same active file (spec §二 no-reset contract).
+    # --- #7: theme pack (owner 2026-10-14) — paper/glacier switch LIVE ---
+    # Both are light skins (system/dark/light retired; default = paper by
+    # owner's order, overriding the pack JSON's glacier default). The
+    # switch must apply instantly (pure CSS repaint) AND leave the session
+    # untouched: same open tabs, same active file (spec §二 no-reset).
     open_file("README.md")
     tabs_before_theme = page.locator(".file-tab .name").all_inner_texts()
     active_before_theme = page.locator(".file-tab.active .name").inner_text()
@@ -349,6 +350,13 @@ with sync_playwright() as p:
     page.click('button[title="Settings"]')
     bg_glacier = page.evaluate("() => getComputedStyle(document.querySelector('.viewer')).backgroundColor")
     check("theme_glacier_viewer", bg_glacier in ("rgb(253, 253, 254)", "#fdfdfe"), bg_glacier)
+    # steady state = product default (paper, owner 2026-10-14 order) so the
+    # next suite run boots on the same skin a fresh user gets
+    page.click('button[title="Settings"]')
+    time.sleep(0.2)
+    page.locator('input[name="theme"][value="paper"]').check()
+    time.sleep(0.3)
+    page.click('button[title="Settings"]')
 
     # --- #2: active tab has accent styling ---
     open_file("README.md")

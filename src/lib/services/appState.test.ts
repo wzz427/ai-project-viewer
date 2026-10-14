@@ -178,7 +178,7 @@ describe("parseAppState", () => {
     expect(p.trustedForExecution).toBe(false);
     expect(p.fileTreePreferences.pinnedItems["."]!).toEqual(["ok.md"]);
     expect(parsed!.settings).toEqual({
-      theme: "glacier",
+      theme: "paper",
       viewer: { fontSize: 13 },
       fileTree: { showSystemGeneratedFolders: false },
       // Absent in older state files → §134 default (New Window).
@@ -186,9 +186,10 @@ describe("parseAppState", () => {
     });
   });
 
-  it("heals retired theme values to glacier (2026-10-14 pack migration)", () => {
+  it("heals retired theme values to the default (2026-10-14 pack migration)", () => {
     // Pre-pack state files saved system/light/dark — none exist anymore;
-    // the whitelist line IS the whole migration.
+    // the whitelist line IS the whole migration. Default = paper (owner's
+    // 2026-10-14 order, overriding the pack JSON's glacier default).
     for (const legacy of ["system", "light", "dark", "nonsense"]) {
       const parsed = parseAppState(
         JSON.stringify({
@@ -197,16 +198,19 @@ describe("parseAppState", () => {
           settings: { theme: legacy },
         }),
       );
-      expect(parsed!.settings.theme).toBe("glacier");
+      expect(parsed!.settings.theme).toBe("paper");
     }
-    const keep = parseAppState(
-      JSON.stringify({
-        version: STATE_VERSION,
-        projects: [],
-        settings: { theme: "paper" },
-      }),
-    );
-    expect(keep!.settings.theme).toBe("paper");
+    // A valid saved choice is never overwritten — either skin.
+    for (const keep of ["paper", "glacier"]) {
+      const parsed = parseAppState(
+        JSON.stringify({
+          version: STATE_VERSION,
+          projects: [],
+          settings: { theme: keep },
+        }),
+      );
+      expect(parsed!.settings.theme).toBe(keep);
+    }
   });
 
   it("clamps viewer font size into the UI range (max 32 since 0.7.5)", () => {
