@@ -76,15 +76,47 @@ hljs.registerAliases(["ps1"], { languageName: "powershell" });
 hljs.registerAliases(["md"], { languageName: "markdown" });
 hljs.registerAliases(["html", "htm"], { languageName: "xml" });
 
+/** Auto-detect candidates for unmarked / ```text fences (owner 2026-10-14
+ * "Markdown 里面没有任何着色" — his real docs mark almost every fence as
+ * `text` or nothing, e.g. V1.5: text×234 + unmarked×244 vs typescript×9).
+ * Structured languages with strong signals only; ambiguous grammars are
+ * excluded so prose/diagram fences don't get random colors. */
+const AUTO_LANGS = [
+  "json", "yaml", "python", "javascript", "typescript", "bash",
+  "powershell", "sql", "xml", "css", "rust", "java", "cpp", "go", "ini",
+  "diff",
+];
+/** Below this hljs relevance the fence stays plain. Measured 2026-10-14 on
+ * real samples: legit snippets score 2–6 (py/sql/json/bash/ts/yaml), while
+ * flow diagrams, Chinese prose and ASCII tables score 0–1 — so 2 is the
+ * separating line. `graph TD` pseudo-syntax can reach 3 (css), accepted:
+ * explicit ```mermaid fences bypass auto-detect anyway. */
+const AUTO_RELEVANCE_FLOOR = 2;
+/** Long text fences are almost never code (and auto-detecting them is the
+ * slow path on fence-heavy docs like V1.5's 480+ blocks). */
+const AUTO_MAX_CHARS = 2000;
+/** Fence info strings that mean "no language" — auto-detect these. */
+const PLAIN_FENCE = new Set(["", "text", "plain", "plaintext"]);
+
 export function createMarkdownRenderer(): InstanceType<typeof MarkdownIt> {
   return new MarkdownIt({
     html: false, // §88: raw HTML disabled — output is escaped
     linkify: true,
     typographer: true,
     highlight(code, lang) {
-      if (lang && hljs.getLanguage(lang)) {
+      const name = lang.trim().toLowerCase();
+      if (PLAIN_FENCE.has(name) && code.length <= AUTO_MAX_CHARS) {
         try {
-          return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+          const auto = hljs.highlightAuto(code, AUTO_LANGS);
+          if (auto.relevance >= AUTO_RELEVANCE_FLOOR) return auto.value;
+        } catch {
+          // auto-detect is best-effort: fall through to plain
+        }
+        return ""; // markdown-it HTML-escapes and wraps in <pre><code>
+      }
+      if (name && hljs.getLanguage(name)) {
+        try {
+          return hljs.highlight(code, { language: name, ignoreIllegals: true }).value;
         } catch {
           // malformed fence content: fall through to markdown-it's escape
         }

@@ -213,6 +213,44 @@ with sync_playwright() as p:
           and chrome["ftLineC"] in ("rgb(59, 142, 251)", "rgb(166, 91, 43)"),
           f"h={chrome['ftLineH']} c={chrome['ftLineC']}")
 
+    # --- 0.8.2 fence auto-color + rhythm guards (owner 2026-10-14 报障
+    # "Markdown 里面没有任何着色/中间空档这么大"): his docs mark almost all
+    # fences ```text or nothing — those now hljs.auto-detect (relevance
+    # floor 2, plain stays plain), and the hr band tightened 138→~83px.
+    # Fixture is created here and deleted right after (watcher picks it up).
+    fixture_rel = "aiv-autofence.md"
+    fixture_path = os.path.join(PROJECT, fixture_rel)
+    with open(fixture_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(
+            "# autofence\n\n"
+            "> quote line for the band probe\n\n"
+            "```\nSELECT id FROM users WHERE age > 18;\n```\n\n"
+            "```text\n{\"name\": \"aiv\", \"version\": 2}\n```\n\n"
+            "```text\n人 ← 编写代码\n     ↓\nAgent 接管\n```\n\n"
+            "---\n\n## tail heading\n"
+        )
+    time.sleep(1.5)  # watcher surfaces the file in the tree
+    open_file(fixture_rel)
+    af = page.evaluate("""() => {
+        const r = document.querySelector('.rendered.md');
+        const fences = [...r.querySelectorAll('pre > code')];
+        const spans = fences.map(c => c.querySelectorAll('[class*=hljs-]').length);
+        let maxBand = 0;
+        for (const hr of r.querySelectorAll('hr')) {
+          const prev = hr.previousElementSibling, next = hr.nextElementSibling;
+          if (prev && next) maxBand = Math.max(maxBand,
+            next.getBoundingClientRect().top - prev.getBoundingClientRect().bottom);
+        }
+        return { fenceCount: fences.length, spans, maxBandPx: Math.round(maxBand) };
+    }""")
+    os.remove(fixture_path)
+    check("fence_autocolor_unmarked",
+          af["fenceCount"] == 3 and af["spans"][0] > 0, str(af))
+    check("fence_autocolor_text_json", af["spans"][1] > 0, str(af))
+    check("fence_diagram_stays_plain", af["spans"][2] == 0, str(af))
+    check("hr_band_tight", 0 < af["maxBandPx"] <= 95, str(af))
+    open_file("README.md")
+
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
     # pinned tabs protected, anchor survives and takes over activation ---
     while tab_count() > 0:  # deterministic scene: clear, then five known tabs

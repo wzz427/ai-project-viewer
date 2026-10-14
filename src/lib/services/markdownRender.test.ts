@@ -41,6 +41,34 @@ describe("createMarkdownRenderer", () => {
     expect(out).toContain("&lt;script&gt;");
   });
 
+  // 2026-10-14 (owner "Markdown 里面没有任何着色"): unmarked and ```text
+  // fences — the overwhelming majority in his real docs (V1.5 alone:
+  // text×234 + unmarked×244) — auto-detect over a structured-language
+  // subset with a relevance floor.
+  it("auto-colors an UNMARKED fence holding obvious code", () => {
+    const out = render("```\nSELECT id FROM users WHERE age > 18;\n```");
+    expect(out).toMatch(/hljs-keyword/);
+  });
+
+  it("auto-colors a ```text fence holding JSON", () => {
+    const out = render('```text\n{"name": "aiv", "version": 2}\n```');
+    expect(out).toMatch(/hljs-(attr|number|string)/);
+  });
+
+  it("keeps a pseudo-code flow diagram plain (no false-positive colors)", () => {
+    const out = render("```text\n人 ← 编写代码\n     ↓\nIDE 辅助\n     ↓\nAgent 接管\n```");
+    expect(out).not.toContain("hljs-");
+    // content still escaped, never dropped
+    expect(out).toContain("编写代码");
+  });
+
+  it("keeps an unknown explicit language plain even though it looks like code", () => {
+    // mermaid-style fence: explicit unknown languages stay untouched —
+    // auto-detect is only for fences that DECLARE no language.
+    const out = render("```mermaid\ngraph TD; A-->B;\n```");
+    expect(out).not.toContain("hljs-");
+  });
+
   it("keeps task lists non-interactive with labels", () => {
     const out = render("- [x] done thing\n- [ ] todo thing");
     expect(out).toContain('type="checkbox"');

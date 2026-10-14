@@ -233,8 +233,12 @@
     line-height: 1.25;
   }
   .rendered :global(h1) { font-size: 1.85em; margin: 1em 0 0.6em; }
-  .rendered :global(h2) { font-size: 1.38em; margin: 1.8em 0 0.6em; }
-  .rendered :global(h3) { font-size: 1.16em; margin: 1.5em 0 0.45em; }
+  /* Vertical rhythm tightened 2026-10-14 (owner 报障"中间空档这么大"):
+     a `---` between a blockquote and a heading stacked 17+30+30+37 ≈ 138px
+     of near-blank band — halves to ~85px with 0.9em hr margins + 1.35em
+     h2 tops. The ❧ grows one notch so the divider reads intentional. */
+  .rendered :global(h2) { font-size: 1.38em; margin: 1.35em 0 0.55em; }
+  .rendered :global(h3) { font-size: 1.16em; margin: 1.2em 0 0.45em; }
 
   .rendered :global(p) { margin: 0.85em 0; }
   .rendered :global(ul),
@@ -314,7 +318,7 @@
   }
 
   .rendered :global(blockquote) {
-    margin: 1.2em 0;
+    margin: 1em 0;
     padding: 0.4em 18px;
     border-left: 3px solid var(--md-link);
     color: var(--md-muted);
@@ -325,12 +329,14 @@
   .rendered :global(hr) {
     border: none;
     text-align: center;
-    margin: 2em 0;
+    /* 2em margins made every `---` a ~60px blank band; 0.9em keeps the
+       fleuron divider without the dead air (owner 2026-10-14). */
+    margin: 0.9em 0;
   }
   .rendered :global(hr::after) {
     content: "❧";
     color: var(--md-muted);
-    font-size: 1.2em;
+    font-size: 1.4em;
   }
 
   .rendered :global(img) { max-width: 100%; }
