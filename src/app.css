@@ -37,6 +37,7 @@
   --bg-overlay: #fffdf8; /* surface.raised — 菜单/浮层 */
   --bg-input: #efe7d9; /* surface.input — 搜索框/路径框 */
   --toolbar-bg: #fcf9f3; /* surface.toolbar — 查看器工具条 */
+  --code-bg: #efe7d9; /* surface.input 同款 — 代码块/行内代码的可见底色块(owner 2026-10-14 报障"什么色块都没有":0.8.1 曾改 raised 白,与纸面差 3 个色值=隐形;配套把不及格语法色各加深一档保 AA) */
   --border: #e4daca; /* border.subtle — 装饰分隔线 */
   --border-strong: #d3c5b1; /* border.default — 输入框边界 */
   --text: #352f29; /* text.primary */
@@ -63,12 +64,12 @@
   --editor-match-bg: #f8e6a6; /* editor.matchBg */
   --editor-match-border: #9d791b; /* editor.matchBorder */
   --sy-keyword: #7b36b0;
-  --sy-string: #b84e25;
-  --sy-boolean: #17776b;
+  --sy-string: #a74722; /* 包值 #B84E25 加深一档:code-bg 上 AA(4.79) */
+  --sy-boolean: #167368; /* 包值 #17776B 同上(4.64) */
   --sy-number: #346c8a;
-  --sy-comment: #7a7469;
+  --sy-comment: #6b665c; /* 包值 #7A7469 同上(4.65) */
   --sy-function: #81562d;
-  --sy-type: #3f746a;
+  --sy-type: #3b6d64; /* 包值 #3F746A 同上(4.81) */
   --sy-operator: #645343;
   --sy-punctuation: #6e6255;
   /* avatar 前景(项目字母);底 = 15% 色相淡染(color-mix) */
@@ -103,6 +104,7 @@
   --bg-overlay: #ffffff;
   --bg-input: #e9f1fc;
   --toolbar-bg: #f8fbff;
+  --code-bg: #e9f1fc; /* 同上:代码块可见底色块 */
   --border: #dbe7f4;
   --border-strong: #c8d9eb;
   --text: #18304f;
@@ -128,12 +130,12 @@
   --editor-match-bg: #fff0ae;
   --editor-match-border: #b88b00;
   --sy-keyword: #9400f7;
-  --sy-string: #e11d2e;
+  --sy-string: #d41b2b; /* 包值 #E11D2E 加深一档:code-bg 上 AA(4.62) */
   --sy-boolean: #243ddf;
   --sy-number: #185ea6;
-  --sy-comment: #647486;
+  --sy-comment: #5e6d7e; /* 包值 #647486 同上(4.65) */
   --sy-function: #2c57a1;
-  --sy-type: #007a83;
+  --sy-type: #00767f; /* 包值 #007A83 同上(4.73) */
   --sy-operator: #394f6c;
   --sy-punctuation: #4d6484;
   --av-blue: #1c61bd;

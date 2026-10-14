@@ -192,10 +192,12 @@
     --md-muted: var(--text-faint);
     --md-link: var(--accent-ink);
     --md-border: var(--viewer-border);
-    /* Fences sit on surface.raised (white-ish card), NOT surface.input:
-       syntax reds/teals/comments measure 3.8–4.5 on the input tint but
-       clear AA on the raised surface (WCAG script, 2026-10-14). */
-    --md-code-bg: var(--bg-overlay);
+    /* Code surface (owner 2026-10-14 二次报障"什么色块都没有"): fences AND
+       inline code ride --code-bg — a clearly visible input-family tint. The
+       0.8.1 round had put raised-white here (WCAG) which is invisible
+       against the paper (ΔRGB ≈ 3); the tint returns with the 2–4 failing
+       syntax tokens deepened one notch app-side so AA holds on it. */
+    --md-code-bg: var(--code-bg);
   }
 
   .rendered {

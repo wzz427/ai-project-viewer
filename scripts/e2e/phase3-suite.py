@@ -227,6 +227,7 @@ with sync_playwright() as p:
             "```\nSELECT id FROM users WHERE age > 18;\n```\n\n"
             "```text\n{\"name\": \"aiv\", \"version\": 2}\n```\n\n"
             "```text\n人 ← 编写代码\n     ↓\nAgent 接管\n```\n\n"
+            "See `report.md` for the inline-code probe.\n\n"
             "---\n\n## tail heading\n"
         )
     time.sleep(1.5)  # watcher surfaces the file in the tree
@@ -241,7 +242,19 @@ with sync_playwright() as p:
           if (prev && next) maxBand = Math.max(maxBand,
             next.getBoundingClientRect().top - prev.getBoundingClientRect().bottom);
         }
-        return { fenceCount: fences.length, spans, maxBandPx: Math.round(maxBand) };
+        const delta = (a, b) => {
+          const n = (s) => s.match(/\\d+/g).map(Number);
+          const [r1,g1,b1] = n(a), [r2,g2,b2] = n(b);
+          return Math.abs(r1-r2)+Math.abs(g1-g2)+Math.abs(b1-b2);
+        };
+        const paper = getComputedStyle(r).backgroundColor;
+        const pre = r.querySelector('pre');
+        const inline = r.querySelector('p code');
+        return { fenceCount: fences.length, spans, maxBandPx: Math.round(maxBand),
+                 paper, preBg: pre ? getComputedStyle(pre).backgroundColor : null,
+                 preDelta: pre ? delta(getComputedStyle(pre).backgroundColor, paper) : 0,
+                 inlineBg: inline ? getComputedStyle(inline).backgroundColor : null,
+                 inlineDelta: inline ? delta(getComputedStyle(inline).backgroundColor, paper) : 0 };
     }""")
     os.remove(fixture_path)
     check("fence_autocolor_unmarked",
@@ -249,6 +262,13 @@ with sync_playwright() as p:
     check("fence_autocolor_text_json", af["spans"][1] > 0, str(af))
     check("fence_diagram_stays_plain", af["spans"][2] == 0, str(af))
     check("hr_band_tight", 0 < af["maxBandPx"] <= 95, str(af))
+    # 0.8.3 regression guard (owner "什么色块都没有"): the 0.8.1 round put
+    # raised-white under code (ΔRGB≈3 vs paper = invisible); fences AND
+    # inline code must now carry a clearly visible tinted block.
+    check("code_block_bg_visible", af["preDelta"] >= 20,
+          f"pre={af['preBg']} paper={af['paper']} Δ={af['preDelta']}")
+    check("inline_code_bg_visible", af["inlineDelta"] >= 20,
+          f"inline={af['inlineBg']} paper={af['paper']} Δ={af['inlineDelta']}")
     open_file("README.md")
 
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
