@@ -325,7 +325,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 实现 | app.css 令牌整体换血(墨与纸):**三层阶梯** band(--bg 暗 #100e0b/亮 #e2dbcc,首次加深一档不够,视觉评审后二次加深)→ frame(--bg-raised #26221b/#f2eee5=侧栏+文件栏)→ paper(--viewer-bg #211f1c/#faf8f4=全部阅读面);**强调色蓝→赭石**(与文档链接同族,demo C;accent/accent-soft/accent-strong 全换,Git 字母/--danger 功能色不动);**项目标签去线**(激活=填充芯片+加粗,0.8.0 C 决定——底边线与文件标签顶边线的相撞在结构上消失);文件标签保留唯一一根顶边发丝线;选区高亮 ::selection 暖色 30% accent;MarkdownViewer 的 bg/text/link/border 令牌接全局防漂。**代码/文本/JSON 查看面同纸**(owner 拍板,--viewer-bg 即纸) |
 | 对比度 | 阶梯全对 AA 脚本过秤:亮 band 文字 4.86/强调 4.62(#e2dbcc 档,首轮 #e7e1d4 双 FAIL 调深)、frame 4.96+、纸面 14+;暗 band 6.9+/frame 5.7+/纸 11.4;白字@accent-strong 暗 5.28/亮 6.37 |
 | 全档 | vitest 90/90+构建过+phase3 **88/88**(+3 chrome 守卫:三层阶梯三值互异+项目激活零线条+文件激活单发丝线 2px 赭石;**light_viewer_white 旧闸改判 light_viewer_paper**——0.7.x『亮色阅读面=纯白』契约被 0.8.0 全套纸取代);实拍双主题+视觉评审确认(层次分明/语义清晰/色温统一) |
-| 版本 | **0.8.0**(owner 指示升段,2026-10-14;0.7.x 递增纪律就此翻页)三处已核;**待 owner 点头后 publish**(UTF-16 核随发);两个 demo 文件验收后可删 |
+| 版本 | **0.8.0**(owner 指示升段,2026-10-14;0.7.x 递增纪律就此翻页)三处已核;updates=exp 0.8.0(15:14,UTF-16 核:0.8.0 FOUND/0.7.23 absent,拒发闸 staged 0.7.23→publishing 0.8.0);owner 路径=Update→重启→双主题看整体;两个 demo 文件验收后可删 |
 
 #### 0.7.23 Markdown 纸感编辑部改版(2026-10-13,owner demo 三选:C 方向+88ch 限宽+语法着色;全部通过)
 
