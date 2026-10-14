@@ -317,14 +317,14 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
-#### 0.8.2 围栏自动着色+空档收紧(2026-10-14,owner 0.8.1 双截图报障"Markdown 没有任何着色/中间空档这么大";开发完待发)
+#### 0.8.2 围栏自动着色+空档收紧(2026-10-14,owner 0.8.1 双截图报障"Markdown 没有任何着色/中间空档这么大";已发体验渠道待验收)
 
 | 档 | 结果 |
 |---|---|
 | 取证 | owner 双截图全为**渲染视图**(第二张非源码态——AI 视觉模型 OCR 中文标题不可信,以其结构判源码态是误判,owner 当场纠正);live-inspect 9322 只读直连他运行中的实例+读 .exp state.json openFiles 扫 8 个真实项目:文档围栏绝大多数 ```text 或无标记(V1.5 FINAL 5603 行:text×234+无标记×244 vs typescript×9),显式语言围栏本来就着色,但覆盖率太低→"没有任何着色"体感成立;空档=块引用(17px)+hr 上下 2em(60px)+标题上边距(37px)叠加 ≈138px 实测(gapdemo 夹具逐对量块间距) |
 | 实现 | markdownRender highlight 回调:无标记/text/plain 围栏走 **hljs.highlightAuto**(16 门结构化语言子集;**relevance 门槛=2**——真代码样本实测 2~6,流程图/中文正文/ASCII 表 0~1;>2000 字符不自动识别防大块慢路径;显式未知语言如 mermaid 保持原样不参与);hr margin 2em→0.9em+❧ 1.2→1.4em,h2/h3 上边距 1.8/1.5em→1.35/1.2em,blockquote 1.2→1em |
 | 全档 | svelte-check 0/0+vitest **95/95**(+4:无标记着色/text JSON 着色/图示不上色/显式未知不上色——门槛先误定 5 全拦真代码,实测分布后定 2)+tauri 重建+phase3 **95/95**(+4 守卫:夹具现场建/断完即删);**真文档实证(V1.5 FINAL)**:着色围栏 9/244→**69/244**,8 种 token 色,最大空档带 138→**83px**,打开到渲染 ~0.9s |
-| 版本 | **待发**:owner 点头发版时升 0.8.2 三处+publish-experience.ps1;owner 路径=Update→重启→开 V1.5 FINAL 或任意多代码块文档(无标记/text 围栏里的代码现会着色,流程图/表格保持素面) |
+| 版本 | **0.8.2 三处已核**;updates=exp 0.8.2(2026-10-14 20:05,UTF-16 核:0.8.2 FOUND/0.8.1+0.8.0 absent;拒发闸报 staged note unreadable——owner 客户端消费 0.8.1 时留下的残缺 update.json,升版发布不受影响,新 json 落盘无 BOM 已核);owner 路径=Update→重启→开 V1.5 FINAL 或任意多代码块文档(无标记/text 围栏里的代码现会着色,流程图/表格保持素面;---空档收紧) |
 
 #### 0.8.1 双主题包换装(2026-10-14,owner 交 reference/AI_Project_Viewer_Theme_Pack:system/dark/light 全退役,只留 paper 暖纸书卷[默认]+glacier 冰川蓝——**默认=paper 是 owner 2026-10-14 晚指定,覆盖包 JSON 的 defaultTheme: glacier,勿照 spec 改回**;已发体验渠道待验收)
 
