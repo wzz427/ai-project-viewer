@@ -12,7 +12,7 @@
 ## 〇、现在主线是什么(最先读)
 
 主线 = **三件验收全过(2026-10-12 夜,spec-011/014/015 → Done;owner 原话『可以都先过了,但过了不代表后面不会改』)——进入使用反馈模式**:owner 日常用、发现问题报、按增量报障修(每报必带截图/触发条件,黑线案 L47 的教训先问操作节奏)。
-**挂起的发布动作**:NSIS 打包(届时问 owner webviewInstallMode 三选一,spec-011 收尾遗留)——他喊启动才动;**0.7.21–0.7.23 与 0.8.0(墨与纸全套)均已发,等他 Update 验收;0.8.1 双主题包(paper 暖纸书卷[默认,owner 指定]+glacier 冰川蓝,system/dark/light 退役)开发+全档测完,等他点头「发」**(见 §一 最新条)。
+**挂起的发布动作**:NSIS 打包(届时问 owner webviewInstallMode 三选一,spec-011 收尾遗留)——他喊启动才动;**0.8.1 双主题包已发体验渠道(2026-10-14 18:59,owner 点头)等他 Update 验收;0.7.21–0.7.23 与 0.8.0 一并等验收(界面色板已被 0.8.1 主题包取代,以 0.8.1 为准)**(见 §一 最新条)。
 **冻结修复(0.7.12)持续现场验证中**:0.7.20 以来重度使用无再报——弱通过,再冻结仍按 §〇 老配方(别重启,live-inspect 直连)。
 黑线案七轮全线收口(0.7.18 滚动条/0.7.19 DComp 旗标/0.7.20 幂等防顶掉,L44–L48 五条教训)。
 **版本段:0.8 起(owner 2026-10-14 指示升段);段内固定递增不跳段**。
@@ -26,12 +26,13 @@
 
 ## 一、现在在哪(最新在上)
 
-### 2026-10-14 · 0.8.1 待发:双主题包换装(owner 交主题包:system/dark/light 退役,只留 paper+glacier)
+### 2026-10-14 · 0.8.1:双主题包换装(owner 交主题包:system/dark/light 退役,只留 paper+glacier),已发待验收
 
 - owner 交 `reference/AI_Project_Viewer_Theme_Pack`(spec 2026-10-14.2+123 token JSON+预览 HTML):按包落地**两套浅色主题**,**默认 paper 暖纸书卷(owner 2026-10-14 晚指定——覆盖包 JSON 的 defaultTheme: glacier,勿照 spec 改回)**;只改颜色不动布局;system/dark/light 全退役(旧持久化值一行白名单自愈 paper)。
 - 落地:app.css 换血(:root=paper 定值→**首帧即默认主题不闪色**,glacier 覆盖块;新增 secondary/input/toolbar/project-*/--sy-*/--editor-*/--av-* 语义 token,零散硬编码色绝迹——PDF 文本层选区最后一块也挂 token);**CM 弃 oneDark**→自建全 CSS 变量 HighlightStyle(**主题切换=纯重绘零重配**,滚动/选择天然不丢,e2e 有守卫);头像 8→6 色相挂 --av-*;initTheme 提前到 mount 前;markdown 围栏底=raised 白(input 底语法对比度 3.8–4.5 不及 AA)。
 - 全档:check 0/0(顺手修 0.7.23 存量类型错)+vitest 91/91+构建过(JS 1005KB,oneDark 出/lezer 入,pnpm)+phase3 **91/91**(+4 主题守卫:paper 视面/项目带/切换不丢会话/glacier 视面;0.7.23 色断言改判包值);WCAG 过秤:两处包定值不及 4.5 记账不改(橙图标 2.91/忽略字母 4.1,规范明示图标非正文);实拍双主题像素采样=token 值逐一命中+视觉模型复核无硬伤(实拍 docs/shots-theme/,验收后可删)。**默认切换返修(owner 指定 paper)**:清状态文件全新启动跑 phase3 91/91+fresh-boot 探针实证默认=paper。
-- **待 owner**:看汇报→点头「发」→升 0.8.1 三处+publish;他侧验收=Update→重启→**默认即暖纸书卷**,Settings 切 Glacier Blue 对比(注意:设置里主题名是英文,UI 语言纪律;他若要中文名一行改)。0.8.0 及以前的验收项仍等他 Update 一并看。
+- **待 owner**:他侧验收=Update→重启→**默认即暖纸书卷**,Settings 切 Glacier Blue 对比(注意:设置里主题名是英文,UI 语言纪律;他若要中文名一行改)。0.8.0 及以前的验收项一并看(色板已被主题包取代,以 0.8.1 为准)。
+- **0.8.1 已发体验渠道(owner 点头『发』,2026-10-14 18:59)**:拒发闸过(staged 0.8.0→publishing 0.8.1)+UTF-16 核过(0.8.1 FOUND/0.8.0 absent)+update.json 无 BOM。过了验收删 docs/shots-theme/ 与桌面两个 demo 文件。
 
 ### 2026-10-14 · 0.8.0:墨与纸·全套界面统一(owner 报障三连),测完待发
 
@@ -220,7 +221,7 @@
 
 | 事 | 去处(归谁·什么时候) | 提出日期 |
 |---|---|---|
-| **0.8.1 双主题包发布**:开发+全档测完(2026-10-14 深夜),实拍 docs/shots-theme/ | **等 owner 点头「发」**→升 0.8.1 三处+publish→他 Update→重启→Settings 双主题对比验收;过了删 shots-theme/ | 2026-10-14 |
+| **0.8.1 双主题包验收**:已发体验渠道(2026-10-14 18:59,owner 点头);实拍 docs/shots-theme/ | owner Update→重启→**默认即暖纸书卷**,Settings 切 Glacier Blue 对比;过了删 docs/shots-theme/ 与桌面两个 demo 文件 | 2026-10-14 |
 | **0.8.0 墨与纸全套验收**:已发体验渠道(2026-10-14 15:14,owner 点头);**0.8.1 换装后其色板已被主题包取代,验收以 0.8.1 双主题为准** | owner Update→重启→看整体;过 0.8.1 后本行并入其验收;两个 demo 文件一并删 | 2026-10-14 |
 | **0.7.23 MD 纸感改版验收**:已发体验渠道(2026-10-14 00:48,owner 点头) | owner Update→重启→开任意 MD 双主题验收;过了删桌面 demo 文件;代码/文本面要不要也换暖纸,等他定 | 2026-10-13 |
 | **0.7.22 页签批量关闭验收**:已发体验渠道(2026-10-13 17:08,owner 点头) | owner Update→重启→右键中间页签试 Close Others/Left/Right 三项+置顶页签不被清;过了划掉 | 2026-10-13 |
