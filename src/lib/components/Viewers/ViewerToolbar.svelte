@@ -92,6 +92,7 @@
     gap: 4px;
     padding: 4px 8px;
     border-bottom: 1px solid var(--border);
+    background: var(--toolbar-bg);
     flex-shrink: 0;
     /* The whole strip is controls; double-clicks must never word-select
        the "15px" label (native blue ::selection) — inputs opt back in. */
@@ -125,10 +126,12 @@
   .search {
     width: 180px;
     padding: 2px 8px;
-    border: 1px solid var(--border);
+    /* Theme pack surface.input + border.default (spec §四 搜索框): inputs
+       get their own recessed surface with a proper bound edge. */
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     font-size: var(--text-sm);
-    background: var(--bg);
+    background: var(--bg-input);
     color: var(--text);
     user-select: text; /* inherited none from .vtb would kill double-click word selection */
   }

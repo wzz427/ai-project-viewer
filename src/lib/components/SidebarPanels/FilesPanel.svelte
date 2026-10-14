@@ -96,8 +96,10 @@
   .path {
     font-size: var(--text-xs);
     padding: 4px 6px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    /* Theme pack surface.input: the path chip is an input-surface element
+     (spec §四 路径与搜索框), not a band-colored one. */
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     overflow: hidden;
     text-overflow: ellipsis;

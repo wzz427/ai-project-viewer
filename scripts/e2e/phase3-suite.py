@@ -161,7 +161,9 @@ with sync_playwright() as p:
     time.sleep(0.3)
     check("md_rendered_via_menu", page.locator(".markdown-viewer .rendered").count() == 1)
 
-    # --- 0.7.23 paper-typography guards (owner direction C, demo-picked) ---
+    # --- 0.7.23 paper-typography guards (owner direction C, demo-picked);
+    # colors re-based 2026-10-14 onto the theme pack (glacier default /
+    # paper) — bg/link assertions accept BOTH skins, the rest is skinless. ---
     m = page.evaluate("""() => {
         const r = document.querySelector('.rendered.md');
         const prose = r.querySelector('.prose');
@@ -178,11 +180,11 @@ with sync_playwright() as p:
             kw: r.querySelectorAll('.hljs-keyword').length,
         };
     }""")
-    check("md_paper_theme", m["bg"] in ("rgb(250, 248, 244)", "rgb(33, 31, 28)"), str(m["bg"]))
+    check("md_paper_theme", m["bg"] in ("rgb(253, 253, 254)", "rgb(255, 252, 245)"), str(m["bg"]))
     check("md_font_uplift_15px", m["size"] == "15px", m["size"])
     check("md_measure_cap", 560 <= m["proseW"] <= 780, str(m["proseW"]))
     check("md_serif_heading", "Georgia" in m["h1Font"], m["h1Font"])
-    check("md_link_sienna", m["link"] in ("rgb(154, 71, 34)", "rgb(208, 140, 95)"), m["link"])
+    check("md_link_accent_ink", m["link"] in ("rgb(21, 92, 204)", "rgb(139, 71, 31)"), m["link"])
     check("md_task_checkbox_drawn", m["cbAppear"] == "none", str(m["cbAppear"]))
     check("md_hljs_python_tokens", m["kw"] >= 1, str(m["kw"]))
 
@@ -208,7 +210,7 @@ with sync_playwright() as p:
           chrome["ptLine"] == "none", str(chrome["ptLine"]))
     check("file_active_single_hairline",
           chrome["ftLineH"] == "2px"
-          and chrome["ftLineC"] in ("rgb(208, 140, 95)", "rgb(154, 71, 34)"),
+          and chrome["ftLineC"] in ("rgb(59, 142, 251)", "rgb(166, 91, 43)"),
           f"h={chrome['ftLineH']} c={chrome['ftLineC']}")
 
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
@@ -320,22 +322,33 @@ with sync_playwright() as p:
     page.click('button[title="Settings"]')
     check("font_size_setting", before.strip() != after.strip(), f"{before} -> {after}")
 
-    # --- #7: light theme viewer surface is white ---
+    # --- #7: theme pack (owner 2026-10-14) — glacier/paper switch LIVE ---
+    # Both are light skins (system/dark/light retired). The switch must
+    # apply instantly (pure CSS repaint) AND leave the session untouched:
+    # same open tabs, same active file (spec §二 no-reset contract).
+    open_file("README.md")
+    tabs_before_theme = page.locator(".file-tab .name").all_inner_texts()
+    active_before_theme = page.locator(".file-tab.active .name").inner_text()
     page.click('button[title="Settings"]')
     time.sleep(0.3)
-    page.locator('input[name="theme"][value="light"]').check()
+    page.locator('input[name="theme"][value="paper"]').check()
     time.sleep(0.3)
     page.click('button[title="Settings"]')
-    bg = page.evaluate("() => getComputedStyle(document.querySelector('.viewer')).backgroundColor")
-    # 0.8.0 ink&paper (owner 方案 C): the light reading stage is warm paper
-    # #faf8f4, not pure white — the whole-app paper contract replaced the
-    # old "viewer must be #ffffff" one (0.7.23 scoped paper to markdown
-    # only; 0.8.0 made every reading surface paper).
-    check("light_viewer_paper", bg in ("rgb(250, 248, 244)", "#faf8f4"), bg)
-    # back to system
+    bg_paper = page.evaluate("() => getComputedStyle(document.querySelector('.viewer')).backgroundColor")
+    check("theme_paper_viewer", bg_paper in ("rgb(255, 252, 245)", "#fffcf5"), bg_paper)
+    band_paper = page.evaluate("() => getComputedStyle(document.querySelector('.project-tabs')).backgroundColor")
+    check("theme_paper_band", band_paper in ("rgb(242, 233, 218)", "#f2e9da"), band_paper)
+    check("theme_switch_keeps_session",
+          page.locator(".file-tab .name").all_inner_texts() == tabs_before_theme
+          and page.locator(".file-tab.active .name").inner_text() == active_before_theme,
+          f"tabs={page.locator('.file-tab .name').all_inner_texts()}")
     page.click('button[title="Settings"]')
-    page.locator('input[name="theme"][value="system"]').check()
+    time.sleep(0.2)
+    page.locator('input[name="theme"][value="glacier"]').check()
+    time.sleep(0.3)
     page.click('button[title="Settings"]')
+    bg_glacier = page.evaluate("() => getComputedStyle(document.querySelector('.viewer')).backgroundColor")
+    check("theme_glacier_viewer", bg_glacier in ("rgb(253, 253, 254)", "#fdfdfe"), bg_glacier)
 
     # --- #2: active tab has accent styling ---
     open_file("README.md")
@@ -478,7 +491,7 @@ with sync_playwright() as p:
       const prose = el.querySelector('.prose');
       if (!prose) return { ok: false, why: 'no .prose' };
       const bg = getComputedStyle(el).backgroundColor;
-      const paper = bg === 'rgb(250, 248, 244)' || bg === 'rgb(33, 31, 28)';
+      const paper = bg === 'rgb(253, 253, 254)' || bg === 'rgb(255, 252, 245)';
       // ch scales with the font knob (A+/A−) and getComputedStyle keeps
       // min() unevaluated — measure the cap with an in-page 88ch probe
       // instead, then assert the CONTRACT: column = min(cap, available),

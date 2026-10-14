@@ -181,45 +181,21 @@
   }
 
   /* ---- 纸感编辑部 (owner 2026-10-13, direction C of the demo
-     AIV-MD渲染对比-demo.html): the READING surface gets its own warm
-     paper world — scoped here, not in app.css, because the shell and the
-     code/text viewers keep the cool professional surface (spec-014).
-     Contrast pairs verified ≥4.5:1 (WCAG AA) by script, recorded in
-     docs/testing.md 0.7.23 row. ---- */
+     AIV-MD渲染对比-demo.html): the READING surface keeps its editorial
+     typography; COLORS now ride the global theme-pack tokens
+     (2026-10-14): bg/text/border/muted/link all resolve per theme, and
+     fence highlighting maps 1:1 onto the same --sy-* tokens the code
+     viewer uses — one syntax palette app-wide. ---- */
   .rendered {
-    /* light paper — bg/text/border ride the GLOBAL ink&paper tokens since
-       0.8.0 (whole-app ladder); only the code surface + syntax tokens stay
-       markdown-scoped. */
     --md-bg: var(--viewer-bg);
     --md-text: var(--text);
-    --md-muted: #6b6356;
-    --md-link: var(--accent);
+    --md-muted: var(--text-faint);
+    --md-link: var(--accent-ink);
     --md-border: var(--viewer-border);
-    --md-code-bg: #f0ece2;
-    --hl-kw: #a0431f;
-    --hl-str: #566d16;
-    --hl-num: #93522a;
-    --hl-com: #6d6558;
-    --hl-fn: #1f6b5c;
-    --hl-attr: #6b5d3f;
-    --hl-bi: #2e6288;
-  }
-
-  :global([data-theme="dark"]) .rendered {
-    /* warm charcoal */
-    --md-bg: var(--viewer-bg);
-    --md-text: var(--text);
-    --md-muted: #a39a8b;
-    --md-link: var(--accent);
-    --md-border: var(--viewer-border);
-    --md-code-bg: #1a1815;
-    --hl-kw: #e89a6f;
-    --hl-str: #b3c77e;
-    --hl-num: #d9a05b;
-    --hl-com: #8a7f6d;
-    --hl-fn: #7fc4b0;
-    --hl-attr: #c9b790;
-    --hl-bi: #8fb8d8;
+    /* Fences sit on surface.raised (white-ish card), NOT surface.input:
+       syntax reds/teals/comments measure 3.8–4.5 on the input tint but
+       clear AA on the raised surface (WCAG script, 2026-10-14). */
+    --md-code-bg: var(--bg-overlay);
   }
 
   .rendered {
@@ -290,25 +266,26 @@
   }
   .rendered :global(pre code) { background: none; padding: 0; font-size: 0.86em; }
 
-  /* Syntax tokens (owner 2026-10-13): warm-editorial palette, contrast
-     verified on --md-code-bg (see 0.7.23 row). */
+  /* Syntax tokens (theme pack §五): the SAME --sy-* variables the
+     CodeMirror viewer uses — fence code and source-mode code can never
+     drift apart. Split per spec: literals (true/false/null) are the
+     boolean color; plain variables fall back to document text. */
   .rendered :global(.hljs-keyword),
   .rendered :global(.hljs-selector-tag),
-  .rendered :global(.hljs-meta) { color: var(--hl-kw); }
+  .rendered :global(.hljs-meta) { color: var(--sy-keyword); }
   .rendered :global(.hljs-string),
-  .rendered :global(.hljs-regexp) { color: var(--hl-str); }
-  .rendered :global(.hljs-number),
-  .rendered :global(.hljs-literal) { color: var(--hl-num); }
-  .rendered :global(.hljs-comment) { color: var(--hl-com); font-style: italic; }
+  .rendered :global(.hljs-regexp) { color: var(--sy-string); }
+  .rendered :global(.hljs-number) { color: var(--sy-number); }
+  .rendered :global(.hljs-literal) { color: var(--sy-boolean); }
+  .rendered :global(.hljs-comment) { color: var(--sy-comment); font-style: italic; }
   .rendered :global(.hljs-title),
-  .rendered :global(.hljs-title.function_) { color: var(--hl-fn); }
+  .rendered :global(.hljs-title.function_) { color: var(--sy-function); }
   .rendered :global(.hljs-attr),
   .rendered :global(.hljs-attribute),
-  .rendered :global(.hljs-variable),
-  .rendered :global(.hljs-template-variable) { color: var(--hl-attr); }
+  .rendered :global(.hljs-template-variable) { color: var(--sy-type); }
   .rendered :global(.hljs-built_in),
   .rendered :global(.hljs-type),
-  .rendered :global(.hljs-title.class_) { color: var(--hl-bi); }
+  .rendered :global(.hljs-title.class_) { color: var(--sy-type); }
 
   /* Editorial tables: strong horizontal rules, no vertical cages, quiet
      zebra — books, not spreadsheets. */

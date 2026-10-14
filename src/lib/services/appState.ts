@@ -30,7 +30,11 @@ const VIEWER_TYPES = new Set([
   "unsupported",
 ]);
 const SIDEBAR_MODES: SidebarMode[] = ["files", "git", "settings"];
-const THEMES: Theme[] = ["system", "light", "dark"];
+/** Valid persisted themes (owner 2026-10-14 theme pack): legacy
+ * "system"/"light"/"dark" values heal to DEFAULT_THEME here — one line is
+ * the whole migration. */
+export const THEMES: Theme[] = ["glacier", "paper"];
+export const DEFAULT_THEME: Theme = "glacier";
 
 export interface PersistedTab {
   relativePath: string;
@@ -292,9 +296,9 @@ function parseSettings(v: unknown): PersistedSettings {
     typeof s.external === "object" && s.external !== null
       ? (s.external as Record<string, unknown>)
       : {};
-  const themeRaw = asString(s.theme, "system");
+  const themeRaw = asString(s.theme, DEFAULT_THEME);
   return {
-    theme: THEMES.includes(themeRaw as Theme) ? (themeRaw as Theme) : "system",
+    theme: THEMES.includes(themeRaw as Theme) ? (themeRaw as Theme) : DEFAULT_THEME,
     viewer: {
       fontSize: Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, asNum(viewer.fontSize, 13))),
     },

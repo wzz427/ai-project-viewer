@@ -5,6 +5,7 @@ import { restoreAppState } from "$lib/services/sessionRestore.svelte";
 import { diagError, diagEvent, diagWarn } from "$lib/stores/diagnosticsStore.svelte";
 import { startStateSync } from "$lib/services/stateSync.svelte";
 import { installDebugHook } from "$lib/services/debugHook";
+import { initTheme } from "$lib/stores/settingsStore.svelte";
 
 // This is a desktop app, not a browser page: the WebView's default context
 // menu (Back/Reload/Print/Inspect…) must never surface. Custom menus listen
@@ -75,7 +76,10 @@ async function boot() {
   installDebugHook();
   // Restore first, then start tracking: mount reads the restored stores,
   // and the sync loop's first write lands after the session is back.
+  // Theme applies here — BEFORE mount/first paint — so a paper user never
+  // flashes glacier (owner theme pack 2026-10-14).
   await restoreAppState();
+  initTheme();
   startStateSync();
   mount(App, {
     target: document.getElementById("app")!,

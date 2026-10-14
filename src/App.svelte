@@ -7,7 +7,6 @@
   import SettingsPanel from "$lib/components/SidebarPanels/SettingsPanel.svelte";
   import EmptyState from "$lib/components/EmptyState/EmptyState.svelte";
   import ToastHost from "$lib/components/Toast/ToastHost.svelte";
-  import { initTheme } from "$lib/stores/settingsStore.svelte";
   import { recordStartup, recordBuildTime } from "$lib/stores/diagnosticsStore.svelte";
   import { projectState, activeProject } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
@@ -244,7 +243,8 @@
   });
 
   onMount(() => {
-    initTheme();
+    // initTheme lives in main.ts boot() since the theme pack round: it
+    // must run before first paint, not after mount.
     installShortcutDispatcher();
     initWatcher();
     const unwire = wireShortcuts();

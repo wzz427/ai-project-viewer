@@ -107,10 +107,11 @@
   }
 
   /* Available: accent-tinted chip (spec-014 D5 — quiet accent, never a
-     solid fill). */
+     solid fill). Text sits in accent.INK (theme pack: the bright
+     accent.main is for indicator lines, not small text on the soft chip). */
   .update-btn.available {
     opacity: 1;
-    color: var(--accent);
+    color: var(--accent-ink);
     border-color: var(--accent);
     background: var(--accent-soft);
     cursor: pointer;
@@ -121,11 +122,7 @@
     opacity: 0.8;
   }
 
-  /* Dim-while-current (SPEC-INFRA-001) is a DARK-theme-only opacity now:
-     0.6 measured ~3.4:1 there (spec-014 V10 返修; 0.8 = 4.68:1). In light,
-     the muted text + hairline border already read as subdued at full
-     opacity (muted-on-bg = 5.3:1) — dimming further broke legibility. */
-  :global([data-theme="dark"]) .update-btn:not(.available):not(.busy) {
-    opacity: 0.8;
-  }
+  /* Dim-while-current (SPEC-INFRA-001): with only light themes left
+     (2026-10-14 pack), the muted text + hairline border at full opacity
+     already read as subdued — the old dark-theme-only dim is gone. */
 </style>

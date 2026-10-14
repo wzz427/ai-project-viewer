@@ -8,8 +8,12 @@
   import { EditorState, Compartment, type Extension } from "@codemirror/state";
   import { EditorView, lineNumbers } from "@codemirror/view";
   import { search } from "@codemirror/search";
-  import { StreamLanguage, defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
-  import { oneDark } from "@codemirror/theme-one-dark";
+  import {
+    HighlightStyle,
+    StreamLanguage,
+    syntaxHighlighting,
+  } from "@codemirror/language";
+  import { tags as t } from "@lezer/highlight";
   import * as legacy from "./codeLanguages";
   import { setActiveSearchView } from "./codeSearchRegistry";
   import ViewerToolbar from "./ViewerToolbar.svelte";
@@ -35,16 +39,35 @@
   let host = $state<HTMLElement | null>(null);
   let view: EditorView | null = null;
 
-  const themeComp = new Compartment();
-
-  // Effective dark mode (spec-012 M13): derived off the settings store.
-  // The matchMedia read is NOT reactive — the OS-flip case is covered by
-  // the listener in the reconfigure effect below, not by this derivation.
-  const dark = $derived.by(() => {
-    if (settings.theme === "dark") return true;
-    if (settings.theme === "light") return false;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+  // Theme pack (owner 2026-10-14, spec §五): every editor color rides the
+  // app.css tokens (--sy-*/--editor-*) instead of a packaged theme, so BOTH
+  // light skins come from one static extension set — a theme switch is a
+  // pure CSS repaint with zero CodeMirror reconfiguration (spec §二: no
+  // scroll/selection reset on switch). One keyword/string/… token per
+  // category mirrors the pack's palette; analysis capability (which token
+  // CM emits) is untouched.
+  const aivHighlight = HighlightStyle.define([
+    { tag: [t.keyword, t.controlKeyword, t.moduleKeyword, t.definitionKeyword, t.self], color: "var(--sy-keyword)" },
+    { tag: [t.operator, t.operatorKeyword], color: "var(--sy-operator)" },
+    { tag: [t.punctuation, t.bracket, t.separator], color: "var(--sy-punctuation)" },
+    { tag: [t.string, t.special(t.string), t.regexp, t.escape], color: "var(--sy-string)" },
+    { tag: [t.number, t.integer, t.float], color: "var(--sy-number)" },
+    { tag: [t.bool, t.atom, t.null], color: "var(--sy-boolean)" },
+    { tag: [t.comment, t.meta], color: "var(--sy-comment)", fontStyle: "italic" },
+    { tag: [t.function(t.variableName), t.macroName], color: "var(--sy-function)" },
+    { tag: [t.typeName, t.className, t.namespace, t.propertyName], color: "var(--sy-type)" },
+    { tag: t.variableName, color: "var(--editor-text)" },
+    { tag: t.heading, color: "var(--accent-ink)", fontWeight: "600" },
+    { tag: [t.link], color: "var(--accent-ink)", textDecoration: "underline" },
+    { tag: [t.url], color: "var(--sy-string)" },
+    { tag: [t.strong], fontWeight: "bold" },
+    { tag: [t.emphasis], fontStyle: "italic" },
+    { tag: [t.strikethrough], textDecoration: "line-through" },
+    { tag: [t.inserted], color: "var(--git-a)" },
+    { tag: [t.deleted], color: "var(--git-d)" },
+    { tag: [t.invalid], color: "var(--danger)" },
+    { tag: [t.monospace], fontFamily: "var(--font-mono)" },
+  ]);
 
   function langExtensions(): Extension[] {
     if (fixedLanguage) return [fixedLanguage];
@@ -65,7 +88,6 @@
   // Scroll survives via the existing save/restore pair.
   $effect(() => {
     void settings.fontSize;
-    const startDark = untrack(() => dark); // theme must NOT rebuild (M13)
     const v = new EditorView({
       state: EditorState.create({
         doc: text,
@@ -78,12 +100,15 @@
           EditorView.lineWrapping,
           EditorState.readOnly.of(true),
           EditorView.editable.of(false),
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+          syntaxHighlighting(aivHighlight),
           search({ top: true }),
           ...langExtensions(),
-          themeComp.of(startDark ? oneDark : []),
           EditorView.theme({
-            "&": { backgroundColor: "transparent", height: "100%" },
+            "&": {
+              backgroundColor: "transparent",
+              height: "100%",
+              color: "var(--editor-text)",
+            },
             ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
             ".cm-content": {
               fontSize: "var(--viewer-font-size)",
@@ -91,11 +116,23 @@
             },
             ".cm-gutters": {
               backgroundColor: "transparent",
-              color: "var(--text-muted)",
+              color: "var(--editor-linenum)",
               border: "none",
               // Numbers scale with the content (VS Code behavior); heights
               // stay exact because the view is rebuilt at this size.
               fontSize: "var(--viewer-font-size)",
+            },
+            // Toolbar-Find selections paint natively (::selection token in
+            // app.css); the CM search panel's match layer draws its own
+            // boxes — theme both to editor.match* (spec §四 搜索命中), with
+            // the current hit carrying the heavier border.
+            ".cm-searchMatch": {
+              backgroundColor: "var(--editor-match-bg)",
+              outline: "1px solid var(--editor-match-border)",
+            },
+            ".cm-searchMatch.cm-searchMatch-selected": {
+              backgroundColor: "var(--editor-match-bg)",
+              outline: "2px solid var(--editor-match-border)",
             },
           }),
         ],
@@ -115,23 +152,6 @@
       v.destroy();
       if (view === v) view = null;
     };
-  });
-
-  // Follow app theme changes without rebuilding the document (M13): the
-  // derived tracks the settings store; with theme="system" an OS dark/light
-  // flip has no reactive source, so the matchMedia change listener
-  // reconfigures through the same compartment.
-  $effect(() => {
-    dark;
-    view?.dispatch({ effects: themeComp.reconfigure(dark ? oneDark : []) });
-    if (settings.theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () =>
-      view?.dispatch({
-        effects: themeComp.reconfigure(mq.matches ? oneDark : []),
-      });
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
   });
 
   // ---- toolbar find (SPEC-INFRA-003): one doc scan feeds both count and

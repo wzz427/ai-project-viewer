@@ -172,7 +172,7 @@
     align-items: stretch;
     gap: 2px;
     border-bottom: 1px solid var(--viewer-border);
-    background: var(--bg-raised);
+    background: var(--bg-secondary);
     padding: 3px 6px 0;
     overflow-x: auto;
     flex-shrink: 0;
@@ -238,8 +238,11 @@
     color: var(--text-muted);
   }
 
+  /* Theme pack icon.activeFile: the ACTIVE tab's type icon goes orange in
+     both skins — the "you are here" file marker stays hue-stable and apart
+     from each theme's accent (spec §六). */
   .file-tab.active .type-icon {
-    color: var(--accent);
+    color: var(--icon-active);
   }
 
   .file-tab.deleted .name {

@@ -51,7 +51,7 @@ function sampleInput(): BuildInput {
       },
     },
     settings: {
-      theme: "dark",
+      theme: "paper",
       viewer: { fontSize: 15 },
       fileTree: { showSystemGeneratedFolders: true },
       external: { vsCodeNewWindow: true },
@@ -178,12 +178,35 @@ describe("parseAppState", () => {
     expect(p.trustedForExecution).toBe(false);
     expect(p.fileTreePreferences.pinnedItems["."]!).toEqual(["ok.md"]);
     expect(parsed!.settings).toEqual({
-      theme: "system",
+      theme: "glacier",
       viewer: { fontSize: 13 },
       fileTree: { showSystemGeneratedFolders: false },
       // Absent in older state files → §134 default (New Window).
       external: { vsCodeNewWindow: true },
     });
+  });
+
+  it("heals retired theme values to glacier (2026-10-14 pack migration)", () => {
+    // Pre-pack state files saved system/light/dark — none exist anymore;
+    // the whitelist line IS the whole migration.
+    for (const legacy of ["system", "light", "dark", "nonsense"]) {
+      const parsed = parseAppState(
+        JSON.stringify({
+          version: STATE_VERSION,
+          projects: [],
+          settings: { theme: legacy },
+        }),
+      );
+      expect(parsed!.settings.theme).toBe("glacier");
+    }
+    const keep = parseAppState(
+      JSON.stringify({
+        version: STATE_VERSION,
+        projects: [],
+        settings: { theme: "paper" },
+      }),
+    );
+    expect(keep!.settings.theme).toBe("paper");
   });
 
   it("clamps viewer font size into the UI range (max 32 since 0.7.5)", () => {

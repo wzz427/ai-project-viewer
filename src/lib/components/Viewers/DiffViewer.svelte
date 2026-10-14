@@ -140,7 +140,7 @@
     gap: 8px;
     padding: 4px 10px;
     border-bottom: 1px solid var(--viewer-border);
-    background: var(--bg-raised);
+    background: var(--bg-secondary);
     font-size: var(--text-base);
     flex-shrink: 0;
   }

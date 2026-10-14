@@ -76,7 +76,7 @@ hljs.registerAliases(["ps1"], { languageName: "powershell" });
 hljs.registerAliases(["md"], { languageName: "markdown" });
 hljs.registerAliases(["html", "htm"], { languageName: "xml" });
 
-export function createMarkdownRenderer(): MarkdownIt {
+export function createMarkdownRenderer(): InstanceType<typeof MarkdownIt> {
   return new MarkdownIt({
     html: false, // §88: raw HTML disabled — output is escaped
     linkify: true,

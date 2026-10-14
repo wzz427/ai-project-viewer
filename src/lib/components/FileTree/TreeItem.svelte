@@ -243,10 +243,12 @@
     background: var(--bg-hover);
   }
 
-  /* Selected row (spec-014 R5): accent-soft tint + 2px accent guide on
-     the left — "which file am I on" survives at a glance. */
+  /* Selected row (spec-014 R5 + theme pack selection.*): accent-soft fill
+     (= selection.bg) + selection.fg text + 2px accent guide on the left —
+     "which file am I on" survives at a glance. */
   .row.selected {
     background: var(--accent-soft);
+    color: var(--sel-fg);
     box-shadow: inset 2px 0 0 var(--accent);
   }
 

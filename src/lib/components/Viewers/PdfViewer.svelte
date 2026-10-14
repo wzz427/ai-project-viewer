@@ -872,7 +872,9 @@
   }
 
   .page-slot :global(.pdf-text-layer ::selection) {
-    background: rgba(76, 139, 245, 0.35);
+    /* Theme pack editor.selectionBg: the last hardcoded color (a cold
+       WebView blue) rides the per-theme token like every other viewer. */
+    background: var(--editor-sel);
   }
 
   .pages :global(.pdf-canvas) {

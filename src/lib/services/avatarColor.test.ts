@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
-  AVATAR_PALETTE,
+  AVATAR_HUES,
   avatarColorOf,
+  avatarHueOf,
   avatarInitialOf,
 } from "./avatarColor";
 
-describe("avatarColorOf (spec-014 D3/R2: stable project identity color)", () => {
-  it("is deterministic across calls (same path, same color)", () => {
+describe("avatarColorOf (spec-014 D3/R2 → theme-pack avatar.* tokens)", () => {
+  it("is deterministic across calls (same path, same hue)", () => {
     for (const p of ["C:\\a\\b", "/home/x/y", "D:\\repo"]) {
       expect(avatarColorOf(p)).toBe(avatarColorOf(p));
     }
   });
 
-  it("always lands inside the palette", () => {
+  it("always lands inside the per-theme hue set (CSS var reference)", () => {
     const paths = Array.from({ length: 200 }, (_, i) => `p-${i}-x`.repeat(3));
+    const refs = new Set(AVATAR_HUES.map((h) => `var(--av-${h})`));
     for (const p of paths) {
-      expect(AVATAR_PALETTE).toContain(avatarColorOf(p));
+      expect(refs.has(avatarColorOf(p))).toBe(true);
     }
   });
 
@@ -25,7 +27,7 @@ describe("avatarColorOf (spec-014 D3/R2: stable project identity color)", () => 
       "C:\\Users\\w\\Desktop\\OtherTool",
       "D:\\work\\docs",
       "E:\\media\\pics",
-    ].map(avatarColorOf);
+    ].map(avatarHueOf);
     expect(new Set(four).size).toBeGreaterThanOrEqual(3);
   });
 

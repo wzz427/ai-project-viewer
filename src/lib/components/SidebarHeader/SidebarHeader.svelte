@@ -109,11 +109,13 @@
     background: var(--bg-hover);
   }
 
-  /* Active mode: accent-soft tint + accent text (spec-014 R5) — the
-     chrome's single accent carries "you are here". */
+  /* Active mode: accent-soft tint + accent-ink text (spec-014 R5 + theme
+     pack: small text on the soft chip uses accent.INK, not the bright
+     indicator blue/brown) — the chrome's single accent carries "you are
+     here". */
   .header-tab.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-ink);
   }
 
   /* §9 badge on the Git tab: accent pill (was debug-looking "[7]"). */
@@ -122,7 +124,7 @@
     padding: 0 5px;
     border-radius: var(--radius-pill);
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-ink);
     font-size: var(--text-xs);
     line-height: 15px;
     text-align: center;

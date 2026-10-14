@@ -198,8 +198,8 @@
     align-items: center;
     gap: 8px;
     padding: 0 12px;
-    border-right: 1px solid var(--border);
-    color: var(--text-muted);
+    border-right: 1px solid var(--project-sep);
+    color: var(--project-fg);
     white-space: nowrap;
     transition:
       background-color var(--transition-fast),
@@ -208,16 +208,17 @@
   }
 
   .tab:hover {
-    background: var(--bg-hover);
+    background: var(--project-hover);
   }
 
-  /* Active project: fill chip (owner 0.8.0 方案 C) — the old 2px bottom
-     accent bar is GONE by decision: it collided with the file tab's top
-     hairline whenever the two active tabs sat near each other. Depth now
-     comes from the band↔frame value ladder, the chip fill + weight. */
+  /* Active project: fill chip (owner 0.8.0 方案 C; theme pack project.*
+     tokens) — the old 2px bottom accent bar is GONE by decision: it
+     collided with the file tab's top hairline whenever the two active
+     tabs sat near each other. Depth now comes from the band↔frame value
+     ladder, the chip fill + weight. */
   .tab.active {
-    background: var(--accent-soft);
-    color: var(--text);
+    background: var(--project-sel-bg);
+    color: var(--project-sel-fg);
     font-weight: 600;
   }
 
@@ -238,10 +239,10 @@
     box-shadow: inset -2px 0 0 var(--accent);
   }
 
-  /* Avatar badge (spec-014 D3): 15% tint of the project's identity hue,
-     initial in the hue — identity without loudness. Light theme darkens
-     the letter (72% hue + ink) — full-hue letters fell below 3:1 on pale
-     tints for teal/amber/green (verified in specs/spec-014 §六). */
+  /* Avatar badge (spec-014 D3 → theme pack avatar.* tokens): 15% tint of
+     the project's identity hue, initial in the hue — identity without
+     loudness. The per-theme --av-* foregrounds come pre-tuned for their
+     pale tints (pack 2026-10-14), so no extra light-theme darkening. */
   .avatar {
     display: inline-flex;
     align-items: center;
@@ -254,10 +255,6 @@
     font-size: var(--text-xs);
     font-weight: 600;
     flex-shrink: 0;
-  }
-
-  :global([data-theme="light"]) .avatar {
-    color: color-mix(in srgb, var(--avatar) 72%, #232529);
   }
 
   .tab-name {

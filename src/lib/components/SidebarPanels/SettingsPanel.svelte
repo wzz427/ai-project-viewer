@@ -18,10 +18,11 @@
     treeState,
   } from "$lib/stores/fileTreeStore.svelte";
 
+  // Theme pack (owner 2026-10-14): exactly two light skins — UI copy stays
+  // English per the language discipline; owner-facing names 冰川蓝/暖纸书卷.
   const themes: { value: Theme; label: string }[] = [
-    { value: "system", label: "System" },
-    { value: "dark", label: "Dark" },
-    { value: "light", label: "Light" },
+    { value: "glacier", label: "Glacier Blue" },
+    { value: "paper", label: "Warm Paper" },
   ];
 
   const project = $derived(activeProject());

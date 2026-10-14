@@ -84,7 +84,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 |---|---|---|
 | `pdf-selection-battery.py` | PDF 文本选择全场景(V1–V8:拖选/边距出界/按住空白上下移动[反选原场景]/行首垫起选/跨页/串台污染/宽屏右出界/双击) | 凡动 PdfViewer/文本层/选择驱动 |
 | `pdf-suite.py` | PDF 功能 19 项:渲染/翻页/缩放/fit/搜索/虚拟化/释放/恢复/扫描件 | 凡动 PDF 相关 |
-| `phase3-suite.py` | 查看器+移交+树交互回归 **88 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** + **0.7.6 opener 授权守卫(p10_×2):渲染层直调 plugin:opener|open_path 与 open_url file:// 必须双拒(断言 rejection,不弹任何窗口)** + **0.7.7 工具栏防选中守卫:双击+三连击 A+ 后 selection 必空(L40)** + 0.7.9 右键动作保高亮 + **0.7.11 内容身份守卫×2(data-rel==激活页签文件+正文新旧互斥;冻结大案的守卫缺口——此前全部断言只查页签名+类名,不查内容身份)** + **0.7.22 页签批量关闭守卫(×8):左清/右清/其他清的幸存集+置顶豁免+锚点接管激活+无对象侧禁用态** + **0.7.23 纸感守卫(×7):暖纸底双主题/15px 提升/88ch 限宽居中(行宽闸改判新契约)/衬线标题/赭石链接/自绘复选框/hljs token** + **0.8.0 chrome 守卫(×3):三层阶梯三值互异/项目激活零线条/文件激活单发丝线;light_viewer_white 改判 light_viewer_paper** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径/**capabilities 授权** |
+| `phase3-suite.py` | 查看器+移交+树交互回归 **91 项**:MD/代码/JSON/图片/页签/编码/快捷键/工具栏 + Phase 6 三右键菜单分型/复制 toast/两端同源/VS Code Mode 持久化 + Phase 8:Run 菜单矩阵(ps1/py/exe/msi)/exe 信息卡/未信任自动取消/项目菜单 Refresh+Trust 翻转/失败弹窗+底部右键钳制守卫(script/exe/project 每按钮在视口内,0.6.10 增) + **Phase 9 监听:树自动增删/激活页签自动重读+§82 toast(双写合并一次)/删除态+Close Tab/改名跟随页签与置顶(watcher_×5,外部写盘全程零手势)** + **0.7.4 行号对齐守卫:连按 A+ 六档后全行 行号-正文 偏差<1px+行号字号跟随正文** + **0.7.6 opener 授权守卫(p10_×2):渲染层直调 plugin:opener|open_path 与 open_url file:// 必须双拒(断言 rejection,不弹任何窗口)** + **0.7.7 工具栏防选中守卫:双击+三连击 A+ 后 selection 必空(L40)** + 0.7.9 右键动作保高亮 + **0.7.11 内容身份守卫×2(data-rel==激活页签文件+正文新旧互斥;冻结大案的守卫缺口——此前全部断言只查页签名+类名,不查内容身份)** + **0.7.22 页签批量关闭守卫(×8):左清/右清/其他清的幸存集+置顶豁免+锚点接管激活+无对象侧禁用态** + **0.7.23 纸感守卫(×7):暖纸底双主题/15px 提升/88ch 限宽居中(行宽闸改判新契约)/衬线标题/赭石链接/自绘复选框/hljs token** + **0.8.0 chrome 守卫(×3):三层阶梯三值互异/项目激活零线条/文件激活单发丝线;light_viewer_white 改判 light_viewer_paper** + **0.8.1 主题包守卫(×4):paper 视面+paper 项目带色值/theme_switch_keeps_session(切换不丢页签与激活)/glacier 视面;light_viewer_paper 退役;0.7.23 链接/纸底断言改判主题包色值(md_link_sienna→md_link_accent_ink)** | 凡动查看器、页签、右键菜单、handoffMenu/run.rs/trust/watcher 链/CodeViewer 字号路径/**capabilities 授权**/**app.css 令牌与主题机制** |
 | `git-suite.py` | Phase 7 Git 检视 33 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + 0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭 + **Phase 9:外部写/删探针→徽标自动 [8]/[7](零手势,V5;窗口 park offscreen——L34)**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换/watcher→git 链 |
 | `recent-suite.py` | Open Recent **15 项**(0.7.3,spec-010):预置状态文件+AIV_TEST_PROJECT 自动加两路驱动(原生选框绝不驱动,D4)——记录+MRU+cap 挤旧/菜单结构(Browse 首项+Clear 底部)/失效置灰+报错/打开新项目与切换已开/Esc 关闭/重启持久化/行内✕与 Clear 落盘/空白欢迎页列表;夹具 %TEMP%iv-p10-recent 每次重建;**Clear 之后严禁再点 +(空表会弹原生选框)** | 凡动 recentStore/AddProjectMenu/EmptyState/appState recentFolders 字段 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
@@ -293,7 +293,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | pdf-suite | **23/23**(+4:M8 搜索中切页签零 pageerror+中断后复搜可用/M9 快切回位置比例还原 ±0.02[断言按文档占比,页缝 16px 使逐页算法不可靠]/M7 缩放风暴 settle 后每页恰一 canvas 同一 scale) |
 | freeze-guard | **0/83 + webview 14ms PASS**(动了 watcher 链,必跑档) |
 | 版本 | 0.7.8 三处已核;updates=exp 0.7.8(VERSIONINFO 核,字串扫描对 PE 无效) |
-| 教训重演 | **L29 当日重演一次**:warning 清理用了裸 `cargo build --release` 覆盖 tauri 产物→e2e 全线白屏(ERR_CONNECTION_REFUSED);双构建重建走 `pnpm tauri build --no-bundle [--debug]` 后全绿——**GUI 二进制永远只认 tauri CLI 产物** |
+| 教训重演 | **L29 三度重演(2026-10-14 0.8.1)**:GUI 测试二进制又用裸 `cargo build --release` 起——e2e 白屏(ERR_CONNECTION_REFUSED);`pnpm tauri build --no-bundle` 重建后全绿。**另:仓库是 pnpm(npm 会卡死/写错结构),动依赖一律 pnpm** |
 | 记档延后 | L-c6 noUncheckedIndexedAccess 实测 60 错/8 文件>D6 止损线 20,回退记档(spec-012 D12;去处=下一前端专项批次) |
 
 #### 0.7.9 高亮返修轮(2026-10-12,spec-012 InTest 期间 owner 报障;全部通过)
@@ -316,6 +316,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | phase3/git/recent/r3/pdf | 68/68、33/33、15/15、8/8、23/23 |
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
+
+#### 0.8.1 双主题包换装(2026-10-14,owner 交 reference/AI_Project_Viewer_Theme_Pack:system/dark/light 全退役,只留 glacier 冰川蓝[默认]+paper 暖纸书卷;开发完待发)
+
+| 档 | 结果 |
+|---|---|
+| 依据 | 主题包 spec 2026-10-14.2 + Tokens.json(每套 123 token):只改颜色不动布局/尺寸/字体;亮 accent.main 只做指示线,小字用 accent.ink;Git/状态语义色双主题同值;主题切换不得关文件/丢滚动/重置选择 |
+| 实现 | app.css 换血:`:root`=glacier 定值(**首帧即正确底色,JS 前不白闪**)+`[data-theme="paper"]` 覆盖;新面 token(--bg-secondary 文件条/差异页头、--bg-input 搜索/路径框、--toolbar-bg、--border-strong 输入边界、--text-faint 占位、--sel-fg 选中行字、--project-* 项目带专属、--icon-active 当前文件橙图标);语法/编辑器/选区/命中 token 全局化(--sy-×9/--editor-×5,CM 与 markdown 围栏共用一套,零散 hardcoded 色绝迹:PDF 文本层选区最后一块 rgba 冷蓝改挂 token;markdown 围栏底=raised 白[input 底过秤 3.8–4.5 不及 AA]);头像 8 色相→包内 6 色相(--av-* 双主题各一套,fg 预调,废除亮色补暗规则);**CM 语法高亮弃 oneDark/defaultHighlightStyle**→自建 HighlightStyle 全 CSS 变量(**主题切换=纯 CSS 重绘,零 CM 重配**,滚动/选择天然不丢);settingsStore 去 system/matchMedia,initTheme 提前到 main.ts boot(restore 后 mount 前);appState THEMES 白名单一行即迁移(旧值自愈 glacier,单测覆盖);Settings 面板=Glacier Blue/Warm Paper 双选 |
+| 对比度 | WCAG 脚本全对过秤:正文/次级/链接/选中/项目芯片/主按钮/编辑器正文/行号/头像≥3.0 全过;**两处包定值不及 4.5 记账不改值**(规范明示图标不作正文):当前文件橙图标 glacier 2.91@纸面、git 忽略字母 #717782 4.1–4.3@侧栏(粗体单字母);占位文字 4.06–4.31(占位非正文,规范豁免);围栏底由 input 改 raised 后语法 token 全过(首版 5 项 FAIL) |
+| 全档 | svelte-check 0/0(顺手修 0.7.23 存量错:markdownRender 返回类型 MarkdownIt→InstanceType)+vitest **91/91**(avatarColor 改 6 色相 var() 引用+appState 旧主题自愈新证;+1 净增)+构建过(JS 1007→1005KB:oneDark 出/lezer tags 入;**依赖:卸 @codemirror/theme-one-dark、补 @lezer/highlight 直接依赖,pnpm**)+cargo check 0/0+phase3 **91/91**(+4 主题守卫:paper 视面/paper 项目带/切换不丢会话/glacier 视面;−1 light_viewer_paper 退役;0.7.23 色断言改判包值);实拍双主题像素采样=token 定值逐一命中,视觉模型复核无硬伤(激活页签顶线按包规格 2px 不加粗——0.8.0 双线相撞的结构解不受影响;橙色文件图标=包规格 activeFile 色,非脏标记) |
+| 实拍 | `docs/shots-theme/`(md/code ×glacier/paper+settings,~500K;owner 验收后可删) |
+| 版本 | **待发**:owner 点头发版时升 0.8.1 三处+publish-experience.ps1;owner 路径=Update→重启→Settings 切 Glacier Blue/Warm Paper 对比验收;旧主题选择(system/dark/light)自愈到 Glacier Blue |
 
 #### 0.8.0 墨与纸·全套界面统一(2026-10-14,owner 报障树不和谐+双蓝线相撞+两栏无层次,demo 三选 C+层次加强+代码面同纸;全部通过)
 

@@ -1,6 +1,16 @@
-import { FONT_SIZE_MAX, FONT_SIZE_MIN } from "$lib/services/appState";
+import {
+  DEFAULT_THEME,
+  FONT_SIZE_MAX,
+  FONT_SIZE_MIN,
+} from "$lib/services/appState";
 
-export type Theme = "system" | "light" | "dark";
+/**
+ * App themes (owner 2026-10-14, reference/AI_Project_Viewer_Theme_Pack):
+ * exactly two LIGHT skins — "glacier" (default, 冰川蓝) and "paper"
+ * (暖纸书卷). system/dark/light retired; legacy persisted values heal to
+ * glacier in parseSettings.
+ */
+export type Theme = "glacier" | "paper";
 
 /**
  * AppSettings (V1.5 §22) — application-wide, persisted with AppState since
@@ -9,7 +19,7 @@ export type Theme = "system" | "light" | "dark";
  * ProjectSession carries only foldersFirst + pinnedItems).
  */
 export const settings = $state({
-  theme: "system" as Theme,
+  theme: DEFAULT_THEME as Theme,
   /** Viewer/editor font size in px (§197 revision, D8 in spec-004). */
   fontSize: 13,
   fileTree: {
@@ -21,17 +31,8 @@ export const settings = $state({
   },
 });
 
-let media: MediaQueryList | null = null;
-
-function resolvedTheme(): "light" | "dark" {
-  if (settings.theme === "system") {
-    return media && media.matches ? "dark" : "light";
-  }
-  return settings.theme;
-}
-
 function applyTheme() {
-  document.documentElement.dataset.theme = resolvedTheme();
+  document.documentElement.dataset.theme = settings.theme;
 }
 
 export function setTheme(theme: Theme) {
@@ -59,9 +60,11 @@ export function setVsCodeNewWindow(value: boolean) {
   settings.external.vsCodeNewWindow = value;
 }
 
+/** Applies the persisted theme + font knob. Called from main.ts AFTER
+ * restoreAppState and BEFORE mount — the theme lands before first paint,
+ * so a paper user never sees a glacier flash (app.css :root carries the
+ * glacier defaults for the pre-JS frame). */
 export function initTheme() {
-  media = window.matchMedia("(prefers-color-scheme: dark)");
-  media.addEventListener("change", applyTheme);
   applyTheme();
   applyFontSize();
 }
