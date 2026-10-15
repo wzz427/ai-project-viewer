@@ -669,6 +669,8 @@ with sync_playwright() as p:
     # Copy feedback (V6): the toast names what landed on the clipboard.
     # (No clipboard readback here: WebView2 may raise a native permission
     #  prompt that blocks the evaluate call — the toast IS the oracle.)
+    # 0.8.4: copied paths are quote-wrapped (owner 2026-10-15) so pastes
+    # with spaces survive terminals — the quotes are part of the contract.
     tree_row("chinese-gb18030.txt").click(button="right")
     # dispatch_event, not click(): this suite earlier used CDP viewport
     # emulation (resize test) and Playwright's cached viewport then
@@ -676,17 +678,27 @@ with sync_playwright() as p:
     # even when the DOM rect is inside. Menu logic is the test target,
     # not pointer hit-testing.
     page.locator(".menu [data-menu-id='copy-rel']").dispatch_event("click")
-    rel_toast = page.wait_for_selector(".toast").inner_text()
+    rel_toast = page.wait_for_selector(".toast").inner_text().strip()
     check("copy_rel_feedback",
-          "edge-cases/chinese-gb18030.txt" in rel_toast, repr(rel_toast))
+          rel_toast.count('"') == 2 and rel_toast.endswith('"')
+          and "edge-cases/chinese-gb18030.txt" in rel_toast, repr(rel_toast))
     time.sleep(1.0)  # let the toast clear
     # A top row: the menu opens AT the click point, so a bottom row would
     # place its items below the viewport (unclickable).
     tree_row("README.md").click(button="right")
     page.locator(".menu [data-menu-id='copy-abs']").dispatch_event("click")
-    abs_toast = page.wait_for_selector(".toast").inner_text()
-    check("copy_abs_feedback", "AIV-TestProject" in abs_toast
-          and "\\README.md" in abs_toast, abs_toast)
+    abs_toast = page.wait_for_selector(".toast").inner_text().strip()
+    check("copy_abs_feedback",
+          abs_toast.count('"') == 2 and abs_toast.endswith('"')
+          and "AIV-TestProject\\README.md" in abs_toast, abs_toast)
+    time.sleep(1.0)  # let the toast clear
+    page.locator(".project-tabs .tab.active").click(button="right")
+    page.locator(".menu [data-menu-id='copy-project-path']").dispatch_event(
+        "click")
+    proj_toast = page.wait_for_selector(".toast").inner_text().strip()
+    check("copy_project_path_quoted",
+          proj_toast.count('"') == 2 and proj_toast.endswith('"')
+          and "AIV-TestProject" in proj_toast, proj_toast)
 
     # §134 VS Code Mode: default New Window + persisted on toggle (V5)
     page.click('button[title="Settings"]')

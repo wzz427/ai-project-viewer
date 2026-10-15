@@ -40,6 +40,15 @@ export function absolutePathOf(rootPath: string, rel: string): string {
   return `${rootPath}\\${rel.replace(/\//g, "\\")}`;
 }
 
+/**
+ * Copied paths ship wrapped in double quotes so a paste with spaces
+ * survives terminals (owner 2026-10-15). NTFS names cannot contain `"`,
+ * so no escaping is possible or needed.
+ */
+function quotedPath(p: string): string {
+  return `"${p}"`;
+}
+
 /** Clipboard write with a legacy fallback; always reports via toast. */
 export async function copyText(text: string, what: string): Promise<void> {
   let ok = false;
@@ -189,12 +198,12 @@ export function fileHandoffGroups(
   const copyAbs: HandoffEntry = {
     id: "copy-abs",
     label: "Copy Absolute Path",
-    run: () => copyText(abs, "absolute path"),
+    run: () => copyText(quotedPath(abs), "absolute path"),
   };
   const copyRel: HandoffEntry = {
     id: "copy-rel",
     label: "Copy Relative Path",
-    run: () => copyText(rel, "relative path"),
+    run: () => copyText(quotedPath(rel), "relative path"),
   };
 
   switch (kind) {
@@ -261,7 +270,7 @@ export function projectHandoffGroups(rootPath: string): HandoffGroup[] {
       {
         id: "copy-project-path",
         label: "Copy Project Path",
-        run: () => copyText(rootPath, "project path"),
+        run: () => copyText(quotedPath(rootPath), "project path"),
       },
       {
         id: "project-vscode",

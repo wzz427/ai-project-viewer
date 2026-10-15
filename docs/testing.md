@@ -317,6 +317,14 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.8.4 复制路径带引号(2026-10-15,owner 报"点击文件、文件夹或者标签标题复制的路径左右缺少引号";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | handoffMenu 三个复制动词(Copy Absolute Path / Copy Relative Path / Copy Project Path)统一经 `quotedPath()` 双引号包裹——带空格路径贴终端/AI 不再断;NTFS 文件名不含 `"` 无转义问题;toast 原样显示引号(所见=剪贴板)。三入口(树右键/文件标签右键/项目标签右键)同源生效 |
+| 全档 | check 0/0+vitest 95/95+tauri 重建(磁盘清理后首次全量重编 5m19s)+phase3 **98/98**(97+1:新增 copy_project_path_quoted;copy_rel/copy_abs 两断言同步升级为要求引号——恰好 2 个引号+尾引号收尾,引号漂掉即红);cargo 免跑(Rust 零改动) |
+| 版本 | **0.8.4 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock);updates=exp 0.8.4(2026-10-15 21:44,UTF-16 核:0.8.4 FOUND/0.8.3+0.8.2+0.8.1+0.8.0 absent;拒发闸报 staged note unreadable——同 0.8.2 轮,owner 客户端消费 0.8.3 留下的残缺 update.json,升版发布不受影响;新 json 无 BOM 已核);owner 路径=Update→重启→右键文件/文件夹/标签标题复制路径,粘贴出来首尾应带双引号 |
+
 #### 0.8.3 代码色块回归修复(2026-10-14 深夜,owner 0.8.2 后双截图二报"你这怎么什么色块都没有"+质疑验证方式;已发体验渠道待验收)
 
 | 档 | 结果 |
