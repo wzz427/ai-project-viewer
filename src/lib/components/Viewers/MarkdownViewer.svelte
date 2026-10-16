@@ -238,7 +238,7 @@
   /* Vertical rhythm tightened 2026-10-14 (owner 报障"中间空档这么大"):
      a `---` between a blockquote and a heading stacked 17+30+30+37 ≈ 138px
      of near-blank band — halves to ~85px with 0.9em hr margins + 1.35em
-     h2 tops. The ❧ grows one notch so the divider reads intentional. */
+     h2 tops. */
   .rendered :global(h2) { font-size: 1.38em; margin: 1.35em 0 0.55em; }
   .rendered :global(h3) { font-size: 1.16em; margin: 1.2em 0 0.45em; }
 
@@ -328,17 +328,12 @@
   }
   .rendered :global(blockquote p) { margin: 0.5em 0; color: inherit; }
 
+  /* `---` renders as pure blank space — no glyph, no line (owner
+     2026-10-16: the ❧ fleuron read as an unknown symbol). The empty
+     block still gives sections breathing room via its margins. */
   .rendered :global(hr) {
     border: none;
-    text-align: center;
-    /* 2em margins made every `---` a ~60px blank band; 0.9em keeps the
-       fleuron divider without the dead air (owner 2026-10-14). */
     margin: 0.9em 0;
-  }
-  .rendered :global(hr::after) {
-    content: "❧";
-    color: var(--md-muted);
-    font-size: 1.4em;
   }
 
   .rendered :global(img) { max-width: 100%; }

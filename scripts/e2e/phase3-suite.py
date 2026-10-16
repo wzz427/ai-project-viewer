@@ -242,6 +242,9 @@ with sync_playwright() as p:
           if (prev && next) maxBand = Math.max(maxBand,
             next.getBoundingClientRect().top - prev.getBoundingClientRect().bottom);
         }
+        const hrEl = r.querySelector('hr');
+        const hrAfter = hrEl ? getComputedStyle(hrEl, '::after').content : null;
+        const hrBorder = hrEl ? getComputedStyle(hrEl).borderTopWidth : null;
         const delta = (a, b) => {
           const n = (s) => s.match(/\\d+/g).map(Number);
           const [r1,g1,b1] = n(a), [r2,g2,b2] = n(b);
@@ -251,6 +254,7 @@ with sync_playwright() as p:
         const pre = r.querySelector('pre');
         const inline = r.querySelector('p code');
         return { fenceCount: fences.length, spans, maxBandPx: Math.round(maxBand),
+                 hrAfter, hrBorder,
                  paper, preBg: pre ? getComputedStyle(pre).backgroundColor : null,
                  preDelta: pre ? delta(getComputedStyle(pre).backgroundColor, paper) : 0,
                  inlineBg: inline ? getComputedStyle(inline).backgroundColor : null,
@@ -262,6 +266,12 @@ with sync_playwright() as p:
     check("fence_autocolor_text_json", af["spans"][1] > 0, str(af))
     check("fence_diagram_stays_plain", af["spans"][2] == 0, str(af))
     check("hr_band_tight", 0 < af["maxBandPx"] <= 95, str(af))
+    # 0.8.5 guard (owner 2026-10-16 "不显示"): `---` must render as pure
+    # blank space — no ornament glyph, no line. ("none"/"normal" = no
+    # ::after rule; any glyph like '"❧"' fails, any border fails.)
+    check("hr_renders_invisible",
+          af["hrAfter"] in ("none", "normal", '""') and af["hrBorder"] == "0px",
+          f"after={af['hrAfter']} border={af['hrBorder']}")
     # 0.8.3 regression guard (owner "什么色块都没有"): the 0.8.1 round put
     # raised-white under code (ΔRGB≈3 vs paper = invisible); fences AND
     # inline code must now carry a clearly visible tinted block.

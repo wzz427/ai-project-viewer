@@ -317,6 +317,14 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.8.5 分隔线不显示(2026-10-16,owner 问"段落中间红框里的符号是什么"——那是 `---` 渲染的 ❧ 花饰符,他拍板"不显示";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | MarkdownViewer 删 `hr::after` 的 ❧ 花饰(0.7.23 纸感改版引入,owner 读不出它是分隔线);hr 保留 0.9em 上下边距——`---` 现渲染为纯空白,无符号无横线 |
+| 全档 | check 0/0+vitest 95/95+tauri 增量重建(2m58s)+phase3 **99/99**(98+1:新增 hr_renders_invisible——hr 无 ::after 内容+无边框,花饰或横线回归即红;hr_band_tight 原样过,去符号后空档只更窄);cargo 免跑(Rust 零改动) |
+| 版本 | **0.8.5 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock);updates=exp 0.8.5(2026-10-16 11:42,UTF-16 核:0.8.5 FOUND/0.8.4~0.8.0 absent;拒发闸干净:staged 0.8.4→publishing 0.8.5——0.8.4 轮写的新 update.json 客户端未消费前可读;新 json 无 BOM 已核);owner 路径=Update→重启→开带 `---` 的文档(如 handoff/workflow),原符号处只剩空白 |
+
 #### 0.8.4 复制路径带引号(2026-10-15,owner 报"点击文件、文件夹或者标签标题复制的路径左右缺少引号";已发体验渠道待验收)
 
 | 档 | 结果 |
