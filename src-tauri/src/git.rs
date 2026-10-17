@@ -930,6 +930,62 @@ fn commit_detail_inner(root_path: String, hash: String) -> Result<GitCommitDetai
         .ok_or_else(|| "Could not read commit details.".into())
 }
 
+/// Per-file commit history for the Properties dialog (owner 2026-10-17):
+/// `git log --follow` capped at `limit` entries. The Windows filesystem
+/// keeps no per-change history — git is the only record, so Err (not a
+/// repo, git missing) simply means "no history section"; an untracked
+/// file in a live repo yields an empty Ok list.
+#[tauri::command]
+pub async fn git_file_history(
+    root_path: String,
+    rel: String,
+    limit: u32,
+) -> Result<Vec<GitCommit>, String> {
+    // ASYNC for the same reason as git_diff (L35 family): spawns git.exe.
+    tauri::async_runtime::spawn_blocking(move || {
+        file_history_inner(Path::new(&root_path), &rel, limit)
+    })
+    .await
+    .map_err(|e| format!("git history task failed: {e}"))?
+}
+
+fn file_history_inner(project: &Path, rel: &str, limit: u32) -> Result<Vec<GitCommit>, String> {
+    let project = dunce::canonicalize(project)
+        .map_err(|e| format!("Project folder is not accessible: {e}"))?;
+    let root_out = run_git(&with_args(
+        &git_base_args(&project),
+        &["rev-parse", "--show-toplevel"],
+    ))
+    .map_err(|e| run_err_string(e, "detect git root"))?;
+    let git_root = PathBuf::from(root_out.trim());
+    let scope = scope_of(&project, &git_root)
+        .map_err(|e| run_err_string(RunError::msg(e), "detect git root"))?;
+    let rel = sanitize_rel(rel)?;
+
+    // Pathspec is git-root-relative (§65 convention, same as the snapshot
+    // log). --follow crosses renames; it only applies to single files —
+    // the frontend never calls this for folders.
+    let joined = if scope.is_empty() { rel } else { format!("{scope}/{rel}") };
+    let limit_s = limit.clamp(1, 100).to_string();
+    let mut args = with_args(
+        &git_base_args(&git_root),
+        &[
+            "log",
+            "--follow",
+            "-n",
+            &limit_s,
+            "--pretty=format:%h%x1f%an%x1f%ct%x1f%s",
+        ],
+    );
+    args.push("--".into());
+    args.push(joined);
+    match run_git(&args) {
+        Ok(out) => Ok(parse_log(&out)),
+        Err(e) if e.message.contains("does not have any commits") => Ok(Vec::new()),
+        Err(e) => Err(run_err_string(e, "git log")),
+    }
+}
+
 /// Both git_diff and git_commit_detail reject with a plain user-facing
 /// message (§153 wording for a missing git; otherwise the what+stderr from
 /// the runner). `what` names the operation — commit-detail failures used
@@ -1513,5 +1569,95 @@ DELTA
         }
         let out = run_git(&with_args(&git_base_args(repo), &["add", "-A"]));
         assert!(out.is_ok(), "stderr flood must not fail the call: {out:?}");
+    }
+
+    // ---- git_file_history (Properties dialog, owner 2026-10-17) ----
+
+    #[test]
+    fn file_history_lists_only_that_files_commits_newest_first() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "other.txt", "o\n");
+        commit_all(repo, "other commit");
+        write_file(repo, "tracked.md", "v1\n");
+        commit_all(repo, "first tracked");
+        write_file(repo, "tracked.md", "v2\n");
+        commit_all(repo, "second tracked");
+
+        let commits = file_history_inner(repo, "tracked.md", 20).unwrap();
+        assert_eq!(
+            commits.iter().map(|c| c.subject.as_str()).collect::<Vec<_>>(),
+            ["second tracked", "first tracked"],
+            "other.txt's commit must stay out"
+        );
+        assert!(commits[0].ts >= commits[1].ts);
+    }
+
+    #[test]
+    fn file_history_respects_limit() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "f.txt", "v1\n");
+        commit_all(repo, "c1");
+        write_file(repo, "f.txt", "v2\n");
+        commit_all(repo, "c2");
+
+        assert_eq!(file_history_inner(repo, "f.txt", 1).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn file_history_follows_renames() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "old.md", "v1\n");
+        commit_all(repo, "born as old");
+        sh(repo, &["mv", "old.md", "new.md"]);
+        commit_all(repo, "renamed");
+
+        let commits = file_history_inner(repo, "new.md", 20).unwrap();
+        assert_eq!(commits.len(), 2, "must cross the rename: {} commits", commits.len());
+    }
+
+    #[test]
+    fn file_history_untracked_file_is_empty_not_err() {
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path();
+        init_repo(repo);
+        write_file(repo, "committed.txt", "x\n");
+        commit_all(repo, "c");
+        write_file(repo, "fresh.txt", "never committed\n");
+
+        assert!(file_history_inner(repo, "fresh.txt", 20).unwrap().is_empty());
+    }
+
+    #[test]
+    fn file_history_non_git_dir_is_err() {
+        let tmp = TempDir::new().unwrap();
+        let dir = tmp.path();
+        write_file(dir, "plain.txt", "x\n");
+
+        assert!(file_history_inner(dir, "plain.txt", 20).is_err());
+    }
+
+    #[test]
+    fn file_history_subdir_scope_project_reports_scoped_rel() {
+        // Project root nested one level inside the git root: the pathspec
+        // must translate to git-root-relative (§65) or the log comes back
+        // empty and the dialog lies "no history".
+        let tmp = TempDir::new().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        write_file(&repo, "top.txt", "t\n");
+        commit_all(&repo, "top commit");
+        let nested = repo.join("pack");
+        write_file(&nested, "inner.md", "i\n");
+        commit_all(&repo, "inner commit");
+
+        let commits = file_history_inner(&nested, "inner.md", 20).unwrap();
+        assert_eq!(commits.len(), 1);
+        assert_eq!(commits[0].subject, "inner commit");
     }
 }

@@ -313,3 +313,38 @@ export function gitCommitDetail(
 ): Promise<GitCommitDetail> {
   return invoke<GitCommitDetail>("git_commit_detail", { rootPath, hash });
 }
+
+// --- Properties dialog (owner 2026-10-17) — on-demand, never cached ---
+
+export interface FileProperties {
+  isDir: boolean;
+  /** Bytes; meaningless for folders (no recursive scan by design). */
+  sizeBytes: number;
+  /** Millis since epoch; absent when the filesystem refuses the field. */
+  modifiedMs?: number;
+  createdMs?: number;
+  accessedMs?: number;
+}
+
+/** Fresh stat for the Properties dialog; the result is dropped on close. */
+export function fileProperties(
+  rootPath: string,
+  relPath: string,
+): Promise<FileProperties> {
+  // Arg key must match the Rust param `rel` (Tauri camelCase mapping) —
+  // `relPath` here once left the dialog stuck on its error state.
+  return invoke<FileProperties>("file_properties", { rootPath, rel: relPath });
+}
+
+/**
+ * Per-file commit history (`--follow`, capped). Rejects when the project
+ * has no git — the dialog then hides the section instead of showing an
+ * error (Windows keeps no per-change history; git is the only record).
+ */
+export function gitFileHistory(
+  rootPath: string,
+  relPath: string,
+  limit: number,
+): Promise<GitCommit[]> {
+  return invoke<GitCommit[]>("git_file_history", { rootPath, rel: relPath, limit });
+}

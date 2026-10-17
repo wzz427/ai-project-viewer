@@ -7,6 +7,7 @@ import atexit
 import json
 import os
 import shutil
+import subprocess
 import time
 
 from playwright.sync_api import sync_playwright
@@ -29,6 +30,18 @@ shutil.rmtree(AWAY_B, ignore_errors=True)
 os.makedirs(os.path.join(AWAY_B, "sub"))
 with open(os.path.join(AWAY_B, "sub", "seed.txt"), "w", encoding="utf-8") as f:
     f.write("seed\n")
+# 0.8.7: the away fixture doubles as a REAL git repo so the Properties
+# dialog's history section is provable end-to-end. AIV-TestProject has no
+# .git and guards the no-history branch instead. The repo is rebuilt from
+# scratch every run (rmtree above), so the commit is idempotent.
+def _git(*args):
+    subprocess.run(
+        ["git", "-C", AWAY_B,
+         "-c", "user.email=e2e@example.com", "-c", "user.name=e2e", *args],
+        check=True, capture_output=True)
+_git("init", "-q", "-b", "main")
+_git("add", "-A")
+_git("commit", "-q", "-m", "seed commit")
 
 
 def _seed_proj(pid, name, root, expanded):
@@ -667,17 +680,17 @@ with sync_playwright() as p:
           str(sorted(m_md)))
     m_dir = menu_ids_of(tree_menu("src"))
     check("handoff_tree_folder", m_dir == {"open", "reveal", "copy-abs",
-          "copy-rel", "vscode-folder"}, str(sorted(m_dir)))
+          "copy-rel", "vscode-folder", "properties"}, str(sorted(m_dir)))
     m_pdf = menu_ids_of(tree_menu("tab-1.pdf"))
     check("handoff_tree_pdf", m_pdf == {"open", "pdf-app", "reveal",
-          "copy-abs", "copy-rel"}, str(sorted(m_pdf)))
+          "copy-abs", "copy-rel", "properties"}, str(sorted(m_pdf)))
     m_img = menu_ids_of(tree_menu("photo.jpg"))
     check("handoff_tree_image", m_img == {"open", "default-app", "reveal",
-          "copy-abs", "copy-rel"}, str(sorted(m_img)))
+          "copy-abs", "copy-rel", "properties"}, str(sorted(m_img)))
     m_exe = menu_ids_of(tree_menu("demo.exe"))
     # spec-008 (§139): +Open(info card) +Run, still no editors
     check("handoff_tree_exe", m_exe == {"open", "run", "reveal", "copy-abs",
-          "copy-rel"}, str(sorted(m_exe)))
+          "copy-rel", "properties"}, str(sorted(m_exe)))
     m_html = menu_ids_of(tree_menu("index.html"))
     m_url = menu_ids_of(tree_menu("example.url"))
     check("handoff_tree_browser", "browser" in m_html and "browser" in m_url
@@ -723,7 +736,7 @@ with sync_playwright() as p:
     # default flips the label to Untrust Project once trusted)
     check("handoff_project_menu", m_proj == {"project-explorer",
           "copy-project-path", "project-vscode", "refresh-project",
-          "trust-project"}, str(sorted(m_proj)))
+          "trust-project", "project-properties"}, str(sorted(m_proj)))
     page.locator(".project-tabs .tab.active").click(button="right")
     has_remove = page.locator(".menu button", has_text="Remove Project").count() == 1
     page.mouse.click(400, 250)
@@ -762,6 +775,21 @@ with sync_playwright() as p:
     check("copy_project_path_quoted",
           proj_toast.count('"') == 2 and proj_toast.endswith('"')
           and "AIV-TestProject" in proj_toast, proj_toast)
+    time.sleep(1.0)  # let the toast clear
+
+    # --- 0.8.7 guard (owner 2026-10-17): Properties dialog. Non-git
+    # project → timestamps render and the history section stays HIDDEN
+    # (the filesystem keeps no per-change record; git is the only source,
+    # and this fixture deliberately has none). ---
+    tree_row("README.md").click(button="right")
+    page.locator(".menu [data-menu-id='properties']").dispatch_event("click")
+    page.wait_for_selector(".props-dialog .prop-modified")
+    mod_txt = page.locator(".props-dialog .prop-modified").inner_text().strip()
+    hist_n = page.locator(".props-dialog .props-history").count()
+    check("properties_dialog_non_git",
+          mod_txt != "—" and any(c.isdigit() for c in mod_txt) and hist_n == 0,
+          f"mod={mod_txt!r} hist={hist_n}")
+    page.locator(".props-dialog button", has_text="Close").click()
 
     # §134 VS Code Mode: default New Window + persisted on toggle (V5)
     page.click('button[title="Settings"]')
@@ -1047,11 +1075,13 @@ with sync_playwright() as p:
     # §139 exe: Open(info)+Run, no editors; §126 msi: System Default, no Run
     m_exe = menu_ids_of(tree_menu("demo.exe"))
     check("p8_exe_menu",
-          m_exe == {"open", "run", "reveal", "copy-abs", "copy-rel"},
+          m_exe == {"open", "run", "reveal", "copy-abs", "copy-rel",
+                    "properties"},
           str(sorted(m_exe)))
     m_msi = menu_ids_of(tree_menu("sample.msi"))
     check("p8_msi_menu_no_run",
-          m_msi == {"default-app", "reveal", "copy-abs", "copy-rel"},
+          m_msi == {"default-app", "reveal", "copy-abs", "copy-rel",
+                    "properties"},
           str(sorted(m_msi)))
 
     # §122: left-click .exe -> stat card (no content read)
@@ -1275,6 +1305,18 @@ with sync_playwright() as p:
         ".file-tree .row .name", has_text="away-write.md").count()
     check("away_write_visible_on_switch_back",
           seed_n == 1 and away_n == 1, f"seed={seed_n} away={away_n}")
+
+    # 0.8.7: same dialog on a REAL git repo → the history section lists
+    # the fixture's commit for seed.txt.
+    tree_row("seed.txt").click(button="right")
+    page.locator(".menu [data-menu-id='properties']").dispatch_event("click")
+    page.wait_for_selector(".props-dialog .props-history .props-hist-row")
+    rows = page.locator(".props-dialog .props-hist-row").count()
+    subj = page.locator(
+        ".props-dialog .props-hist-row .subject").first.inner_text().strip()
+    check("properties_dialog_git_history",
+          rows >= 1 and subj == "seed commit", f"rows={rows} subj={subj!r}")
+    page.locator(".props-dialog button", has_text="Close").click()
     # Back to the main fixture: leave the suite's world as it found it.
     page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
     time.sleep(0.5)

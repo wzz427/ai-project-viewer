@@ -23,6 +23,7 @@
   } from "$lib/stores/projectStore.svelte";
   import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
   import ErrorDialog from "$lib/components/ErrorDialog.svelte";
+  import PropertiesDialog from "$lib/components/PropertiesDialog.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
     activeTab,
@@ -366,6 +367,7 @@
   {/if}
   <ToastHost />
   <ErrorDialog />
+  <PropertiesDialog />
 </div>
 
 <svelte:window onmousedown={closeCopyMenu} />

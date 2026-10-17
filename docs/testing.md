@@ -317,6 +317,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.8.7 属性弹窗:修改日期+git 历史(2026-10-17,owner 需求"右键文件看属性,含历史修改记录,硬约束=不增内存占用";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | 右键文件/文件夹/项目标签 → Properties 弹窗:大小+修改/创建/访问时间;git 仓库的文件加 History 区(该文件最近 20 条提交,`--follow` 跨改名)。**内存账=零驻留**(他点名要的):槽位关闭时为 null,数据开弹窗现查、关弹窗即弃——不进树数据、不建缓存、不进状态文件;git 历史走 git.exe 子进程查完即退。Rust 侧 properties.rs 元数据命令(fs stat+防逃逸 resolve,同树规矩)+git_file_history(复用 parse_log/GitCommit;路径 §65 git 根相对;limit 1–100 夹紧);前端单槽 propertiesStore+PropertiesDialog(照 ErrorDialog 模式),菜单三面(树/tab/项目)统一 handoffMenu 一处加项 |
+| 全档 | check 0/0+vitest 95/95+cargo **122/122**(+11:properties 5=文件属性/正斜杠 rel/目录与项目根/防 `..` 逃逸/缺失报错;file_history 6=只列该文件最新在前/limit 夹紧/跨改名/未跟踪=空非错/非 git=Err/子目录 scope 翻译)+tauri 重建×2+phase3 **103/103**(+2:properties_dialog_non_git=AIV-TestProject(非 git)弹窗时间渲染+历史区隐藏;properties_dialog_git_history=away 夹具**现造 git 仓库**,seed.txt 历史首行=「seed commit」;7 处菜单清单断言同步 +properties/+project-properties);freeze-guard 免跑(watcher 链零改动,App 仅加一行挂载) |
+| 返工 | invoke 参数名 bug:fileProperties 包装传 `relPath` 而 Rust 参数名是 `rel`(Tauri 2 按驼峰映射,对不上=命令拒收)→弹窗停在错误态,phase3 首跑即拦(wait .prop-modified 超时)。修=包装传 `rel` 并留注释;守卫固化此场景 |
+| 版本 | **0.8.7 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock L22);updates=exp 0.8.7(2026-10-17 16:45,UTF-16 核:0.8.7 FOUND/0.8.6~0.8.3 absent;拒发闸干净 staged 0.8.6→publishing 0.8.7;新 json 无 BOM 已核);owner 路径=Update→重启→①右键任一文件→Properties:修改/创建/访问时间+大小;②git 仓库里文件多出 History 区;③文件夹与项目标签右键同有 Properties |
+
 #### 0.8.6 文件树外部写入可见性修复+code 图标区分(2026-10-17,owner 报:外部 Agent 写入《平台改动报告.md》树不实时显示,折叠再展开才出现;另报 HTML 图标与 MD 过于接近;已发体验渠道待验收)
 
 | 档 | 结果 |

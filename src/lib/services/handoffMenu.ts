@@ -13,6 +13,7 @@ import { settings } from "$lib/stores/settingsStore.svelte";
 import { openFile } from "$lib/stores/tabsStore.svelte";
 import { isProjectTrusted, setProjectTrusted } from "$lib/stores/projectStore.svelte";
 import { showErrorDialog } from "$lib/stores/errorDialogStore.svelte";
+import { openProperties } from "$lib/stores/propertiesStore.svelte";
 import { extOf, fileNameOf } from "$lib/services/viewerType";
 import { menuKindOf } from "$lib/services/menuKind";
 import {
@@ -205,18 +206,29 @@ export function fileHandoffGroups(
     label: "Copy Relative Path",
     run: () => copyText(quotedPath(rel), "relative path"),
   };
+  // Properties dialog (owner 2026-10-17): own trailing group on every
+  // surface — the dialog fetches everything on demand and holds nothing.
+  const properties: HandoffEntry = {
+    id: "properties",
+    label: "Properties",
+    run: async () => {
+      openProperties({ rootPath, rel, name, isDir });
+    },
+  };
 
   switch (kind) {
     case "folder": // §140
       return [
         ...(opts.includeOpen ? [[open]] : []),
         [reveal, copyAbs, copyRel, vscodeFolder],
+        [properties],
       ];
     case "textLike": // §135
       return [
         ...(opts.includeOpen ? [[open]] : []),
         [notepad, vscode],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
     case "script": // §137: Run Script in its own group
       return [
@@ -224,6 +236,7 @@ export function fileHandoffGroups(
         [runScript],
         [notepad, vscode],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
     case "browserText": // §136
       return [
@@ -231,29 +244,34 @@ export function fileHandoffGroups(
         [browser],
         [notepad, vscode],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
     case "pdf": // §138
       return [
         ...(opts.includeOpen ? [[open]] : []),
         [pdfApp],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
     case "systemApp": // §142 System App rows (§197 generalized entry)
       return [
         ...(opts.includeOpen ? [[open]] : []),
         [defaultApp],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
     case "exe": // §139: Open (info card) / Run / path verbs
       return [
         ...(opts.includeOpen ? [[open]] : []),
         [runExe],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
     case "msi": // §126: System Default only — no Run, no in-app Open
       return [
         [defaultApp],
         [reveal, copyAbs, copyRel],
+        [properties],
       ];
   }
 }
@@ -278,6 +296,17 @@ export function projectHandoffGroups(rootPath: string): HandoffGroup[] {
         run: guarded("VS Code", () =>
           openInCodeEditor(rootPath, null, settings.external.vsCodeNewWindow),
         ),
+      },
+    ],
+    [
+      {
+        id: "project-properties",
+        label: "Properties",
+        run: async () => {
+          const name =
+            rootPath.split(/[\\/]/).filter(Boolean).pop() ?? rootPath;
+          openProperties({ rootPath, rel: ".", name, isDir: true });
+        },
       },
     ],
   ];

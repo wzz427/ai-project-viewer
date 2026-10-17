@@ -3,6 +3,7 @@ mod file_tree;
 mod git;
 mod handoff;
 mod project;
+mod properties;
 mod run;
 mod state;
 mod updater;
@@ -227,6 +228,8 @@ pub fn run() {
             git::git_snapshot,
             git::git_diff,
             git::git_commit_detail,
+            git::git_file_history,
+            properties::file_properties,
             handoff::edit_in_quick_editor,
             handoff::open_in_code_editor,
             handoff::reveal_in_explorer,
