@@ -326,6 +326,14 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 返工 | invoke 参数名 bug:fileProperties 包装传 `relPath` 而 Rust 参数名是 `rel`(Tauri 2 按驼峰映射,对不上=命令拒收)→弹窗停在错误态,phase3 首跑即拦(wait .prop-modified 超时)。修=包装传 `rel` 并留注释;守卫固化此场景 |
 | 版本 | **0.8.7 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock L22);updates=exp 0.8.7(2026-10-17 16:45,UTF-16 核:0.8.7 FOUND/0.8.6~0.8.3 absent;拒发闸干净 staged 0.8.6→publishing 0.8.7;新 json 无 BOM 已核);owner 路径=Update→重启→①右键任一文件→Properties:修改/创建/访问时间+大小;②git 仓库里文件多出 History 区;③文件夹与项目标签右键同有 Properties |
 
+#### 0.8.8 属性弹窗二轮(owner 验 0.8.7 后两条:History 每条下面都有 WZZ 去掉;弹窗顶部路径要可划选复制;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | ①历史行删作者名(他自己提交的仓库里作者恒为 WZZ,纯噪音);②`.path` 开 user-select:text+cursor:text——外壳 body 全局 user-select:none(桌面感)弹窗没 reopening,根因在此不在弹窗逻辑。owner 另问 Modified 含义,答疑确认=最后一次被修改,无代码改动 |
+| 全档 | check 0/0+vitest 95/95+cargo 免跑(Rust 零改动)+phase3 **103/103**(两条守卫加料:non_git 加 computed user-select=="text"(样式即契约,删规则即红);git_history 加 .author 计数==0);freeze-guard 免跑(watcher 链零改动) |
+| 版本 | **0.8.8 三处已核**;updates=exp 0.8.8(2026-10-17 17:03,UTF-16 核:0.8.8 FOUND/0.8.7~0.8.5 absent;拒发闸干净 staged 0.8.7→publishing 0.8.8;新 json 无 BOM 已核);owner 路径=Update→重启→①History 行=时间+说明,无作者名;②鼠标划选弹窗顶部路径,Ctrl+C 复制 |
+
 #### 0.8.6 文件树外部写入可见性修复+code 图标区分(2026-10-17,owner 报:外部 Agent 写入《平台改动报告.md》树不实时显示,折叠再展开才出现;另报 HTML 图标与 MD 过于接近;已发体验渠道待验收)
 
 | 档 | 结果 |

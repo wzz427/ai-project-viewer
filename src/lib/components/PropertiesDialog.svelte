@@ -139,7 +139,6 @@
                 <li class="props-hist-row">
                   <span class="date mono">{fmt(c.ts)}</span>
                   <span class="subject">{c.subject}</span>
-                  <span class="author muted">{c.author}</span>
                 </li>
               {/each}
             </ul>
@@ -192,6 +191,11 @@
     font-size: var(--text-xs);
     color: var(--text-muted);
     overflow-wrap: anywhere;
+    /* Selectable (owner 2026-10-17): the body shell disables selection
+       for the desktop feel — a path you cannot copy is a path you cannot
+       paste anywhere, so the dialog re-enables it here. */
+    user-select: text;
+    cursor: text;
   }
 
   .facts {
@@ -232,29 +236,20 @@
   }
 
   .props-hist-row {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-areas: "date subject" ". author";
+    display: flex;
+    align-items: baseline;
     column-gap: 12px;
     font-size: var(--text-sm);
   }
 
   .props-hist-row .date {
-    grid-area: date;
     white-space: nowrap;
     font-size: var(--text-xs);
     color: var(--text-muted);
-    align-self: center;
   }
 
   .props-hist-row .subject {
-    grid-area: subject;
     overflow-wrap: anywhere;
-  }
-
-  .props-hist-row .author {
-    grid-area: author;
-    font-size: var(--text-xs);
   }
 
   .muted {

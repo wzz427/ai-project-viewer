@@ -786,9 +786,17 @@ with sync_playwright() as p:
     page.wait_for_selector(".props-dialog .prop-modified")
     mod_txt = page.locator(".props-dialog .prop-modified").inner_text().strip()
     hist_n = page.locator(".props-dialog .props-history").count()
+    # 0.8.8: the path must be mouse-selectable (owner 2026-10-17) — the
+    # body shell carries user-select:none, so the computed style is the
+    # whole contract.
+    path_sel = page.evaluate("""() => {
+        const p = document.querySelector('.props-dialog .path');
+        return p ? getComputedStyle(p).userSelect : null;
+    }""")
     check("properties_dialog_non_git",
-          mod_txt != "—" and any(c.isdigit() for c in mod_txt) and hist_n == 0,
-          f"mod={mod_txt!r} hist={hist_n}")
+          mod_txt != "—" and any(c.isdigit() for c in mod_txt) and hist_n == 0
+          and path_sel == "text",
+          f"mod={mod_txt!r} hist={hist_n} pathSel={path_sel!r}")
     page.locator(".props-dialog button", has_text="Close").click()
 
     # §134 VS Code Mode: default New Window + persisted on toggle (V5)
@@ -1314,8 +1322,12 @@ with sync_playwright() as p:
     rows = page.locator(".props-dialog .props-hist-row").count()
     subj = page.locator(
         ".props-dialog .props-hist-row .subject").first.inner_text().strip()
+    # 0.8.8 (owner 2026-10-17): no per-row author line — his own name
+    # under every entry was noise ("我看下面都有一个 WZZ").
+    author_n = page.locator(".props-dialog .props-hist-row .author").count()
     check("properties_dialog_git_history",
-          rows >= 1 and subj == "seed commit", f"rows={rows} subj={subj!r}")
+          rows >= 1 and subj == "seed commit" and author_n == 0,
+          f"rows={rows} subj={subj!r} authors={author_n}")
     page.locator(".props-dialog button", has_text="Close").click()
     # Back to the main fixture: leave the suite's world as it found it.
     page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
