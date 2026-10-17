@@ -245,6 +245,42 @@ pub(crate) fn classify_event(root: &Path, ev: &Event) -> Vec<RawChange> {
         .collect()
 }
 
+/// Fold one debouncer result into the batch to sink, or None when the
+/// window carried nothing reportable. An `Err` result (e.g. the OS event
+/// buffer overflowed) means events were LOST, not that nothing happened —
+/// it becomes a storm batch so the frontend does one full refresh instead
+/// of silently missing external writes (owner 2026-10-17 staleness
+/// report: swallowed errors were a silent-loss hole).
+pub(crate) fn fold_result(
+    root: &Path,
+    res: DebounceEventResult,
+) -> Option<FsChangeBatch> {
+    let root_str = root.to_string_lossy().to_string();
+    match res {
+        Ok(events) => {
+            let mut raws = Vec::new();
+            for ev in events {
+                for r in classify_event(root, &ev.event) {
+                    if !is_ignored_rel(&r.rel) {
+                        raws.push(r);
+                    }
+                }
+            }
+            if raws.is_empty() {
+                return None;
+            }
+            Some(build_batch(&root_str, &raws))
+        }
+        Err(_) => Some(FsChangeBatch {
+            root: root_str,
+            changed: Vec::new(),
+            removed: Vec::new(),
+            renames: Vec::new(),
+            storm: true,
+        }),
+    }
+}
+
 /// Build the debounced watcher; `sink` receives one batch per window.
 /// Generic over the sink so cargo tests can watch a tempdir through an
 /// mpsc channel without a Tauri app (spec-009 testability note).
@@ -260,20 +296,9 @@ where
         Duration::from_millis(DEBOUNCE_MS),
         None,
         move |res: DebounceEventResult| {
-            let Ok(events) = res else { return };
-            let mut raws = Vec::new();
-            for ev in events {
-                for r in classify_event(&cb_root, &ev.event) {
-                    if !is_ignored_rel(&r.rel) {
-                        raws.push(r);
-                    }
-                }
+            if let Some(batch) = fold_result(&cb_root, res) {
+                sink(batch);
             }
-            if raws.is_empty() {
-                return;
-            }
-            let root_str = cb_root.to_string_lossy().to_string();
-            sink(build_batch(&root_str, &raws));
         },
         NoCache::new(),
         notify::Config::default(),
@@ -468,6 +493,26 @@ mod tests {
         let raws = classify_event(&root, &ev);
         let b = build_batch("R", &raws);
         assert_eq!(b.renames, vec![RenamePair { from: "old.md".into(), to: "new.md".into() }]);
+    }
+
+    #[test]
+    fn fold_result_turns_watcher_error_into_storm_refresh() {
+        let root = Path::new("C:\\proj");
+        // A lost-events error must NOT vanish: it surfaces as a storm batch
+        // (frontend does one full refresh).
+        let err = DebounceEventResult::Err(vec![notify::Error::new(
+            notify::ErrorKind::Generic("buffer overflow".into()),
+        )]);
+        let b = fold_result(root, err).expect("error must surface as a batch");
+        assert!(b.storm);
+        assert!(b.changed.is_empty() && b.removed.is_empty() && b.renames.is_empty());
+        // An all-ignored window stays silent (no IPC).
+        let ev = notify_debouncer_full::DebouncedEvent {
+            event: Event::new(EventKind::Create(CreateKind::File))
+                .add_path(PathBuf::from("C:\\proj\\node_modules\\x.js")),
+            time: std::time::Instant::now(),
+        };
+        assert!(fold_result(root, Ok(vec![ev])).is_none());
     }
 
     #[test]

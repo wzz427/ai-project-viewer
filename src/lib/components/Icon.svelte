@@ -12,7 +12,7 @@
   export const FILE_ICONS: Record<IconFamily, IconName> = {
     markdown: "file-text",
     pdf: "book-open",
-    code: "file-code",
+    code: "code",
     json: "braces",
     image: "image",
     file: "file",
@@ -32,7 +32,11 @@
     "arrow-up": `<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>`,
     file: `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/>`,
     "file-text": `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>`,
-    "file-code": `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/>`,
+    // Symbol-only marks for structured content (owner 2026-10-17: the
+    // document-outline + tiny `</>` variant was indistinguishable from the
+    // MD document icon at tree size — chevrons share the braces/json
+    // language: no document outline to confuse with file-text).
+    code: `<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>`,
     braces: `<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>`,
     image: `<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>`,
     "book-open": `<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>`,

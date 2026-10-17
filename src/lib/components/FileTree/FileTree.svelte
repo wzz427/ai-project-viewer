@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { visibleSorted } from "$lib/services/treeSort";
   import {
-    loadRoot,
+    refreshProject,
     treeState,
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
@@ -12,13 +13,22 @@
   let host = $state<HTMLElement | null>(null);
 
   // Read reactively (rootPath changes when the user switches project tabs);
-  // loadRoot below creates the per-project state on first run.
+  // refreshProject below creates the per-project state on first run.
   const st = $derived(treeState.byRoot[rootPath]);
 
-  // Root level loads once per project — the ONLY automatic listing; deeper
-  // levels load on expand (V1.5 §27 lazy tree).
+  // Active project mount/switch (owner 2026-10-17 staleness report): only
+  // the ACTIVE project is watched (§77), so writes landing while this
+  // project sits in a background tab are invisible — switching back IS the
+  // "look again" moment. Re-list the root AND every previously loaded
+  // level; a first activation has nothing deeper cached, so it degenerates
+  // to the old root-only load exactly, and lazy levels stay lazy (§27).
+  // untrack is LOAD-BEARING: refreshProject reads the very state it writes
+  // (Object.keys(st.children) vs applyListing's writes) — tracked, the
+  // effect would re-trigger itself into an infinite re-list loop that
+  // starves the UI thread. Only rootPath stays tracked (re-run on switch).
   $effect(() => {
-    void loadRoot(rootPath);
+    const root = rootPath;
+    untrack(() => void refreshProject(root));
   });
 
   // VS Code reveal (owner 2026-10-10): scroll the revealed file's row into

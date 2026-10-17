@@ -168,18 +168,6 @@ async function loadDir(rootPath: string, relDir: string, force: boolean) {
 }
 
 /**
- * Load/reload the project root. Forced: this runs on first mount AND on
- * every project-tab switch — a cached root would keep new top-level
- * files/folders invisible for the whole session (same bug class as the
- * re-expand staleness, owner 2026-10-10 "folder still empty"). Live
- * watching stays Phase 9; forcing on natural "look again" moments is the
- * V1-priced fix.
- */
-export async function loadRoot(rootPath: string) {
-  await loadDir(rootPath, TREE_ROOT, true);
-}
-
-/**
  * Session restore (Phase 4): adopt persisted expanded folders — fetch
  * exactly those levels (one listing each, never deeper, §27/§160.1) and
  * mark them expanded. Levels that no longer exist simply stay collapsed.
@@ -229,10 +217,13 @@ export async function toggleExpand(rootPath: string, relDir: string) {
 }
 
 /**
- * Refresh: re-list every previously loaded level (root + anything cached,
- * expanded or not), reconciling pins per directory against the prior
- * snapshot. Collapsed-but-never-loaded levels are untouched — lazy stays
- * lazy (§27); they load on first expand.
+ * Refresh: re-list the project root AND every previously loaded level
+ * (anything cached, expanded or not), reconciling pins per directory
+ * against the prior snapshot. Runs on project mount/switch-in (owner
+ * 2026-10-17 staleness report: only the ACTIVE project is watched, §77 —
+ * switching back is the "look again" moment for background-tab writes),
+ * on ↻/Ctrl+R, and once per watcher batch. Collapsed-but-never-loaded
+ * levels are untouched — lazy stays lazy (§27); they load on first expand.
  */
 export async function refreshProject(rootPath: string) {
   const st = treeFor(rootPath);

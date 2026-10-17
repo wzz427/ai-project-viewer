@@ -228,14 +228,20 @@
     }
   });
 
-  // Window Regain Focus: active project only (§78).
+  // Window Regain Focus: active project only (§78). Git AND the tree —
+  // a focus return is the user's "look again" moment; belt-and-suspenders
+  // for any watcher event lost in flight (owner 2026-10-17 staleness
+  // report). Same cadence class as the git snapshot beside it.
   onMount(() => {
     let unlisten: (() => void) | undefined;
     void getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
         if (!focused) return;
         const root = activeProject()?.rootPath;
-        if (root) void refreshGit(root);
+        if (root) {
+          void refreshProject(root);
+          void refreshGit(root);
+        }
       })
       .then((u) => (unlisten = u))
       .catch(() => {});

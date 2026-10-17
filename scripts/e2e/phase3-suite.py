@@ -6,6 +6,7 @@ handling goes through aivlaunch (owner-isolation: PID-scoped only)."""
 import atexit
 import json
 import os
+import shutil
 import time
 
 from playwright.sync_api import sync_playwright
@@ -18,7 +19,43 @@ PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
 STATE = os.path.join(os.environ["TEMP"], "aiv-p3suite.json")
 CDP = 9257
 
-proc = aivlaunch.launch(os.path.abspath(EXE), PROJECT, STATE, CDP)
+# --- 0.8.6 away-project fixture + state seed: a second project tab with a
+# persisted-expanded subfolder, so the tail guard can prove that a write
+# landing in a NON-active project becomes visible when the user switches
+# back (owner 2026-10-17 staleness report — the tree used to serve the
+# stale cached level until a manual collapse/re-expand). ---
+AWAY_B = os.path.join(os.environ["TEMP"], "aiv-p3-away")
+shutil.rmtree(AWAY_B, ignore_errors=True)
+os.makedirs(os.path.join(AWAY_B, "sub"))
+with open(os.path.join(AWAY_B, "sub", "seed.txt"), "w", encoding="utf-8") as f:
+    f.write("seed\n")
+
+
+def _seed_proj(pid, name, root, expanded):
+    return {
+        "id": pid, "name": name, "rootPath": root,
+        "expandedFolders": expanded, "openFiles": [],
+        "sidebarMode": "files", "sidebarWidth": 260,
+        "trustedForExecution": False,
+        "fileTreePreferences": {"foldersFirst": True, "pinnedItems": {}},
+    }
+
+
+with open(STATE, "w", encoding="utf-8") as f:
+    json.dump({
+        "version": 1,
+        "projects": [
+            _seed_proj("pa", "AIV-TestProject", os.path.abspath(PROJECT), []),
+            _seed_proj("pb", "aiv-p3-away", AWAY_B, ["sub"]),
+        ],
+        "activeProjectId": "pa",
+        "settings": {},
+    }, f)
+
+# keep_state=True keeps the seed above (launch deletes the file otherwise);
+# AIV_TEST_PROJECT auto-add dedupes by rootPath, so PROJECT just activates.
+proc = aivlaunch.launch(os.path.abspath(EXE), PROJECT, STATE, CDP,
+                        keep_state=True)
 _hwnd = aivlaunch.window_of(proc.pid)
 if _hwnd:
     aivlaunch.park_offscreen(_hwnd)
@@ -647,6 +684,22 @@ with sync_playwright() as p:
           and m_html >= {"notepad", "vscode"} and m_url >= {"notepad", "vscode"},
           f"html={sorted(m_html)} url={sorted(m_url)}")
 
+    # 0.8.6 guard (owner 2026-10-17 "HTML 图标跟 MD 过于接近"): the
+    # code-family icon must differ from the MD icon. Identical glyphs
+    # render identical SVG markup, so markup inequality is the check
+    # (chevrons-only vs document-with-lines have nothing in common).
+    icons = page.evaluate("""() => {
+        const ficon = (name) => {
+            const row = [...document.querySelectorAll('.file-tree .row')]
+                .find(r => r.querySelector('.name')?.textContent === name);
+            return row ? row.querySelector('.ficon svg')?.innerHTML ?? null : null;
+        };
+        return { html: ficon('index.html'), md: ficon('README.md') };
+    }""")
+    check("code_icon_distinct_from_md",
+          bool(icons["html"]) and bool(icons["md"])
+          and icons["html"] != icons["md"], str(icons))
+
     # V10: the tab menu is fed by the SAME builder — entry sets must match
     # (tab never carries the in-app "open").
     open_file("README.md")
@@ -1205,6 +1258,26 @@ with sync_playwright() as p:
           "open_path unexpectedly allowed (capability leak)")
     check("p10_opener_file_url_denied", bool(denied and denied.get("fileUrl")),
           "open_url file:// unexpectedly allowed (scope leak)")
+
+    # --- 0.8.6 guard (owner 2026-10-17): a write into a NON-active project
+    # (the away fixture seeded at launch) must be visible right after
+    # switching back — with NO expand gesture. On the old build the tree
+    # served the stale cached level; the file only appeared after a manual
+    # collapse/re-expand. ---
+    with open(os.path.join(AWAY_B, "sub", "away-write.md"), "w",
+              encoding="utf-8") as f:
+        f.write("# written while away\n")
+    time.sleep(1.5)  # debounce + margin; only the ACTIVE project is watched
+    page.locator(".project-tabs .tab", has_text="aiv-p3-away").first.click()
+    time.sleep(1.5)  # switch-in refresh lane
+    seed_n = page.locator(".file-tree .row .name", has_text="seed.txt").count()
+    away_n = page.locator(
+        ".file-tree .row .name", has_text="away-write.md").count()
+    check("away_write_visible_on_switch_back",
+          seed_n == 1 and away_n == 1, f"seed={seed_n} away={away_n}")
+    # Back to the main fixture: leave the suite's world as it found it.
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.5)
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

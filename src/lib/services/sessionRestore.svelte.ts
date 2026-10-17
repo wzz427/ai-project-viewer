@@ -49,8 +49,9 @@ export async function restoreAppState(): Promise<void> {
       })),
       persisted.activeFileRelativePath ?? null,
     );
-    // One listing per previously-expanded level; the root listing is the
-    // FileTree component's own $effect (loadRoot).
+    // One listing per previously-expanded level; the root (and every
+    // restored level) is re-listed by the FileTree component's own
+    // $effect (refreshProject).
     await restoreExpandedFolders(tab.rootPath, persisted.expandedFolders);
   }
 

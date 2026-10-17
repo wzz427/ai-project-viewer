@@ -317,6 +317,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | cargo/freeze-guard | 免跑(Rust 零改动;8 文件与 watcher 链零交集,spec-013 D2) |
 | 版本 | 0.7.10 三处已核;updates=exp 0.7.10(UTF-16 VERSIONINFO 核,无 0.7.9 残留) |
 
+#### 0.8.6 文件树外部写入可见性修复+code 图标区分(2026-10-17,owner 报:外部 Agent 写入《平台改动报告.md》树不实时显示,折叠再展开才出现;另报 HTML 图标与 MD 过于接近;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 取证 | **复现探针(双项目预置状态)在旧构建上 BUG REPRODUCED**:监听器只挂激活项目(§77)+切回项目只强制重列根层(FileTree loadRoot)+已展开子目录吃 children 缓存——写入落在非激活期间的事件无人看,切回时根层刷了、子层陈旧,与他"折叠再展开才出现"逐字吻合。**第二洞(代码审读)**:watcher.rs 折叠闭包 `let Ok(events) = res else { return }` 把 watcher 错误(如系统缓冲区溢出)**无声吞掉**,丢失事件连 storm 全量刷新都不触发 |
+| 实现 | ①FileTree 挂载/切换改走 refreshProject(重列全部已缓存层级;**untrack 是承重墙**——refreshProject 读 `Object.keys(st.children)` 而 applyListing 写同一对象,不隔离=effect 自触发无限重列,首次 phase3 即饿死点击,教训见下);②watcher 折叠抽 fold_result,Err→storm 批(前端一次全量刷新);③窗口聚焦"看一眼"补树重列(§78 git 同路);④code 族图标换纯 `</>` 双箭括号(与 MD 文档形零共同轮廓,与 json 花括号同语言) |
+| 全档 | check 0/0+vitest 95/95+cargo **111/111**(+1:fold_result 错误→storm/全忽略窗口静默)+tauri 重建×2+phase3 **101/101**(+2:away_write_visible_on_switch_back=双项目预置+外部写入+切回即见(旧构建实测 FAIL);code_icon_distinct_from_md=html 与 md 行图标 SVG 标记必须互异)+**freeze-guard PASS**(0/83 hung,watcher 链必跑档)。修复后同一探针复验 NOT reproduced(探针临时脚本断完即删,场景固化进 phase3) |
+| 教训 | **把"读自己写的状态"的异步函数放进 $effect 前先想 untrack**:Svelte 5 响应式读写相遇=自触发循环,症状是 UI 全面饿死(点击超时)而非报错——phase3 首跑拦下(30s 点击超时),这本身就是"全量回归必须跑"的活例 |
+| 版本 | **0.8.6 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock);updates=exp 0.8.6(2026-10-17 11:34,UTF-16 核:0.8.6 FOUND/0.8.5~0.8.3 absent;拒发闸干净 staged 0.8.5→publishing 0.8.6;新 json 无 BOM 已核);owner 路径=Update→重启→①让别的 Agent 往非激活项目写个文件,切回即见;②看 HTML 文件图标=`</>` 形,与 MD 文档形一眼可辨 |
+
 #### 0.8.5 分隔线不显示(2026-10-16,owner 问"段落中间红框里的符号是什么"——那是 `---` 渲染的 ❧ 花饰符,他拍板"不显示";已发体验渠道待验收)
 
 | 档 | 结果 |
