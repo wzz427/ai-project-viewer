@@ -105,6 +105,34 @@ def handoff_fixtures(project_root):
             subprocess.run([rustc, "-O", "-o", exe, src], check=True)
 
 
+def spine_pdf(path):
+    """arXiv-style page: rotated left-spine text + dense text above and
+    below a sparse author band (0.8.9 select-everything trap: the spine's
+    tall bbox gave it a page-scale row-merge radius, and the whitespace
+    band had no real rows to clamp onto)."""
+    c = canvas.Canvas(path, pagesize=A4)
+    w, h = A4
+    c.saveState()
+    c.translate(30, h - 50)
+    c.rotate(-90)
+    c.setFont("Helvetica", 10)
+    c.drawString(0, 0, "arXiv:0000.0000v1 [q-fin.CP] 1 Jan 2026 SPINE TRAP")
+    c.restoreState()
+    c.setFont("Helvetica", 11)
+    for i in range(1, 9):
+        c.drawString(70, h - 70 - 18 * i,
+                     f"Top line {i}: the quick brown fox jumps over the lazy dog.")
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(70, h - 280, "Author Band Whitespace")
+    c.setFont("Helvetica", 10)
+    c.drawString(70, h - 305, "Somewhere University")
+    for i in range(1, 9):
+        c.drawString(70, h - 380 - 18 * i,
+                     f"Bottom line {i}: pack my box with five dozen liquor jugs.")
+    c.showPage()
+    c.save()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target",
@@ -117,7 +145,8 @@ def main():
     handoff_fixtures(os.path.dirname(args.target.rstrip("\\/")))
 
     jobs = ([f"sample-{n}p-text.pdf" for n in (10, 100)]
-            + [f"tab-{i}.pdf" for i in range(1, 6)])
+            + [f"tab-{i}.pdf" for i in range(1, 6)]
+            + ["sample-spine.pdf"])
     existing = [j for j in jobs + ["sample-100p-scan.pdf"]
                 if os.path.exists(os.path.join(args.target, j))]
     if existing and not args.force:
@@ -125,6 +154,7 @@ def main():
 
     text_pdf(os.path.join(args.target, "sample-10p-text.pdf"), 10)
     text_pdf(os.path.join(args.target, "sample-100p-text.pdf"), 100)
+    spine_pdf(os.path.join(args.target, "sample-spine.pdf"))
     for i in range(1, 6):
         text_pdf(os.path.join(args.target, f"tab-{i}.pdf"), 2,
                  header=f"Tab fixture {i}")

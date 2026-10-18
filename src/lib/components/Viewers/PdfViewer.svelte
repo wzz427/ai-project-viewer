@@ -6,9 +6,9 @@
    * visible ± ADJACENT pages (§95); unmount destroys the document and
    * cancels render tasks (§96), leaving only tab.pdfState behind (§93).
    *
-   * Search is page-navigation grade (D5): match list + next/previous;
-   * character-level highlight boxes would need the full text layer and
-   * are out of V1 scope.
+   * Search highlights every occurrence in the rendered text layers
+   * (0.8.9, closing the D5 gap — owner 2026-10-18: found words must be
+   * visibly marked, not just jumped to); the counter counts occurrences.
    */
   import { onMount } from "svelte";
   import {
@@ -352,6 +352,15 @@
             ".pdf-text-layer span")) {
             const r = s.getBoundingClientRect();
             if (r.width === 0) continue;
+            // Rotated text (arXiv-style left spine: rotate -90°, bbox tall
+            // and narrow) is NOT a drag target — and worse, its tall box
+            // gave it a ~0.6×height page-scale MERGE radius that swallowed
+            // the middle band into one page-sized "row". That row made the
+            // clamp a no-op, so a drag through the author whitespace left
+            // the native blank-column sprawl on screen = select-everything
+            // (owner 2026-10-18, R&D-Agent-Quant.pdf). Geometry test only —
+            // reading computed transforms per span per frame is too slow.
+            if (r.height > r.width * 2 && r.height > 100) continue;
             const cy = r.top + r.height / 2;
             const row = rows.find((w) => Math.abs(w.cy - cy) < r.height * 0.6);
             if (row) {
@@ -368,9 +377,17 @@
           }
           return rows;
         };
+        // Last extent the clamped caret resolved to. When the clamped
+        // point still misses text (inter-column gap, chart area), the
+        // driver used to SKIP its write — and with a real mouse the
+        // native selection's blank-column sprawl (§3.1) then stayed on
+        // screen. Fall back to the last good extent instead; seeded with
+        // the anchor so a first move into blank selects nothing, never
+        // everything.
+        let lastCaret: Range = a;
         const clampAt = (x: number, y: number) => {
           const sel = document.getSelection();
-          const rows = rowsNow();
+          const rows = rowsNow().filter((w) => w.right - w.left >= 60);
           if (!sel || rows.length === 0) return;
           let row = rows[0];
           if (!row) return;
@@ -380,10 +397,9 @@
           const cx = Math.min(Math.max(x, row.left + 22), row.right - 22);
           const cy = Math.min(Math.max(y, row.top + 1), row.bottom - 1);
           const caret = caretAt(cx, cy);
-          if (caret) {
-            sel.setBaseAndExtent(anchorNode, anchorOffset,
-              caret.startContainer, caret.startOffset);
-          }
+          if (caret) lastCaret = caret;
+          sel.setBaseAndExtent(anchorNode, anchorOffset,
+            lastCaret.startContainer, lastCaret.startOffset);
         };
         let dragging = true;
         let lastEv: { x: number; y: number } | null = null;
@@ -426,6 +442,9 @@
         window.addEventListener("pointercancel", onUp);
       });
       renderedScale.set(pageNo, scale);
+      // A page rendering after a search (scroll/zoom brought it into the
+      // window) picks up its marks; a fresh layer has none to strip.
+      if (hlQuery) applyPageHighlights(pageNo);
     } catch (e) {
       console.info("[aiv-pdf] STACK", pageNo, e instanceof Error && e.stack ? e.stack.split("\n").slice(0, 6).join(" | ") : String(e));
       // cancelled render (zoom churn / destroy) — clear the slot so DOM
@@ -447,6 +466,7 @@
     activeRenders.delete(pageNo);
     renderedPages.delete(pageNo);
     renderedScale.delete(pageNo);
+    pageMarks.delete(pageNo); // the marks die with the detached layer
     slots.get(pageNo)?.replaceChildren();
   }
 
@@ -511,41 +531,104 @@
     zoomBy(e.deltaY < 0 ? 1.1 : 1 / 1.1);
   }
 
-  // ---------- search (page-navigation grade, D5) ----------
+  // ---------- search (0.8.9: character-level highlights — the D5
+  // page-navigation grade read as broken in the field: owner 2026-10-18
+  // "文件区域并没有对搜到的词进行高亮显示". Counter now counts
+  // OCCURRENCES (what is boxed), not pages; clearing the box clears
+  // marks AND counter — a stale "1/7" next to an empty input used to
+  // read as a hang, same report) ----------
   let query = $state("");
-  let matches = $state<{ page: number }[]>([]);
+  /** Total occurrences across the document (= marks on rendered pages). */
+  let matchCount = $state(0);
   let matchIdx = $state(-1);
   let searching = $state(false);
   /** Search generation (spec-012 M8): a new run supersedes the in-flight
    *  one (Enter mash → latest query wins); unmount bumps it so a search
    *  running across a tab switch stops writing. */
   let searchGen = 0;
+  /** The query currently driving highlights ("" = none). Pages that
+   *  render AFTER the search (scroll/zoom) pick their marks up in
+   *  renderPage via pageHitCount. */
+  let hlQuery = "";
+  /** Flat occurrence list: page + ordinal among that page's occurrences. */
+  type Occ = { page: number; local: number };
+  let occs: Occ[] = [];
+  /** Applied mark elements per rendered page, document order — current
+   *  tagging and removal. DOM refs, rendered pages only (bounded by the
+   *  render window), dropped wholesale with the component. */
+  const pageMarks = new Map<number, HTMLElement[]>();
+
+  /** Whitespace-collapsed haystack + map back to raw offsets. Both the
+   *  counter (getTextContent items) and the boxes (text-layer DOM) go
+   *  through this, so "Page  8" matches "Page 8" and item boundaries
+   *  with newline artifacts don't split matches (pdf.js's own find
+   *  controller normalizes the same way). */
+  function normalizeForFind(raw: string): { hay: string; map: number[] } {
+    const chars: string[] = [];
+    const map: number[] = [];
+    let space = false;
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i]!;
+      if (/\s/.test(ch)) {
+        if (space) continue;
+        chars.push(" ");
+        map.push(i);
+        space = true;
+      } else {
+        chars.push(ch);
+        map.push(i);
+        space = false;
+      }
+    }
+    return { hay: chars.join("").toLowerCase(), map };
+  }
+
+  function normQuery(q: string): string {
+    return q.replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function countOccurrences(hay: string, q: string): number {
+    let n = 0;
+    let at = hay.indexOf(q);
+    while (at >= 0) {
+      n++;
+      at = hay.indexOf(q, at + q.length); // non-overlapping
+    }
+    return n;
+  }
 
   async function runSearch() {
-    const q = query.trim().toLowerCase();
-    matches = [];
+    const q = normQuery(query);
+    stripAllMarks();
+    hlQuery = q;
+    occs = [];
+    matchCount = 0;
     matchIdx = -1;
     if (!q || !doc) return;
     const gen = ++searchGen;
     searching = true;
     try {
-      const found: { page: number }[] = [];
       for (let p = 1; p <= doc.numPages; p++) {
         const page = await doc.getPage(p);
         const text = await page.getTextContent();
         if (gen !== searchGen) return;
-        const sheet = text.items
-          .map((it) => ("str" in it ? it.str : ""))
-          .join(" ")
-          .toLowerCase();
-        if (sheet.includes(q)) found.push({ page: p });
+        // Plain concatenation, matching what the text-layer DOM spells —
+        // the old " " joiner bridged item gaps the DOM does not carry,
+        // which would have made the counter disagree with the boxes.
+        const raw = text.items.map((it) => ("str" in it ? it.str : "")).join("");
+        const { hay } = normalizeForFind(raw);
+        const local = countOccurrences(hay, q);
+        for (let i = 0; i < local; i++) occs.push({ page: p, local: i });
       }
       if (gen !== searchGen) return;
-      matches = found;
-      const first = found[0];
+      matchCount = occs.length;
+      // Paint marks on every page that already has a rendered text layer.
+      for (const p of [...renderedPages]) applyPageHighlights(p);
+      const first = occs[0];
       if (first) {
         matchIdx = 0;
         scrollToPage(first.page);
+        tagCurrent(first);
       }
     } catch {
       // doc destroyed mid-search (tab switch/unmount) or a page fetch
@@ -556,11 +639,119 @@
     }
   }
 
+  function clearSearch() {
+    searchGen++; // supersede any in-flight run
+    hlQuery = "";
+    occs = [];
+    matchCount = 0;
+    matchIdx = -1;
+    searching = false;
+    stripAllMarks();
+  }
+
   function nextMatch(dir: 1 | -1) {
-    if (matches.length === 0) return;
-    matchIdx = (matchIdx + dir + matches.length) % matches.length;
-    const m = matches[matchIdx];
-    if (m) scrollToPage(m.page);
+    if (occs.length === 0) return;
+    const idx = (matchIdx + dir + occs.length) % occs.length;
+    const occ = occs[idx]!;
+    matchIdx = idx;
+    scrollToPage(occ.page);
+    // If the page is not rendered yet, renderPage → applyPageHighlights
+    // tags + centers the current mark when it lands.
+    tagCurrent(occ);
+  }
+
+  /** Highlights one rendered page's text layer with every occurrence of
+   *  hlQuery; re-tags/reveals the current match when it lives here. */
+  function applyPageHighlights(pageNo: number) {
+    const host = slots.get(pageNo);
+    const layer = host?.querySelector<HTMLElement>(".pdf-text-layer");
+    if (!layer) return;
+    stripMarksIn(layer);
+    pageMarks.delete(pageNo);
+    if (!hlQuery) return;
+    const marks = highlightTextLayer(layer, hlQuery);
+    if (marks.length > 0) pageMarks.set(pageNo, marks);
+    const cur = occs[matchIdx];
+    if (cur && cur.page === pageNo) {
+      const m = marks[cur.local];
+      if (m) {
+        m.classList.add("current");
+        m.scrollIntoView({ block: "center" });
+      }
+    }
+  }
+
+  function tagCurrent(occ: Occ) {
+    for (const [p, marks] of pageMarks) {
+      marks.forEach((m, i) =>
+        m.classList.toggle("current", p === occ.page && i === occ.local));
+    }
+    pageMarks.get(occ.page)?.[occ.local]?.scrollIntoView({ block: "center" });
+  }
+
+  /** Wrap every occurrence of q in <mark class="pdf-find-hl"> inside the
+   *  layer's text nodes. Ranges are found on the normalized string, then
+   *  mapped back to raw offsets; wrapping walks in REVERSE document order
+   *  because splitText never shifts offsets to its left. Marks are inline
+   *  within the absolutely-positioned spans, so a mark's background boxes
+   *  exactly the glyphs it wraps. */
+  function highlightTextLayer(layer: HTMLElement, q: string): HTMLElement[] {
+    const marks: HTMLElement[] = [];
+    const walker = document.createTreeWalker(layer, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n as Text);
+    let raw = "";
+    const starts: number[] = [];
+    for (const t of nodes) {
+      starts.push(raw.length);
+      raw += t.data;
+    }
+    const { hay, map } = normalizeForFind(raw);
+    const occ: [number, number][] = [];
+    let at = hay.indexOf(q);
+    while (at >= 0) {
+      occ.push([map[at]!, map[at + q.length - 1]! + 1]);
+      at = hay.indexOf(q, at + q.length);
+    }
+    for (let r = occ.length - 1; r >= 0; r--) {
+      const [s, e] = occ[r]!;
+      for (let k = nodes.length - 1; k >= 0; k--) {
+        const t = nodes[k]!;
+        const ns = starts[k]!;
+        const ne = ns + t.data.length;
+        if (ne <= s) break; // earlier nodes lie even further before the range
+        if (ns >= e) continue;
+        let node: Text = t;
+        const eo = Math.min(node.data.length, e - ns);
+        if (eo < node.data.length) node.splitText(eo);
+        const so = Math.max(0, s - ns);
+        if (so > 0) node = node.splitText(so);
+        const mark = document.createElement("mark");
+        mark.className = "pdf-find-hl";
+        node.replaceWith(mark);
+        mark.append(node);
+        marks.unshift(mark);
+      }
+    }
+    return marks;
+  }
+
+  function stripMarksIn(layer: Element) {
+    for (const m of layer.querySelectorAll("mark.pdf-find-hl")) {
+      const parent = m.parentNode;
+      if (!parent) continue;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      m.remove();
+    }
+    layer.normalize(); // merge the splitText fragments back
+  }
+
+  function stripAllMarks() {
+    for (const host of slots.values()) {
+      const layer = host.querySelector(".pdf-text-layer");
+      if (layer) stripMarksIn(layer);
+    }
+    pageMarks.clear();
   }
 
   // Mount the slot map + observer once pages exist.
@@ -632,13 +823,26 @@
       placeholder="Find in document…"
       bind:this={searchInput}
       bind:value={query}
-      onkeydown={(e) => e.key === "Enter" && runSearch()}
+      oninput={(e) => {
+        // Clearing the box (typing or the native ✕) drops marks AND
+        // counter together — a stale "1/7" beside an empty input read as
+        // a stuck search (owner 2026-10-18, same report).
+        if (!(e.currentTarget as HTMLInputElement).value.trim()) clearSearch();
+      }}
+      onkeydown={(e) => {
+        if (e.key === "Enter") runSearch();
+        else if (e.key === "Escape") {
+          query = "";
+          clearSearch();
+          searchInput?.blur();
+        }
+      }}
       aria-label="Search document"
     />
     {#if searching}
       <span class="tb-label">…</span>
-    {:else if matches.length > 0}
-      <span class="tb-label">{matchIdx + 1} / {matches.length}</span>
+    {:else if matchCount > 0}
+      <span class="tb-label">{matchIdx + 1} / {matchCount}</span>
       <button class="tb" onclick={() => nextMatch(-1)} aria-label="Previous match">‹</button>
       <button class="tb" onclick={() => nextMatch(1)} aria-label="Next match">›</button>
     {:else if query.trim() && !searching}
@@ -845,6 +1049,21 @@
     cursor: default;
   }
 
+  /* Find highlights (0.8.9): inline marks inside the absolutely
+     positioned spans, so the background boxes exactly the wrapped
+     glyphs. The spans paint no text (transparent) and neither do the
+     marks — the canvas glyphs stay the only visible text; the UA's
+     default yellow `mark` look is overridden on purpose. Amber reads on
+     both light themes (paper/glacier). */
+  .page-slot :global(.pdf-text-layer mark.pdf-find-hl) {
+    background: rgba(255, 170, 0, 0.32);
+    color: transparent;
+  }
+
+  .page-slot :global(.pdf-text-layer mark.pdf-find-hl.current) {
+    background: rgba(255, 140, 0, 0.55);
+  }
+
   /* Official endOfContent geometry: zero-height strip at the layer bottom,
      inert (user-select:none); .selecting expands it to cover the layer so
      blank-area drags stop at the last text span. z-index 0 keeps it below
@@ -872,9 +1091,12 @@
   }
 
   .page-slot :global(.pdf-text-layer ::selection) {
-    /* Theme pack editor.selectionBg: the last hardcoded color (a cold
-       WebView blue) rides the per-theme token like every other viewer. */
-    background: var(--editor-sel);
+    /* editor.selectionBg at translucency. PDF glyphs live on the canvas
+       BELOW this layer — an opaque selection paints over them and hides
+       the very text it marks (0.8.1 theme-pack regression, owner
+       2026-10-18 "把文字全遮了"; the pre-theme rgba(76,139,245,.35) was
+       right, only its color needed the token). */
+    background: color-mix(in srgb, var(--editor-sel) 45%, transparent);
   }
 
   .pages :global(.pdf-canvas) {

@@ -326,6 +326,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 返工 | invoke 参数名 bug:fileProperties 包装传 `relPath` 而 Rust 参数名是 `rel`(Tauri 2 按驼峰映射,对不上=命令拒收)→弹窗停在错误态,phase3 首跑即拦(wait .prop-modified 超时)。修=包装传 `rel` 并留注释;守卫固化此场景 |
 | 版本 | **0.8.7 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock L22);updates=exp 0.8.7(2026-10-17 16:45,UTF-16 核:0.8.7 FOUND/0.8.6~0.8.3 absent;拒发闸干净 staged 0.8.6→publishing 0.8.7;新 json 无 BOM 已核);owner 路径=Update→重启→①右键任一文件→Properties:修改/创建/访问时间+大小;②git 仓库里文件多出 History 区;③文件夹与项目标签右键同有 Properties |
 
+#### 0.8.9 PDF 搜索高亮+划词双修(2026-10-18,owner 三报:①搜索命中不高亮;②清空关键词后 1/7 计数残留;③划词色块遮字+上移全选(真语料 R&D-Agent-Quant.pdf);已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 搜索 | **字符级高亮(D5 补课)**:命中词在文本层包 `<mark class="pdf-find-hl">`(amber 半透明,当前命中深一档);计数从"页数"改为**命中次数**(框数=计数);清空输入框/Esc=清高亮+清计数+杀在途搜索;空白归一化(计数与划框两侧同规则:collapse \s+,非重叠步进);页渲染时补画(watcher 缩放/滚动后到场的页);缩放重渲染自动重画+重标当前 |
+| 划词① | 选区不透明遮字:0.8.1 主题轮把 PDF 选区最后一块 rgba(76,139,245,.35) 换成不透明 --editor-sel——字形在画布、选区在上层,不透明=遮字(0.8.3 同类:全局换色连带漏验)。修=color-mix(editor-sel 45%, transparent) |
+| 划词② | **上移全选**:真语料验尸=arXiv 式左脊线竖排 span 盒 32×621,行合并半径 0.6×h=372px 把作者带并成整页大"行"→钳位无效→caret 落空→驱动跳写→真鼠标原生蔓选留屏;"只向上坏"=作者空白带恰在正文上方。修=行构建滤竖排(h>2w&&h>100)+钳位窗<60px 行不参选+**caret 落空回退 lastCaret**(种子=锚点)而非跳写 |
+| 探针 | tmp-repro-pdf-up/real-pdf(合成层)——夹具全绿但真语料暴露竖排行;真语料修复后:向上穿带逐行扩展(到顶=16 行非全选,脊线文字不入选);断完即删,场景固化进 pdf-suite |
+| 全档 | check 0/0+vitest 95/95+cargo 免跑(Rust 零改动)+**pdf-suite 28/28**(+4:pdf_search_highlights_words=mark 存在+背景非透明+恰一 current+计数==框数;pdf_search_clear_drops_marks_and_counter;pdf_spine_drag_up_clamps_lines=新夹具 sample-spine.pdf(竖脊线+作者空白带)向上拖必须贯通到顶行且脊线文字不入选;pdf_selection_tint_translucent=**像素级**选区采样,距不透明 token>25 且距白纸>18——0.8.3 教训:颜色回归必须像素守卫)+phase3 103/103;freeze-guard 免跑(watcher 链零改动);pdf-suite EXE 从 debug 切 release(旧 debug-only 路径会测到陈旧构建) |
+| 版本 | **0.8.9 三处已核**;updates=exp 0.8.9(2026-10-18 11:42,UTF-16 核:0.8.9 FOUND/0.8.8~0.8.6 absent;新 json 无 BOM 已核);owner 路径=Update→重启→①PDF 搜词看 amber 高亮+当前命中深色;②清空搜索框,计数与高亮同时消失;③划词看清字下的浅色选区;④研报里向上拖选,逐行扩展不再全选 |
+
 #### 0.8.8 属性弹窗二轮(owner 验 0.8.7 后两条:History 每条下面都有 WZZ 去掉;弹窗顶部路径要可划选复制;已发体验渠道待验收)
 
 | 档 | 结果 |

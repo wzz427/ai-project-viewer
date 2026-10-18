@@ -18,7 +18,9 @@ import aivlaunch
 
 EXE = Path = None
 import pathlib
-EXE = pathlib.Path(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\debug\ai-project-viewer.exe")
+# release since 0.8.9: same binary phase3 drives — a debug-only EXE here
+# silently tested a stale/unbuilt flavor.
+EXE = pathlib.Path(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe")
 PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
 STATE = os.path.expandvars(r"%TEMP%\aiv-p5-test-state.json")
 CDP = 9225
@@ -126,7 +128,7 @@ def main():
         check("ctrl+wheel switches to custom zoom",
               pg.locator("button.tb.on").count() == 0)
 
-        # --- search (D5: page navigation grade) ---
+        # --- search (0.8.9: character-level highlights) ---
         pg.fill("input.search", "Page 8 line")
         pg.press("input.search", "Enter")
         try:
@@ -135,13 +137,131 @@ def main():
             check("search jumped to page 8",
                   pg.locator("input.page-no").input_value() == "8",
                   pg.locator("input.page-no").input_value())
+            # Owner 2026-10-18: found words must be visibly marked. Marks
+            # must exist, carry a real background (invisible-highlight
+            # regressions are a color bug, not an absence bug — 0.8.3
+            # lesson), exactly one is .current, and — since every
+            # occurrence of this query lives on rendered page 8 — the
+            # counter total must EQUAL the box count (the counter counts
+            # occurrences, not pages).
+            hl_n = pg.locator("mark.pdf-find-hl").count()
+            cur_n = pg.locator("mark.pdf-find-hl.current").count()
+            bg = pg.evaluate("""() => {
+                const m = document.querySelector('mark.pdf-find-hl');
+                return m ? getComputedStyle(m).backgroundColor : null;
+            }""")
+            counter = pg.locator(".toolbar").inner_text()
+            import re as _re
+            m_total = _re.search(r"1 / (\d+)", counter)
+            total = int(m_total.group(1)) if m_total else -1
+            check("pdf_search_highlights_words",
+                  hl_n >= 1 and cur_n == 1
+                  and bool(bg) and bg not in ("rgba(0, 0, 0, 0)", "transparent")
+                  and total == hl_n,
+                  f"marks={hl_n} current={cur_n} bg={bg} total={total}")
         except Exception as e:
             check("search finds matches", False, str(e))
+
+        # Clearing the box must drop marks AND counter together — a stale
+        # "1/7" beside an empty input read as a stuck search (owner
+        # 2026-10-18, same report).
+        pg.fill("input.search", "")
+        pg.wait_for_timeout(300)
+        check("pdf_search_clear_drops_marks_and_counter",
+              pg.locator("mark.pdf-find-hl").count() == 0
+              and pg.locator(".toolbar:has-text('1 /')").count() == 0,
+              f"marks={pg.locator('mark.pdf-find-hl').count()}")
 
         pg.fill("input.search", "zzzz-not-there")
         pg.press("input.search", "Enter")
         pg.wait_for_timeout(1500)
         check("no-result feedback", pg.locator(".toolbar").inner_text().find("0 results") != -1)
+
+        # --- 0.8.9 selection guards (owner 2026-10-18 double report on a
+        # real arXiv-style doc): (a) the rotated left spine + author
+        # whitespace band must not defeat the row clamp — dragging UP
+        # through the band extends line by line instead of freezing/
+        # ballooning into select-everything; (b) the selection tint must
+        # be TRANSLUCENT — an opaque editor-sel paints over the canvas
+        # glyphs it marks (0.8.1 theme-pack regression, "把文字全遮了"). ---
+        pg.click("div.row[role='treeitem'] :text-is('sample-spine.pdf')")
+        pg.wait_for_selector(".pdf-viewer canvas", timeout=20000)
+        pg.wait_for_timeout(1800)
+
+        def drag_pts(points):
+            pg.evaluate(r"""(pts) => {
+              const [d0, ...rest] = pts;
+              const target = document.elementFromPoint(d0[0], d0[1]) || document.body;
+              target.dispatchEvent(new MouseEvent('mousedown', {
+                clientX: d0[0], clientY: d0[1], bubbles: true, button: 0, detail: 1}));
+              for (const [x, y] of rest) {
+                window.dispatchEvent(new PointerEvent('pointermove', {
+                  clientX: x, clientY: y, bubbles: true, button: 0, buttons: 1}));
+              }
+              const last = pts[pts.length - 1];
+              window.dispatchEvent(new PointerEvent('pointerup', {
+                clientX: last[0], clientY: last[1], bubbles: true, button: 0}));
+            }""", [[int(x), int(y)] for x, y in points])
+
+        lines = pg.evaluate(r"""() => {
+          const rows = [];
+          for (const s of document.querySelectorAll('.pdf-text-layer span')) {
+            const r = s.getBoundingClientRect();
+            if (r.width === 0 || r.height > r.width) continue;
+            const t = s.textContent || '';
+            if (t.includes('Bottom line 1:') || t.includes('Top line 8:')) {
+              rows.push({ tag: t.includes('Bottom') ? 'bottom' : 'top',
+                          cx: r.left + r.width / 2, cy: r.top + r.height / 2 });
+            }
+          }
+          return rows;
+        }""")
+        bl = next(r for r in lines if r["tag"] == "bottom")
+        tp = next(r for r in lines if r["tag"] == "top")
+        drag_pts([(bl["cx"], bl["cy"]),
+                  (bl["cx"], (bl["cy"] + tp["cy"]) / 2),
+                  (tp["cx"], tp["cy"])])
+        pg.wait_for_timeout(300)
+        sel_txt = pg.evaluate("window.getSelection().toString()")
+        # Extent lands MID-line (the drag target is the line's center), so
+        # assert on line CONTENT, not the line prefixes.
+        check("pdf_spine_drag_up_clamps_lines",
+              "fox jumps over the lazy dog" in sel_txt
+              and "Bottom line 1" in sel_txt
+              and len(sel_txt) >= 80
+              and "SPINE TRAP" not in sel_txt,
+              f"{len(sel_txt)}c | {sel_txt[:60]!r}")
+
+        # (b) translucency, pixel-level (0.8.3 lesson: color regressions
+        # need pixel guards, not computed-style guesses — ::selection
+        # cannot be read via getComputedStyle at all).
+        try:
+            from PIL import Image
+            import io as _io
+            rect = pg.evaluate(r"""() => {
+              const sel = window.getSelection();
+              if (sel.rangeCount === 0) return null;
+              const rs = sel.getRangeAt(0).getClientRects();
+              return rs.length ? { x: rs[0].x, y: rs[0].y,
+                                   w: rs[0].width, h: rs[0].height } : null;
+            }""")
+            img = Image.open(_io.BytesIO(pg.screenshot(
+                clip={"x": rect["x"], "y": rect["y"],
+                      "width": max(8, rect["w"]), "height": max(4, rect["h"])})))
+            cy = img.height // 2
+            lightest = max(
+                (img.getpixel((x, cy)) for x in range(2, img.width - 2, 2)),
+                key=lambda p: sum(p[:3]))
+            def dist(a, b):
+                return sum(abs(x - y) for x, y in zip(a[:3], b))
+            d_opaque = dist(lightest, (234, 212, 183))  # paper --editor-sel
+            d_white = dist(lightest, (255, 255, 255))
+            check("pdf_selection_tint_translucent",
+                  d_opaque > 25 and d_white > 18,
+                  f"px={lightest} dOpaque={d_opaque} dWhite={d_white}")
+        except Exception as e:
+            check("pdf_selection_tint_translucent", False, str(e))
+        pg.evaluate("window.getSelection().removeAllRanges()")
 
         # --- §95 virtualization on the 100-page pdf ---
         pg.locator(".file-tabs .file-tab.active").click()
