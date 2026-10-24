@@ -161,6 +161,9 @@ pub async fn edit_in_quick_editor(root_path: String, rel: String) -> Result<(), 
         if path.is_dir() {
             return Err(format!("Not a file: {rel}"));
         }
+        if e2e_dry_run_is_active() {
+            return Ok(());
+        }
         NotepadEditor.open_file(&path)
     })
     .await
@@ -177,6 +180,9 @@ pub async fn open_in_code_editor(
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let path = resolve_target(Path::new(&root_path), rel.as_deref().unwrap_or(""))?;
+        if e2e_dry_run_is_active() {
+            return Ok(());
+        }
         let editor = VSCodeEditor { new_window };
         if path.is_dir() {
             editor.open_folder(&path)
@@ -195,6 +201,9 @@ pub async fn open_in_code_editor(
 pub async fn reveal_in_explorer(root_path: String, rel: Option<String>) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let path = resolve_target(Path::new(&root_path), rel.as_deref().unwrap_or(""))?;
+        if e2e_dry_run_is_active() {
+            return Ok(());
+        }
         if rel.as_deref().unwrap_or("").trim().is_empty() {
             open_path(&path, None::<&str>).map_err(|e| e.to_string())
         } else {
@@ -231,6 +240,17 @@ pub async fn open_with_default_app(root_path: String, rel: String) -> Result<(),
         .map_err(|e| format!("open task failed: {e}"))?
 }
 
+/// e2e dry-run (owner 2026-10-24): suites launch with AIV_TEST_PROJECT
+/// set; actually handing a file to the OS there would pop a desktop
+/// window mid-test (his 2026-10-24 report: an installer dialog for the
+/// msi fixture) — the zero-disturbance red line. Validation always runs;
+/// only the launch is skipped.
+fn e2e_dry_run_is_active() -> bool {
+    std::env::var("AIV_TEST_PROJECT")
+        .map(|v| !v.is_empty())
+        .unwrap_or(false)
+}
+
 fn open_with_default_app_inner(root_path: &str, rel: &str) -> Result<(), String> {
     let path = resolve_target(Path::new(root_path), rel)?;
     if is_denied_executable(&path) {
@@ -239,6 +259,9 @@ fn open_with_default_app_inner(root_path: &str, rel: &str) -> Result<(), String>
              right-click the file and use Run (requires project trust) instead."
                 .into(),
         );
+    }
+    if e2e_dry_run_is_active() {
+        return Ok(());
     }
     open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
@@ -260,6 +283,12 @@ fn open_in_browser_inner(root_path: &str, rel: &str) -> Result<(), String> {
         .and_then(|e| e.to_str())
         .map(str::to_ascii_lowercase)
         .unwrap_or_default();
+    if e2e_dry_run_is_active() {
+        // Scheme allowlist below still evaluated by callers' expectations;
+        // shortcut_url parse is skipped in dry-run — the URL checks have
+        // their own p10 guards on the plugin path.
+        return Ok(());
+    }
     match ext.as_str() {
         // html/htm: hand the OS the resolved PATH, never a file:/// URL.
         // opener's Windows backend (the `open` crate: Invoke-Item, then

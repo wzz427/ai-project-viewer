@@ -20,7 +20,7 @@ import aivlaunch
 
 user32 = ctypes.windll.user32
 EXE = r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe"
-PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
+PROJECT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")  # in-repo fixture (owner 2026-10-24)
 CDP = 9245
 MODE = sys.argv[1] if len(sys.argv) > 1 else "app"
 STATE = os.path.expandvars(rf"%TEMP%\aiv-battery-{MODE}.json")

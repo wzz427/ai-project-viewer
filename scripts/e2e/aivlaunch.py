@@ -21,6 +21,14 @@ import os
 import subprocess
 import time
 
+# In-repo test fixture project (owner 2026-10-24: deleted the Desktop
+# copy — "别放桌面上了,在仓库里找个地方放"). Regenerate the whole tree
+# with make-fixtures.py --rebuild-project. Gitignored: the scan/huge
+# PDFs (~45 MB) must never enter git or the backup pushes.
+FIXTURE_PROJECT = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "fixtures", "AIV-TestProject")
+
 TARGET_TREE = os.path.normpath(os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..",
     "src-tauri", "target"))

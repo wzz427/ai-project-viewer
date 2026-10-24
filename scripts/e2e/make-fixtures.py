@@ -133,14 +133,143 @@ def spine_pdf(path):
     c.save()
 
 
+def _w(root, rel, text, encoding="utf-8", bom=False):
+    p = os.path.join(root, *rel.split("/"))
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "wb") as f:
+        if bom:
+            f.write(b"\xef\xbb\xbf")
+        if isinstance(text, bytes):
+            f.write(text)
+        else:
+            f.write(text.encode(encoding))
+
+
+def rebuild_project(root):
+    """Recreate the FULL AIV-TestProject fixture IN-REPO (owner 2026-10-24:
+    deleted the Desktop copy — "别放桌面,仓库里找个地方放"). Content is
+    pinned to what the e2e suites assert (phase3/pdf-suite/git-suite…),
+    not a byte-for-byte clone of the lost original. Tree stays NON-git
+    (git-suite's third instance)."""
+    import shutil as _sh
+
+    _sh.rmtree(root, ignore_errors=True)
+    os.makedirs(os.path.join(root, "data"))
+    os.makedirs(os.path.join(root, "assets"))
+
+    _w(root, "README.md", "\n".join([
+        "# AI Project Viewer Fixture",
+        "",
+        "Sample markdown with a [link](https://example.com/aiv) and prose "
+        "for the paper-typography guards.",
+        "",
+        "## Tasks",
+        "",
+        "- [x] fixture lives in the repo now",
+        "- [ ] keep the desktop clean",
+        "",
+        "## Code",
+        "",
+        "```python",
+        "def main() -> None:",
+        "    print('fixture')",
+        "```",
+        "",
+    ]) + "\n")
+    _w(root, "config.yaml", "name: aiv-fixture\nversion: 2\n")
+    _w(root, "notes.txt", "fixture notes\nsecond line\n")
+    _w(root, "sample.csv", "id,name,score\n1,alpha,10\n2,beta,20\n")
+    _w(root, "server.log",
+       "2026-10-24 10:00:00 INFO boot ok\n2026-10-24 10:00:01 WARN warm\n")
+    _w(root, "metrics.json",
+       '{"project": "aiv", "files": 31, "ok": true}\n')
+    _w(root, "main.py", '# Entry point\nprint("AIV fixture")\n')
+    _w(root, "utils.py", "def add(a, b):\n    return a + b\n")
+    # Lives under src/ like the original fixture: phase3's identity guard
+    # asserts data-rel ENDS WITH "/index.html" (a slash-carrying rel).
+    _w(root, "src/index.html",
+       "<!doctype html>\n<h1>HTML viewed as Code</h1>\n<p>fixture</p>\n")
+    _w(root, "hello.bat", "@echo off\necho fixture\n")
+    _w(root, "hello.ps1", "Write-Host fixture\n")
+    _w(root, "sample.msi", b"MSI fixture stub " + b"\0" * 512)
+    _w(root, "demo.mp4",
+       b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom"
+       + b"\x00\x00\x00\x08free")
+    # NOTE: tree_row("main.py") matches this row first when src/ is
+    # expanded (src's children precede root files in DOM) — it must carry
+    # the "Entry point" string phase3 asserts.
+    _w(root, "src/main.py", '# Entry point (src copy)\nfrom utils import add\n')
+    _w(root, "src/deep/migrations/001_init.sql",
+       "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);\n")
+
+    # edge-cases: encodings + size guards (manifest per testing.md §1.5)
+    _w(root, "edge-cases/chinese-gb18030.txt",
+       "编码兜底正确:GB18030 fixture\n", encoding="gb18030")
+    _w(root, "edge-cases/utf8-bom.txt", "BOM fixture\n", bom=True)
+    _w(root, "edge-cases/utf16.txt", "UTF-16 fixture\n", encoding="utf-16")
+    _w(root, "edge-cases/binary-blob.bin",
+       bytes(range(256)) * 16)
+    _w(root, "edge-cases/large-5mb.txt",
+       "".join(f"line {i:07d} filler text for size guard\n"
+               for i in range(60000)))
+    with open(os.path.join(root, "edge-cases", "huge-21mb.bin"), "wb") as f:
+        chunk = bytes(range(256)) * 4096
+        for _ in range(21):
+            f.write(chunk)
+
+    # assets: five image formats; the SVG deliberately carries script
+    # payloads (rendered as <img> they must never execute — acceptance §1.5)
+    from PIL import Image
+    img = Image.new("RGB", (480, 320))
+    px = img.load()
+    for y in range(320):
+        for x in range(480):
+            px[x, y] = (x * 255 // 480, y * 255 // 320, 128)
+    img.save(os.path.join(root, "assets", "photo.jpg"), quality=85)
+    img.save(os.path.join(root, "assets", "picture.png"))
+    img.save(os.path.join(root, "assets", "banner.webp"))
+    pal = Image.new("P", (16, 16))
+    pal.putpalette([i // 3 % 256 for i in range(768)])
+    pal.save(os.path.join(root, "assets", "icon.gif"))
+    _w(root, "assets/logo.svg",
+       '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" '
+       'onload="window.__svgOnloadRan=1">'
+       "<script>alert(1)</script>"
+       '<rect width="120" height="40" fill="#3b8efb"/>'
+       '<text x="8" y="26" font-size="14" fill="#fff">AIV</text></svg>\n')
+
+    handoff_fixtures(root)
+
+    # pdf/ via the same jobs as main()
+    pdf_dir = os.path.join(root, "pdf")
+    os.makedirs(pdf_dir, exist_ok=True)
+    text_pdf(os.path.join(pdf_dir, "sample-10p-text.pdf"), 10)
+    text_pdf(os.path.join(pdf_dir, "sample-100p-text.pdf"), 100)
+    for i in range(1, 6):
+        text_pdf(os.path.join(pdf_dir, f"tab-{i}.pdf"), 2,
+                 header=f"Tab fixture {i}")
+    spine_pdf(os.path.join(pdf_dir, "sample-spine.pdf"))
+    scan_pdf(os.path.join(pdf_dir, "sample-100p-scan.pdf"), 100)
+    print(f"project rebuilt at {root}")
+
+
+FIXTURE_PROJECT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "fixtures", "AIV-TestProject")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target",
-                    default=os.path.expandvars(
-                        r"%USERPROFILE%\Desktop\AIV-TestProject\pdf"))
+                    default=os.path.join(FIXTURE_PROJECT, "pdf"))
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--rebuild-project", action="store_true",
+                    help="regenerate the FULL in-repo AIV-TestProject tree")
     args = ap.parse_args()
     os.makedirs(args.target, exist_ok=True)
+
+    if args.rebuild_project:
+        rebuild_project(FIXTURE_PROJECT)
+        return
 
     handoff_fixtures(os.path.dirname(args.target.rstrip("\\/")))
 

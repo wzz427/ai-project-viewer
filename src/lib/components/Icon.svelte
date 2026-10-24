@@ -15,6 +15,7 @@
     code: "code",
     json: "braces",
     image: "image",
+    media: "film",
     file: "file",
   };
 
@@ -39,6 +40,10 @@
     code: `<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>`,
     braces: `<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>`,
     image: `<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>`,
+    // Film strip + play: video/audio files hand off to the OS player —
+    // the icon must promise a playback verb, not another viewer (owner
+    // 2026-10-24 MP4 round).
+    film: `<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18"/><path d="M17 3v18"/><path d="M3 8h4"/><path d="M3 16h4"/><path d="M17 8h4"/><path d="M17 16h4"/><path d="M10 9.5v5l4-2.5z"/>`,
     "book-open": `<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>`,
   } as const;
 

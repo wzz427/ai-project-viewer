@@ -21,7 +21,7 @@ import pathlib
 # release since 0.8.9: same binary phase3 drives — a debug-only EXE here
 # silently tested a stale/unbuilt flavor.
 EXE = pathlib.Path(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe")
-PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
+PROJECT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")  # in-repo fixture (owner 2026-10-24)
 STATE = os.path.expandvars(r"%TEMP%\aiv-p5-test-state.json")
 CDP = 9225
 DEBUG = os.path.expandvars(r"%TEMP%\aiv-p4-debug.log")

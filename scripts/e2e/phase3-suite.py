@@ -16,7 +16,7 @@ import aivlaunch
 
 EXE = os.path.join(os.path.dirname(__file__), "..", "..",
                    "src-tauri", "target", "release", "ai-project-viewer.exe")
-PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
+PROJECT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")  # in-repo fixture (owner 2026-10-24)
 STATE = os.path.join(os.environ["TEMP"], "aiv-p3suite.json")
 CDP = 9257
 
@@ -165,11 +165,14 @@ with sync_playwright() as p:
           f"rel={r1}")
     open_file("index.html")
     r2 = viewer_rel()
+    ok_html = body_contains("HTML viewed as Code")  # settle wait: one-shot
+    # reads raced CodeMirror's mount when the viewer chain moved to the
+    # rebuilt in-repo fixture (0.8.10)
     body2 = page.locator(".viewer-body").inner_text()
     check("viewer_identity_follows_switch",
           r2 is not None and r2.replace("\\", "/").endswith("/index.html")
-          and "HTML viewed as Code" in body2 and "Entry point" not in body2,
-          f"rel={r2}")
+          and ok_html and "Entry point" not in body2,
+          f"rel={r2} okHtml={ok_html} body={body2[:80]!r}")
 
     # --- #10 regression: image -> image switch shows the NEW image ---
     expand("assets")
@@ -391,7 +394,7 @@ with sync_playwright() as p:
     anchor.click(button="right")
     check("close_left_disabled_when_only_pinned_left",
           page.locator(".menu button", has_text="Close to the Left").is_disabled())
-    page.mouse.click(400, 250)  # outside-mousedown closes (capture)
+    page.evaluate("document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))")  # outside-mousedown closes (capture)
     time.sleep(0.25)
 
     # --- #1: tab strip auto-reveals active tab ---
@@ -664,7 +667,7 @@ with sync_playwright() as p:
         page.wait_for_selector(".menu [data-menu-id]", timeout=4000)
         ids = page.eval_on_selector_all(
             ".menu [data-menu-id]", "els => els.map(e => e.dataset.menuId)")
-        page.mouse.click(400, 250)  # outside-mousedown closes (capture)
+        page.evaluate("document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))")  # outside-mousedown closes (capture)
         time.sleep(0.25)
         return set(ids)
 
@@ -691,6 +694,24 @@ with sync_playwright() as p:
     # spec-008 (§139): +Open(info card) +Run, still no editors
     check("handoff_tree_exe", m_exe == {"open", "run", "reveal", "copy-abs",
           "copy-rel", "properties"}, str(sorted(m_exe)))
+
+    # 0.8.10 (owner 2026-10-24 MP4 report): video/audio is its own menu
+    # kind — Open IS the OS-player handoff (no Default App twin, no text
+    # editors on a video), and clicking must NOT open a tab: pre-fix the
+    # in-app Open fell through to the binary viewer's tab while the owner
+    # was waiting for his player. The Rust side dry-runs under
+    # AIV_TEST_PROJECT so this click never touches his real player.
+    m_mp4 = menu_ids_of(tree_menu("demo.mp4"))
+    check("mp4_menu_media_kind",
+          m_mp4 == {"open", "reveal", "copy-abs", "copy-rel", "properties"},
+          str(sorted(m_mp4)))
+    n_pre_media = tab_count()
+    tree_row("demo.mp4").click()
+    time.sleep(1.2)
+    check("mp4_open_hands_off_no_tab",
+          tab_count() == n_pre_media
+          and page.locator(".toast.error").count() == 0,
+          f"tabs {n_pre_media}->{tab_count()}")
     m_html = menu_ids_of(tree_menu("index.html"))
     m_url = menu_ids_of(tree_menu("example.url"))
     check("handoff_tree_browser", "browser" in m_html and "browser" in m_url
@@ -726,7 +747,7 @@ with sync_playwright() as p:
     legacy = (page.locator(".menu button", has_text="View Source").count() == 1
               and page.locator(".menu button", has_text="Pin Tab").count() == 1
               and page.locator(".menu button", has_text="Close Tab").count() == 1)
-    page.mouse.click(400, 250)
+    page.evaluate("document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))")
     check("handoff_tab_legacy_kept", legacy, "View Source/Pin Tab/Close Tab missing")
 
     # Project tab menu (§141)
@@ -739,7 +760,7 @@ with sync_playwright() as p:
           "trust-project", "project-properties"}, str(sorted(m_proj)))
     page.locator(".project-tabs .tab.active").click(button="right")
     has_remove = page.locator(".menu button", has_text="Remove Project").count() == 1
-    page.mouse.click(400, 250)
+    page.evaluate("document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))")
     check("handoff_project_remove_kept", has_remove, "Remove Project missing")
 
     # Copy feedback (V6): the toast names what landed on the clipboard.
@@ -1127,7 +1148,7 @@ with sync_playwright() as p:
     page.wait_for_selector(".menu [data-menu-id='untrust-project']", timeout=4000)
     untrust_ids = page.eval_on_selector_all(
         ".menu [data-menu-id]", "els => els.map(e => e.dataset.menuId)")
-    page.mouse.click(400, 250)  # close without toggling (state restored below)
+    page.evaluate("document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))")  # close without toggling (state restored below)
     check("p8_project_menu_refresh_entry",
           "refresh-project" in untrust_ids and "untrust-project" in untrust_ids,
           str(untrust_ids))

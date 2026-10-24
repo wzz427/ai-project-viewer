@@ -11,6 +11,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { SvelteMap } from "svelte/reactivity";
 import {
   inspectFile,
+  openWithDefaultApp,
   readBinaryFile,
   readMediaFile,
   readTextFile,
@@ -19,6 +20,7 @@ import {
 import {
   fileNameOf,
   isImageName,
+  isMediaName,
   isPdfName,
   viewerTypeFor,
   type ViewerType,
@@ -374,6 +376,19 @@ async function recheckDeleted(rootPath: string, rel: string) {
  * confirm dialog first (§106); images ride the media channel.
  */
 export async function openFile(rootPath: string, rel: string) {
+  // Media (video/audio) has no in-app viewer — Open hands off to the OS
+  // default player (owner 2026-10-24 MP4 report). Same verb for tree
+  // single-click and the context menu's Open; the player window appearing
+  // IS the feedback, a failure toasts.
+  if (isMediaName(rel)) {
+    try {
+      await openWithDefaultApp(rootPath, rel);
+    } catch (err) {
+      toast(`Cannot open media: ${err}`, { kind: "error" });
+    }
+    return;
+  }
+
   let info;
   try {
     info = await inspectFile(rootPath, rel);

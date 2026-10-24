@@ -260,6 +260,14 @@ export function fileHandoffGroups(
         [reveal, copyAbs, copyRel],
         [properties],
       ];
+    case "media": // owner 2026-10-24 MP4 report: Open IS the player
+      // handoff (openFile routes media to the OS default) — no separate
+      // Default App twin, no text editors for a video.
+      return [
+        ...(opts.includeOpen ? [[open]] : []),
+        [reveal, copyAbs, copyRel],
+        [properties],
+      ];
     case "exe": // §139: Open (info card) / Run / path verbs
       return [
         ...(opts.includeOpen ? [[open]] : []),

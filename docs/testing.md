@@ -32,7 +32,7 @@
 
 ### 1.2 夹具
 
-**桌面 `AIV-TestProject`**(owner 指定建,31 文件:md/json/yaml/toml/txt/csv/log/py/ts/rs/css/html/sql/ps1/bat + 图片五格式 + edge-cases[GB18030/UTF-16BOM/UTF-8BOM/二进制/5MB/21MB],两层嵌套,含内嵌脚本的安全 SVG)。owner 验收直接用它。
+**仓库内 `scripts/e2e/fixtures/AIV-TestProject`**(2026-10-24 迁入仓库:owner 删了桌面副本、指示「别放桌面,仓库里找个地方」;整套夹具由 `make-fixtures.py --rebuild-project` 从零重建,内容钉在套件断言上,gitignore 不入库——45MB 扫描/huge 件不进 git 与备份。原桌面版 31 文件由 owner 指定手建,历史清单:md/json/yaml/toml/txt/csv/log/py/ts/rs/css/html/sql/ps1/bat+图片五格式+edge-cases[GB18030/UTF-16/UTF-8BOM/二进制/5MB/21MB]+安全 SVG)。owner 验收用自己的真实项目。
 PDF 夹具**丢失/损坏时重建**:`pywork python scripts\e2e\make-fixtures.py --force`
 (生成 10 页文本/100 页文本/100 页扫描[~14MB 现规格]/tab-1..5;行文本模式是断言依据,勿改)。
 
@@ -326,6 +326,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 返工 | invoke 参数名 bug:fileProperties 包装传 `relPath` 而 Rust 参数名是 `rel`(Tauri 2 按驼峰映射,对不上=命令拒收)→弹窗停在错误态,phase3 首跑即拦(wait .prop-modified 超时)。修=包装传 `rel` 并留注释;守卫固化此场景 |
 | 版本 | **0.8.7 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock L22);updates=exp 0.8.7(2026-10-17 16:45,UTF-16 核:0.8.7 FOUND/0.8.6~0.8.3 absent;拒发闸干净 staged 0.8.6→publishing 0.8.7;新 json 无 BOM 已核);owner 路径=Update→重启→①右键任一文件→Properties:修改/创建/访问时间+大小;②git 仓库里文件多出 History 区;③文件夹与项目标签右键同有 Properties |
 
+#### 0.8.10 MP4 Open=系统播放器+测试基建入库(2026-10-24,owner 双指示:①MP4 右键 Open 无反应"没绑到系统默认播放器";②夹具项目"别放桌面,仓库里找个地方放,桌面上那个我给删了";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| MP4 | 视频/音频(mp4/mkv/mov/webm/mp3…24 扩展)Open 动词=直接交系统默认播放器(owner 预期=资源管理器双击);树单击/右键 Open 同路;播放器弹出即反馈,失败才 toast。新 media 菜单类(Open/Explorer/复制/Properties,无 Default App 孖生、无文本编辑器)+film 胶片图标。**ts 冲突被守卫当场拦下**:MEDIA 初版收了 ts→iconFamily 测试红(.ts=TypeScript!),已剔出(MPEG-TS 用 m2ts 覆盖) |
+| 基建 | 夹具迁入仓库 `scripts/e2e/fixtures/AIV-TestProject`(gitignore;45MB 不进 git/备份),make-fixtures `--rebuild-project` 全量重建(内容钉在套件断言上:src/main.py 带 Entry point/README 带 python fence+任务清单/GB18030「编码兜底正确」/svg 带不执行脚本/五图片格式/大小守卫件);8 套件 PROJECT 改道。重建踩出两枚旧雷:①**定点关菜单漏洞**——套件用固定 (400,250) 点击关菜单,菜单盖住该点时点击落到菜单项上,真的把 sample.msi 交给了系统弹安装窗(owner 桌面目击);修=派发 body mousedown(应用自身关闭路径,永不点中项)+Rust 五个外交动词(默认应用/Notepad/VS Code/Explorer/Browser)测试态干跑;②index.html 原在子目录(rel 带斜杠),根目录版撞了 endswith 断言——按原样归位 src/ |
+| 全档 | check 0/0+vitest **100/100**(+4:menuKind media 类/iconFamily mp4/MKV/mp3/m4a→film+ts 冲突案)+cargo **122/122**(Rust 动:干跑门)+phase3 **PASS**(+2 守卫:mp4_menu_media_kind=菜单集恰五项无编辑器;mp4_open_hands_off_no_tab=点击后零新页签零错误 toast——旧构建此处开 binary 页签即红)+pdf-suite **27/27**(0.8.9 行误记 28 已更正);freeze-guard 免跑(watcher 链零改动) |
+| 版本 | **0.8.10 三处已核**;updates=exp 0.8.10(2026-10-24,UTF-16 核:0.8.10 FOUND/0.8.9~0.8.7 absent;新 json 无 BOM);owner 路径=Update→重启→①右键任一视频→Open=系统播放器直接弹;②树里视频=胶片图标;③单击视频行同样开播放器 |
+
 #### 0.8.9 PDF 搜索高亮+划词双修(2026-10-18,owner 三报:①搜索命中不高亮;②清空关键词后 1/7 计数残留;③划词色块遮字+上移全选(真语料 R&D-Agent-Quant.pdf);已发体验渠道待验收)
 
 | 档 | 结果 |
@@ -334,7 +343,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 划词① | 选区不透明遮字:0.8.1 主题轮把 PDF 选区最后一块 rgba(76,139,245,.35) 换成不透明 --editor-sel——字形在画布、选区在上层,不透明=遮字(0.8.3 同类:全局换色连带漏验)。修=color-mix(editor-sel 45%, transparent) |
 | 划词② | **上移全选**:真语料验尸=arXiv 式左脊线竖排 span 盒 32×621,行合并半径 0.6×h=372px 把作者带并成整页大"行"→钳位无效→caret 落空→驱动跳写→真鼠标原生蔓选留屏;"只向上坏"=作者空白带恰在正文上方。修=行构建滤竖排(h>2w&&h>100)+钳位窗<60px 行不参选+**caret 落空回退 lastCaret**(种子=锚点)而非跳写 |
 | 探针 | tmp-repro-pdf-up/real-pdf(合成层)——夹具全绿但真语料暴露竖排行;真语料修复后:向上穿带逐行扩展(到顶=16 行非全选,脊线文字不入选);断完即删,场景固化进 pdf-suite |
-| 全档 | check 0/0+vitest 95/95+cargo 免跑(Rust 零改动)+**pdf-suite 28/28**(+4:pdf_search_highlights_words=mark 存在+背景非透明+恰一 current+计数==框数;pdf_search_clear_drops_marks_and_counter;pdf_spine_drag_up_clamps_lines=新夹具 sample-spine.pdf(竖脊线+作者空白带)向上拖必须贯通到顶行且脊线文字不入选;pdf_selection_tint_translucent=**像素级**选区采样,距不透明 token>25 且距白纸>18——0.8.3 教训:颜色回归必须像素守卫)+phase3 103/103;freeze-guard 免跑(watcher 链零改动);pdf-suite EXE 从 debug 切 release(旧 debug-only 路径会测到陈旧构建) |
+| 全档 | check 0/0+vitest 95/95+cargo 免跑(Rust 零改动)+**pdf-suite 27/27**(+4:pdf_search_highlights_words=mark 存在+背景非透明+恰一 current+计数==框数;pdf_search_clear_drops_marks_and_counter;pdf_spine_drag_up_clamps_lines=新夹具 sample-spine.pdf(竖脊线+作者空白带)向上拖必须贯通到顶行且脊线文字不入选;pdf_selection_tint_translucent=**像素级**选区采样,距不透明 token>25 且距白纸>18——0.8.3 教训:颜色回归必须像素守卫)+phase3 103/103;freeze-guard 免跑(watcher 链零改动);pdf-suite EXE 从 debug 切 release(旧 debug-only 路径会测到陈旧构建) |
 | 版本 | **0.8.9 三处已核**;updates=exp 0.8.9(2026-10-18 11:42,UTF-16 核:0.8.9 FOUND/0.8.8~0.8.6 absent;新 json 无 BOM 已核);owner 路径=Update→重启→①PDF 搜词看 amber 高亮+当前命中深色;②清空搜索框,计数与高亮同时消失;③划词看清字下的浅色选区;④研报里向上拖选,逐行扩展不再全选 |
 
 #### 0.8.8 属性弹窗二轮(owner 验 0.8.7 后两条:History 每条下面都有 WZZ 去掉;弹窗顶部路径要可划选复制;已发体验渠道待验收)

@@ -4,7 +4,7 @@
  * handoffMenu.ts consumes it and owns the actions.
  */
 
-import { extOf } from "$lib/services/viewerType";
+import { extOf, isMediaName } from "$lib/services/viewerType";
 
 export type MenuKind =
   | "folder"
@@ -13,6 +13,7 @@ export type MenuKind =
   | "browserText"
   | "pdf"
   | "systemApp"
+  | "media"
   | "exe"
   | "msi";
 
@@ -24,6 +25,7 @@ export function menuKindOf(name: string, isDir: boolean): MenuKind {
   const ext = extOf(name);
   if (ext === "pdf") return "pdf";
   if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) return "systemApp";
+  if (isMediaName(name)) return "media";
   if (SCRIPT_RUNNABLE.has(ext)) return "script";
   if (ext === "exe") return "exe";
   if (ext === "msi") return "msi";

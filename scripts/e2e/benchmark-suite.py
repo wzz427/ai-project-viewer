@@ -59,8 +59,8 @@ import aivlaunch  # noqa: E402
 EXE = os.path.normpath(os.path.join(
     HERE, "..", "..", "src-tauri", "target", "release", "ai-project-viewer.exe"))
 BENCH = os.path.join(os.environ["TEMP"], "aiv-bench")
-DESKTOP_PROJ = os.path.join(
-    os.path.expanduser("~"), "Desktop", "AIV-TestProject")
+DESKTOP_PROJ = os.path.join(  # in-repo fixture (owner 2026-10-24)
+    os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")
 
 RESULTS = {}
 GATES = []

@@ -23,7 +23,7 @@ import aivlaunch
 EXE = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "..",
     "src-tauri", "target", "release", "ai-project-viewer.exe"))
-PLAIN = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
+PLAIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")  # in-repo fixture (owner 2026-10-24)
 SCOPE_ROOT = os.path.join(os.environ["TEMP"], "aiv-p7-gitscope")
 BIG = os.path.join(SCOPE_ROOT, "BigRepo")
 VIEWER = os.path.join(BIG, "apps", "viewer")

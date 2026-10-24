@@ -24,7 +24,7 @@ import aivlaunch
 
 EXE = os.path.join(os.path.dirname(__file__), "..", "..",
                    "src-tauri", "target", "release", "ai-project-viewer.exe")
-PROJECT = os.path.expandvars(r"%USERPROFILE%\Desktop\AIV-TestProject")
+PROJECT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")  # in-repo fixture (owner 2026-10-24)
 STATE = os.path.join(os.environ["TEMP"], "aiv-p8-live.json")
 MARKER = os.path.join(os.environ["TEMP"], "aiv-p8-live-marker.txt")
 CDP = 9269

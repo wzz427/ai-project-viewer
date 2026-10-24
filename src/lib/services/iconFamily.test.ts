@@ -19,6 +19,12 @@ describe("iconFamilyOf (viewer-routing-sourced icon family)", () => {
     ["sample.csv", "file"],
     ["no-extension", "file"],
     ["app.exe", "file"],
+    // 0.8.10: media hands off to the OS player — film icon, never the
+    // text fallback that a viewer-less extension used to draw.
+    ["demo.mp4", "media"],
+    ["clip.MKV", "media"],
+    ["song.mp3", "media"],
+    ["podcast.m4a", "media"],
   ];
   it.each(cases)("%s -> %s", (name, expected) => {
     expect(iconFamilyOf(name)).toBe(expected);

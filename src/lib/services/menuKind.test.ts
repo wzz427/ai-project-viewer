@@ -25,6 +25,13 @@ describe("menuKindOf (V1.5 §142 menu slice, spec-008)", () => {
     expect(menuKindOf("Start.PS1", false)).toBe("script");
   });
 
+  it("media (video/audio) is its own kind (owner 2026-10-24 MP4)", () => {
+    expect(menuKindOf("demo.mp4", false)).toBe("media");
+    expect(menuKindOf("clip.mkv", false)).toBe("media");
+    expect(menuKindOf("song.MP3", false)).toBe("media");
+    expect(menuKindOf("intro.mov", false)).toBe("media");
+  });
+
   it("folders and browser text keep their kinds", () => {
     expect(menuKindOf("anything", true)).toBe("folder");
     expect(menuKindOf("index.html", false)).toBe("browserText");

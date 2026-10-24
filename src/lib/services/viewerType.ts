@@ -18,6 +18,17 @@ export type ViewerType =
 const MARKDOWN = new Set(["md", "markdown"]);
 const TEXT = new Set(["txt", "log", "csv"]);
 const IMAGE = new Set(["png", "jpg", "jpeg", "webp", "gif", "svg"]);
+/** Video/audio the app has no viewer for — Open hands off to the OS
+ * default player (owner 2026-10-24: an MP4's Open "没有任何反应"; his
+ * expectation is the player, Explorer's double-click behavior). */
+const MEDIA = new Set([
+  "mp4", "m4v", "mkv", "mov", "webm", "avi", "wmv", "flv", "mpg", "mpeg",
+  // NO "ts": in a code-viewing app .ts is TypeScript; MPEG-TS video is
+  // covered by m2ts (caught by the iconFamily test the moment it slipped
+  // in — 0.8.10).
+  "m2ts", "mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus",
+  "mid", "midi", "aif", "aiff",
+]);
 const CODE = new Set([
   "py", "js", "ts", "tsx", "jsx", "rs", "go", "java", "c", "cpp", "h",
   "html", "htm", "css", "scss", "yaml", "yml", "toml", "sh", "ps1",
@@ -48,13 +59,23 @@ export function isPdfName(name: string): boolean {
   return extOf(name) === "pdf";
 }
 
-export type IconFamily = "markdown" | "pdf" | "code" | "json" | "image" | "file";
+export type IconFamily =
+  | "markdown"
+  | "pdf"
+  | "code"
+  | "json"
+  | "image"
+  | "media"
+  | "file";
 
 /** Tab/tree icon family (spec-014 D4): derived from the SAME routing that
  *  decides which viewer opens — the icon is a true preview of the click,
  *  never a second classification table that could drift from the viewer
  *  mapping. */
 export function iconFamilyOf(name: string): IconFamily {
+  // Media is checked before viewerTypeFor: media files never become tabs,
+  // so the viewerType fallback ("text") must not drive their icon.
+  if (MEDIA.has(extOf(name))) return "media";
   switch (viewerTypeFor(name)) {
     case "markdown":
       return "markdown";
@@ -73,6 +94,10 @@ export function iconFamilyOf(name: string): IconFamily {
 
 export function isImageName(name: string): boolean {
   return IMAGE.has(extOf(name));
+}
+
+export function isMediaName(name: string): boolean {
+  return MEDIA.has(extOf(name));
 }
 
 export function fileNameOf(relPath: string): string {
