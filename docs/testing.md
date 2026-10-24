@@ -326,6 +326,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 返工 | invoke 参数名 bug:fileProperties 包装传 `relPath` 而 Rust 参数名是 `rel`(Tauri 2 按驼峰映射,对不上=命令拒收)→弹窗停在错误态,phase3 首跑即拦(wait .prop-modified 超时)。修=包装传 `rel` 并留注释;守卫固化此场景 |
 | 版本 | **0.8.7 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock L22);updates=exp 0.8.7(2026-10-17 16:45,UTF-16 核:0.8.7 FOUND/0.8.6~0.8.3 absent;拒发闸干净 staged 0.8.6→publishing 0.8.7;新 json 无 BOM 已核);owner 路径=Update→重启→①右键任一文件→Properties:修改/创建/访问时间+大小;②git 仓库里文件多出 History 区;③文件夹与项目标签右键同有 Properties |
 
+#### 0.8.12 外开提速+即时反馈+同文件防抖(2026-10-24 夜,owner:"启动播放器好几秒无反馈,很想再点一次"——先提方案他点头后开工;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实测 | 三路计时(mp4 真机关联,测量弹了 3 次播放器已告知):**opener 插件(open crate→PowerShell Invoke-Item)680ms 暖启;直调 ShellExecuteW 280ms;explorer.exe 托管 65ms 但吞关联错误**。定案=直调 ShellExecuteW(速度/错误保真平衡);代码里"ShellExecuteW 会阻塞数秒"的旧注释未复现,已更新 |
+| 机制 | handoff.rs 手写 extern ShellExecuteW(零新依赖;CoInitializeEx MTA 护体;错误码映射:31=无关联等 13 种人话);默认程序/浏览器打开(html+http 快捷方式)/项目根目录 Explorer 全部换直调(opener 插件仅剩 reveal /select 用——它本来就是原生实现);非 Windows 保留原路 |
+| 反馈 | 菜单 Open(媒体/文件夹)点击瞬间 toast「Opening xxx…」;媒体卡/二进制卡/超大卡按钮点击即变「Opening…」+禁用防连点,返回后复位 |
+| 防抖 | **同文件 2 秒防抖**(Rust 端单闸,菜单/按钮/所有入口共用):同路径窗口期内重复请求静默 Ok——连点只开一个播放器(他误触三连弹的绝根);纯函数 debounce_allows 三条单测(窗口内拒/异文件放行/过期放行+16 条清道) |
+| 全档 | check 0/0+vitest 100/100+cargo **125/125**(+3 防抖)+phase3 **PASS**(既有守卫不变;Rust 干跑门先于防抖,套件路径不受影响);freeze-guard 免跑(watcher 链零改动) |
+| 版本 | **0.8.12 三处已核**;updates=exp 0.8.12(2026-10-24 夜,UTF-16 核:0.8.12 FOUND/0.8.11~0.8.9 absent;新 json 无 BOM);owner 路径=Update→重启→①右键视频 Open:瞬间有 Opening 提示,播放器来得明显更快;②卡上按钮同理;③两秒内连点不会开第二个播放器 |
+
 #### 0.8.11 单击唯一语义+外开文件一键按钮(2026-10-24 晚,owner 两立规:①树里单击含义必须唯一=右侧展示内容,"不能既展示又开播放器,那还要右键打开干什么"(此前他误触连弹三个播放器);②"所有需要外部软件打开的文件,内容这儿应该提供可点击的按钮,一点就启动";已发体验渠道待验收)
 
 | 档 | 结果 |

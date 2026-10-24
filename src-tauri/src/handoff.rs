@@ -14,6 +14,9 @@
 
 use std::path::{Path, PathBuf};
 
+#[cfg(target_os = "windows")]
+use tauri_plugin_opener::reveal_item_in_dir;
+#[cfg(not(target_os = "windows"))]
 use tauri_plugin_opener::{open_path, open_url, reveal_item_in_dir};
 
 // ---------------------------------------------------------------------------
@@ -151,7 +154,9 @@ pub fn resolve_target(root: &Path, rel: &str) -> Result<PathBuf, String> {
 // Semantic commands (§133 naming). All ASYNC (spec-012 M12, L35 family):
 // each resolves its target with canonicalize (disk IO — a stalled share
 // must not freeze the native main thread) and may spawn a process or a
-// ShellExecuteW that blocks for seconds.
+// shell launch. (0.8.12: measured ShellExecuteW at ~280 ms for an mp4 —
+// the feared "blocks for seconds" did not reproduce; the plugin's
+// PowerShell hop was the slow part.)
 
 /// §130 Quick Edit: hand a text-like file to Notepad.
 #[tauri::command]
@@ -205,7 +210,14 @@ pub async fn reveal_in_explorer(root_path: String, rel: Option<String>) -> Resul
             return Ok(());
         }
         if rel.as_deref().unwrap_or("").trim().is_empty() {
-            open_path(&path, None::<&str>).map_err(|e| e.to_string())
+            #[cfg(target_os = "windows")]
+            {
+                open_associated(&path)
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                open_path(&path, None::<&str>).map_err(|e| e.to_string())
+            }
         } else {
             reveal_item_in_dir(&path).map_err(|e| e.to_string())
         }
@@ -251,6 +263,133 @@ fn e2e_dry_run_is_active() -> bool {
         .unwrap_or(false)
 }
 
+// ---------------------------------------------------------------------------
+// Native ShellExecuteW launcher (owner 2026-10-24 晚: launches felt like
+// seconds with no feedback). Measured on his machine for an mp4:
+// tauri-plugin-opener (the `open` crate → PowerShell Invoke-Item) ~680 ms
+// warm, direct ShellExecuteW ~280 ms (the "ShellExecuteW blocks for
+// seconds" worry in the old comment did not reproduce), detached
+// explorer.exe ~65 ms but hides association errors. ShellExecuteW keeps
+// the OS error codes (31 = no association) — best speed/fidelity trade.
+// Manual externs, no new dependencies.
+
+#[cfg(target_os = "windows")]
+mod shell_launch {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "shell32")]
+    extern "system" {
+        fn ShellExecuteW(
+            hwnd: isize,
+            verb: *const u16,
+            file: *const u16,
+            params: *const u16,
+            dir: *const u16,
+            show: i32,
+        ) -> isize;
+    }
+
+    #[link(name = "ole32")]
+    extern "system" {
+        fn CoInitializeEx(reserved: isize, coinit: u32) -> i32;
+        fn CoUninitialize();
+    }
+
+    const COINIT_MULTITHREADED: u32 = 0x0;
+    const SW_SHOWNORMAL: i32 = 1;
+
+    fn wide(s: &OsStr) -> Vec<u16> {
+        s.encode_wide().chain(std::iter::once(0)).collect()
+    }
+
+    /// OS-associated open (double-click semantics). Returns >32 on
+    /// success; 31 means "no application is associated with this file".
+    pub fn open_associated(target: &std::path::Path) -> Result<(), String> {
+        open_wide(&wide(target.as_os_str()))
+    }
+
+    /// URL open — ShellExecuteW accepts the URL string itself (routes
+    /// through the shell's protocol handler, i.e. the default browser).
+    pub fn open_url_associated(url: &str) -> Result<(), String> {
+        let mut w: Vec<u16> = url.encode_utf16().collect();
+        w.push(0);
+        open_wide(&w)
+    }
+
+    fn open_wide(file: &[u16]) -> Result<(), String> {
+        // ShellExecuteW prefers an initialized COM apartment on the
+        // calling thread; spawn_blocking threads carry none.
+        let coinit = unsafe { CoInitializeEx(0, COINIT_MULTITHREADED) };
+        let verb: Vec<u16> = wide(OsStr::new("open"));
+        let rc = unsafe {
+            ShellExecuteW(0, verb.as_ptr(), file.as_ptr(), std::ptr::null(),
+                          std::ptr::null(), SW_SHOWNORMAL)
+        };
+        if coinit >= 0 {
+            unsafe { CoUninitialize() };
+        }
+        if rc > 32 {
+            Ok(())
+        } else {
+            Err(shell_error(rc))
+        }
+    }
+
+    /// Map the classic ShellExecuteW error codes to user-facing wording.
+    fn shell_error(rc: isize) -> String {
+        match rc {
+            0 => "The system is out of resources.".into(),
+            2 => "File not found.".into(),
+            3 => "Path not found.".into(),
+            5 => "Access denied.".into(),
+            8 => "Not enough memory to launch.".into(),
+            11 | 12 => "Invalid executable.".into(),
+            26 | 27 | 28 => "A required dynamic-link library was not found.".into(),
+            31 => "No application is associated with this file type.".into(),
+            32 => "The file is in use by another program.".into(),
+            _ => format!("The operating system refused to open it (code {rc})."),
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+use shell_launch::open_associated;
+
+// Same-file launch debounce (owner 2026-10-24: multi-second player cold
+// starts invited re-clicks, and every re-click spawned ANOTHER player).
+// One launch per path per DEBOUNCE_WINDOW; suppressed repeats return Ok —
+// the first click's "Opening…" toast is still on screen.
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
+
+const LAUNCH_DEBOUNCE: Duration = Duration::from_secs(2);
+
+fn last_launches() -> &'static Mutex<HashMap<PathBuf, Instant>> {
+    static MAP: OnceLock<Mutex<HashMap<PathBuf, Instant>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Pure decision (unit-tested): true when this launch may proceed.
+fn debounce_allows(
+    map: &mut HashMap<PathBuf, Instant>,
+    path: &Path,
+    now: Instant,
+    window: Duration,
+) -> bool {
+    if map.len() > 16 {
+        map.retain(|_, t| now.duration_since(*t) < window);
+    }
+    match map.get(path) {
+        Some(t) if now.duration_since(*t) < window => false,
+        _ => {
+            map.insert(path.to_path_buf(), now);
+            true
+        }
+    }
+}
+
 fn open_with_default_app_inner(root_path: &str, rel: &str) -> Result<(), String> {
     let path = resolve_target(Path::new(root_path), rel)?;
     if is_denied_executable(&path) {
@@ -263,7 +402,19 @@ fn open_with_default_app_inner(root_path: &str, rel: &str) -> Result<(), String>
     if e2e_dry_run_is_active() {
         return Ok(());
     }
-    open_path(&path, None::<&str>).map_err(|e| e.to_string())
+    let mut map = last_launches().lock().map_err(|_| "launch state poisoned")?;
+    if !debounce_allows(&mut map, &path, Instant::now(), LAUNCH_DEBOUNCE) {
+        return Ok(());
+    }
+    drop(map);
+    #[cfg(target_os = "windows")]
+    {
+        open_associated(&path)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        open_path(&path, None::<&str>).map_err(|e| e.to_string())
+    }
 }
 
 /// §111/§115 Browser: .html/.htm open through the OS default handler (the
@@ -299,7 +450,16 @@ fn open_in_browser_inner(root_path: &str, rel: &str) -> Result<(), String> {
         // take plain paths on macOS/Linux too. The old "file URL forces the
         // browser even when .html is associated with an editor" idea never
         // worked on Windows — the default-handler open is the real contract.
-        "html" | "htm" => open_path(&path, None::<&str>).map_err(|e| e.to_string()),
+        "html" | "htm" => {
+            #[cfg(target_os = "windows")]
+            {
+                open_associated(&path)
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                open_path(&path, None::<&str>).map_err(|e| e.to_string())
+            }
+        }
         "url" => {
             let u = shortcut_url(&path)?;
             // §115: a shortcut may carry ANY scheme; only http/https ever
@@ -307,7 +467,14 @@ fn open_in_browser_inner(root_path: &str, rel: &str) -> Result<(), String> {
             if !browser_url_allowed(&u) {
                 return Err(format!("Shortcut scheme is not allowed to auto-open: {u}"));
             }
-            open_url(&u, None::<&str>).map_err(|e| e.to_string())
+            #[cfg(target_os = "windows")]
+            {
+                shell_launch::open_url_associated(&u)
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                open_url(&u, None::<&str>).map_err(|e| e.to_string())
+            }
         }
         _ => Err(format!("Not a browser-openable file: {rel}")),
     }
@@ -350,6 +517,45 @@ fn browser_url_allowed(url: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- 0.8.12 launch debounce (owner: re-clicks during player cold
+    // start spawned one player EACH) ---
+
+    #[test]
+    fn debounce_blocks_same_file_inside_window() {
+        let mut map = HashMap::new();
+        let t0 = Instant::now();
+        let p = Path::new("C:\\a\\v.mp4");
+        assert!(debounce_allows(&mut map, p, t0, LAUNCH_DEBOUNCE));
+        assert!(!debounce_allows(&mut map, p, t0 + Duration::from_millis(100),
+                                 LAUNCH_DEBOUNCE), "re-click inside window");
+    }
+
+    #[test]
+    fn debounce_allows_after_window_and_other_files() {
+        let mut map = HashMap::new();
+        let t0 = Instant::now();
+        let p = Path::new("C:\\a\\v.mp4");
+        let q = Path::new("C:\\a\\w.mp4");
+        assert!(debounce_allows(&mut map, p, t0, LAUNCH_DEBOUNCE));
+        assert!(debounce_allows(&mut map, q, t0 + Duration::from_millis(50),
+                                LAUNCH_DEBOUNCE), "different file");
+        assert!(debounce_allows(&mut map, p, t0 + LAUNCH_DEBOUNCE + Duration::from_secs(1),
+                                LAUNCH_DEBOUNCE), "window elapsed");
+    }
+
+    #[test]
+    fn debounce_prunes_when_map_grows() {
+        let mut map = HashMap::new();
+        let t0 = Instant::now();
+        for i in 0..20 {
+            map.insert(PathBuf::from(format!("C:\\a\\{i}.mp4")), t0);
+        }
+        assert!(debounce_allows(&mut map, Path::new("C:\\a\\v.mp4"), t0,
+                                LAUNCH_DEBOUNCE));
+        // the 20 stale entries were pruned, not the fresh one
+        assert!(map.len() <= 21);
+    }
 
     // --- §143/§144 validation ---
 

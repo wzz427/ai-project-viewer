@@ -27,11 +27,18 @@
     tab.modifiedMs ? new Date(tab.modifiedMs).toLocaleString() : null,
   );
 
+  let launching = $state(false);
+
   async function play() {
+    if (launching) return;
+    launching = true;
+    toast(`Opening ${name}…`);
     try {
       await openWithDefaultApp(rootPath, tab.relativePath);
     } catch (err) {
       toast(`Cannot open media: ${err}`, { kind: "error" });
+    } finally {
+      launching = false;
     }
   }
 
@@ -59,7 +66,9 @@
     </dl>
     <p class="muted">This file cannot be previewed in the app.</p>
     <div class="actions">
-      <button class="primary" onclick={play}>Open in Default Player</button>
+      <button class="primary" onclick={play} disabled={launching}>
+        {launching ? "Opening…" : "Open in Default Player"}
+      </button>
       <button onclick={reveal}>Show in File Explorer</button>
     </div>
   </div>

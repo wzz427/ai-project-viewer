@@ -148,9 +148,14 @@ export function fileHandoffGroups(
     id: "open",
     label: "Open",
     // Media Open IS the player launch (owner 2026-10-24: right-click Open
-    // is the launcher; the tree click opens the info card instead).
+    // is the launcher; the tree click opens the info card instead). The
+    // instant toast bridges the player's cold start ("did my click even
+    // register?") — the window appearing is the real success signal.
     run: isDir || isMediaName(name)
-      ? guarded("Open", () => openWithDefaultApp(rootPath, rel))
+      ? guarded("Open", () => {
+          toast(`Opening ${name}…`);
+          return openWithDefaultApp(rootPath, rel);
+        })
       : () => openFile(rootPath, rel).then(() => undefined),
   };
   const notepad: HandoffEntry = {

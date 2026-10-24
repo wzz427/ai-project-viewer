@@ -16,11 +16,19 @@
     tab.sizeBytes ? (tab.sizeBytes / 1048576).toFixed(1) : null,
   );
 
+  let launching = $state(false);
+
   async function launchDefault() {
+    if (launching) return;
+    launching = true;
+    const name = tab.relativePath.split("/").pop() ?? tab.relativePath;
+    toast(`Opening ${name}…`);
     try {
       await openWithDefaultApp(rootPath, tab.relativePath);
     } catch (err) {
       toast(`Cannot open file: ${err}`, { kind: "error" });
+    } finally {
+      launching = false;
     }
   }
 
@@ -48,7 +56,9 @@
       <p>Binary file — not shown as text.</p>
       <p class="muted">{sizeMb} MB</p>
       <div class="actions">
-        <button class="primary" onclick={launchDefault}>Open with Default App</button>
+        <button class="primary" onclick={launchDefault} disabled={launching}>
+          {launching ? "Opening…" : "Open with Default App"}
+        </button>
         <button onclick={reveal}>Show in File Explorer</button>
       </div>
     </div>
@@ -58,7 +68,9 @@
       <p>File is larger than 20 MB and will not be opened in the viewer.</p>
       <p class="muted">{sizeMb} MB</p>
       <div class="actions">
-        <button class="primary" onclick={launchDefault}>Open with Default App</button>
+        <button class="primary" onclick={launchDefault} disabled={launching}>
+          {launching ? "Opening…" : "Open with Default App"}
+        </button>
         <button onclick={reveal}>Show in File Explorer</button>
       </div>
     </div>
@@ -67,7 +79,9 @@
       <p class="name">{tab.relativePath}</p>
       <p>Cannot display this file.</p>
       <div class="actions">
-        <button class="primary" onclick={launchDefault}>Open with Default App</button>
+        <button class="primary" onclick={launchDefault} disabled={launching}>
+          {launching ? "Opening…" : "Open with Default App"}
+        </button>
         <button onclick={reveal}>Show in File Explorer</button>
       </div>
     </div>
