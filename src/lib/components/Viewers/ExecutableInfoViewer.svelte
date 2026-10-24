@@ -35,7 +35,8 @@
       {/if}
       <div class="row path"><dt>Path:</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
     </dl>
-    <p class="muted">This file cannot be previewed.</p>
+    <p class="muted">This file cannot be previewed.
+      Use Run (right-click) to execute it.</p>
   </div>
 </div>
 

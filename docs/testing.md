@@ -326,6 +326,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 返工 | invoke 参数名 bug:fileProperties 包装传 `relPath` 而 Rust 参数名是 `rel`(Tauri 2 按驼峰映射,对不上=命令拒收)→弹窗停在错误态,phase3 首跑即拦(wait .prop-modified 超时)。修=包装传 `rel` 并留注释;守卫固化此场景 |
 | 版本 | **0.8.7 三处已核**(package.json/tauri.conf.json/Cargo.toml+Cargo.lock L22);updates=exp 0.8.7(2026-10-17 16:45,UTF-16 核:0.8.7 FOUND/0.8.6~0.8.3 absent;拒发闸干净 staged 0.8.6→publishing 0.8.7;新 json 无 BOM 已核);owner 路径=Update→重启→①右键任一文件→Properties:修改/创建/访问时间+大小;②git 仓库里文件多出 History 区;③文件夹与项目标签右键同有 Properties |
 
+#### 0.8.11 单击唯一语义+外开文件一键按钮(2026-10-24 晚,owner 两立规:①树里单击含义必须唯一=右侧展示内容,"不能既展示又开播放器,那还要右键打开干什么"(此前他误触连弹三个播放器);②"所有需要外部软件打开的文件,内容这儿应该提供可点击的按钮,一点就启动";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 立规① | 视频/音频单击=右侧开**媒体信息卡**(名称/大小/修改时间/路径,stat-only 不读内容,照 .exe 卡先例;viewerType 新增 "media" 进持久化白名单);**单击永不外开**;右键菜单 Open=直开系统播放器(openWithDefaultApp,不再走 openFile);reload/ensureContent 按 stat-only 卡同 exe 处理(watcher 重载刷新大小/时间) |
+| 立规② | 所有"应用内放不了"的卡片统一带一键启动:媒体卡[Open in Default Player]+[Show in File Explorer];**二进制卡/超大卡/兜底卡**同款双按钮(huge 卡原来的"去右键"提示文字退役);.exe 卡不装裸启动按钮(安全设计:Rust 端 DENY_EXECUTABLE_EXTS 拒绝默认程序开 exe,启动走右键 Run+信任门),卡上加指引一句 |
+| 全档 | check 0/0+vitest 100/100+cargo 免跑(Rust 零改动)+phase3 **PASS**(+2 换守卫:mp4_click_opens_info_card=单击激活视频卡+按钮在(初版断言页签数+1 被**页签回收机制**正当打脸,改为断言激活+卡内容);mp4_rightclick_open_hands_off=右键 Open 后页签数不变零错误 toast;binary_card_has_launch_button=二进制卡带启动按钮);freeze-guard 免跑(watcher 链零改动) |
+| 版本 | **0.8.11 三处已核**;updates=exp 0.8.11(2026-10-24,UTF-16 核:0.8.11 FOUND/0.8.10~0.8.8 absent;新 json 无 BOM);owner 路径=Update→重启→①树里单击视频=右侧出信息卡,不弹播放器;②卡上 Open in Default Player 一键开;③右键视频 Open=直接开播放器;④二进制/大文件卡同样有按钮 |
+
 #### 0.8.10 MP4 Open=系统播放器+测试基建入库(2026-10-24,owner 双指示:①MP4 右键 Open 无反应"没绑到系统默认播放器";②夹具项目"别放桌面,仓库里找个地方放,桌面上那个我给删了";已发体验渠道待验收)
 
 | 档 | 结果 |

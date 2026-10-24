@@ -14,7 +14,7 @@ import { openFile } from "$lib/stores/tabsStore.svelte";
 import { isProjectTrusted, setProjectTrusted } from "$lib/stores/projectStore.svelte";
 import { showErrorDialog } from "$lib/stores/errorDialogStore.svelte";
 import { openProperties } from "$lib/stores/propertiesStore.svelte";
-import { extOf, fileNameOf } from "$lib/services/viewerType";
+import { extOf, fileNameOf, isMediaName } from "$lib/services/viewerType";
 import { menuKindOf } from "$lib/services/menuKind";
 import {
   editInQuickEditor,
@@ -147,7 +147,9 @@ export function fileHandoffGroups(
   const open: HandoffEntry = {
     id: "open",
     label: "Open",
-    run: isDir
+    // Media Open IS the player launch (owner 2026-10-24: right-click Open
+    // is the launcher; the tree click opens the info card instead).
+    run: isDir || isMediaName(name)
       ? guarded("Open", () => openWithDefaultApp(rootPath, rel))
       : () => openFile(rootPath, rel).then(() => undefined),
   };

@@ -14,6 +14,7 @@
   import ImageViewer from "./ImageViewer.svelte";
   import PdfViewer from "./PdfViewer.svelte";
   import ExecutableInfoViewer from "./ExecutableInfoViewer.svelte";
+  import MediaInfoViewer from "./MediaInfoViewer.svelte";
   import UnsupportedViewer from "./UnsupportedViewer.svelte";
   import { extOf } from "$lib/services/viewerType";
   import { diagEvent } from "$lib/stores/diagnosticsStore.svelte";
@@ -36,7 +37,7 @@
     const t = tab;
     if (!t || t.deleted) return;
     if (t.viewerType === "binary" || t.viewerType === "unsupported") return;
-    if (t.viewerType === "executable") return; // stat card, no content
+    if (t.viewerType === "executable" || t.viewerType === "media") return; // stat cards, no content
     if (!cachedContent(rootPath, t.relativePath)) {
       void ensureContentLoaded(rootPath, t.relativePath);
     }
@@ -82,6 +83,8 @@
     <PdfViewer {rootPath} {tab} />
   {:else if tab.viewerType === "executable"}
     <ExecutableInfoViewer {rootPath} {tab} />
+  {:else if tab.viewerType === "media"}
+    <MediaInfoViewer {rootPath} {tab} />
   {:else if text !== null}
     <div class="code-host">
       <CodeViewer {rootPath} {tab} text={text} language={extOf(tab.relativePath)} />

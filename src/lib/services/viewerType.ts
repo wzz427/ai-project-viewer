@@ -11,6 +11,7 @@ export type ViewerType =
   | "code"
   | "json"
   | "image"
+  | "media"
   | "executable"
   | "binary"
   | "unsupported";
@@ -46,6 +47,10 @@ export function viewerTypeFor(name: string): ViewerType {
   if (ext === "json") return "json";
   if (ext === "pdf") return "pdf";
   if (IMAGE.has(ext)) return "image";
+  // Video/audio: the tab is a stat-only info card; launching the player
+  // is a deliberate act (card button / right-click Open) — a tree click
+  // never launches (owner 2026-10-24: 单击含义必须唯一).
+  if (MEDIA.has(ext)) return "media";
   // §122: .exe left-click opens the Executable Info card (stat only).
   if (ext === "exe") return "executable";
   if (CODE.has(ext)) return "code";
@@ -73,9 +78,6 @@ export type IconFamily =
  *  never a second classification table that could drift from the viewer
  *  mapping. */
 export function iconFamilyOf(name: string): IconFamily {
-  // Media is checked before viewerTypeFor: media files never become tabs,
-  // so the viewerType fallback ("text") must not drive their icon.
-  if (MEDIA.has(extOf(name))) return "media";
   switch (viewerTypeFor(name)) {
     case "markdown":
       return "markdown";
@@ -87,6 +89,8 @@ export function iconFamilyOf(name: string): IconFamily {
       return "json";
     case "image":
       return "image";
+    case "media":
+      return "media";
     default:
       return "file";
   }

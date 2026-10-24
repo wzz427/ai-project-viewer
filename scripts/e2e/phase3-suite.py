@@ -705,13 +705,32 @@ with sync_playwright() as p:
     check("mp4_menu_media_kind",
           m_mp4 == {"open", "reveal", "copy-abs", "copy-rel", "properties"},
           str(sorted(m_mp4)))
-    n_pre_media = tab_count()
-    tree_row("demo.mp4").click()
-    time.sleep(1.2)
-    check("mp4_open_hands_off_no_tab",
-          tab_count() == n_pre_media
+    # 0.8.11 (owner 2026-10-24 ruling: a tree click has exactly ONE
+    # meaning — show the file in the viewer pane; accidental triple
+    # players from single clicks). Single click = info-card tab, never a
+    # launch; right-click Open = the launch (dry-run under test mode).
+    open_file("demo.mp4")  # raises unless the mp4 tab ACTIVATES
+    check("mp4_click_opens_info_card",
+          body_contains("Media file")
+          and page.locator("button", has_text="Open in Default Player").count() >= 1,
+          "")
+    n_card = tab_count()
+    tree_row("demo.mp4").click(button="right")
+    page.locator(".menu [data-menu-id='open']").dispatch_event("click")
+    time.sleep(1.0)
+    check("mp4_rightclick_open_hands_off",
+          tab_count() == n_card
           and page.locator(".toast.error").count() == 0,
-          f"tabs {n_pre_media}->{tab_count()}")
+          f"tabs {n_card}->{tab_count()}")
+
+    # 0.8.11 (owner 2026-10-24 晚): EVERY card for a file the app cannot
+    # preview carries a one-click launch — binary/huge cards get the same
+    # button the media card has.
+    open_file("binary-blob.bin")
+    check("binary_card_has_launch_button",
+          body_contains("Binary file")
+          and page.locator("button", has_text="Open with Default App").count() >= 1,
+          "")
     m_html = menu_ids_of(tree_menu("index.html"))
     m_url = menu_ids_of(tree_menu("example.url"))
     check("handoff_tree_browser", "browser" in m_html and "browser" in m_url

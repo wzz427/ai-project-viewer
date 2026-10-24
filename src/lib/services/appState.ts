@@ -26,8 +26,8 @@ export const FONT_SIZE_MIN = 11;
 export const FONT_SIZE_MAX = 32;
 
 const VIEWER_TYPES = new Set([
-  "markdown", "pdf", "text", "code", "json", "image", "executable", "binary",
-  "unsupported",
+  "markdown", "pdf", "text", "code", "json", "image", "media", "executable",
+  "binary", "unsupported",
 ]);
 const SIDEBAR_MODES: SidebarMode[] = ["files", "git", "settings"];
 /** Valid persisted themes (owner 2026-10-14 theme pack): legacy

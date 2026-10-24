@@ -1,16 +1,36 @@
 <script lang="ts">
   /**
    * Terminal viewer states: binary guard, >20 MB guard, deleted file
-   * (V1.5 §83/§104/§106, spec-003 D4). Hand-off actions for such files live
-   * on the tree's right-click menu (spec-006, delivered).
+   * (V1.5 §83/§104/§106, spec-003 D4). Every card for a file the app
+   * cannot preview carries a one-click launch to the OS default app
+   * (owner 2026-10-24: "所有需要外部软件打开的文件,内容这儿应该提供
+   * 可点击的按钮") — the right-click menu stays as the second path.
    */
   import { closeFile, type RuntimeTab } from "$lib/stores/tabsStore.svelte";
+  import { openWithDefaultApp, revealInExplorer } from "$lib/services/tauri";
+  import { toast } from "$lib/stores/toastStore.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
   const sizeMb = $derived(
     tab.sizeBytes ? (tab.sizeBytes / 1048576).toFixed(1) : null,
   );
+
+  async function launchDefault() {
+    try {
+      await openWithDefaultApp(rootPath, tab.relativePath);
+    } catch (err) {
+      toast(`Cannot open file: ${err}`, { kind: "error" });
+    }
+  }
+
+  async function reveal() {
+    try {
+      await revealInExplorer(rootPath, tab.relativePath);
+    } catch (err) {
+      toast(`Explorer failed: ${err}`, { kind: "error" });
+    }
+  }
 </script>
 
 <div class="unsupported">
@@ -27,21 +47,29 @@
       <p class="name">{tab.relativePath}</p>
       <p>Binary file — not shown as text.</p>
       <p class="muted">{sizeMb} MB</p>
+      <div class="actions">
+        <button class="primary" onclick={launchDefault}>Open with Default App</button>
+        <button onclick={reveal}>Show in File Explorer</button>
+      </div>
     </div>
   {:else if tab.unsupportedReason === "huge"}
     <div class="card">
       <p class="name">{tab.relativePath}</p>
       <p>File is larger than 20 MB and will not be opened in the viewer.</p>
       <p class="muted">{sizeMb} MB</p>
-      <p class="muted small">
-        Right-click this file in the tree to hand it off (File Explorer,
-        system default app, external editors).
-      </p>
+      <div class="actions">
+        <button class="primary" onclick={launchDefault}>Open with Default App</button>
+        <button onclick={reveal}>Show in File Explorer</button>
+      </div>
     </div>
   {:else}
     <div class="card">
       <p class="name">{tab.relativePath}</p>
       <p>Cannot display this file.</p>
+      <div class="actions">
+        <button class="primary" onclick={launchDefault}>Open with Default App</button>
+        <button onclick={reveal}>Show in File Explorer</button>
+      </div>
     </div>
   {/if}
 </div>
@@ -82,10 +110,22 @@
     padding: 5px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    background: var(--bg-overlay);
+    transition: background-color var(--transition-fast);
   }
 
   button:hover {
     background: var(--bg-hover);
+  }
+
+  button.primary {
+    font-weight: 600;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
   }
 
   .muted {
@@ -93,7 +133,4 @@
     font-size: var(--text-sm);
   }
 
-  .small {
-    font-size: var(--text-xs);
-  }
 </style>

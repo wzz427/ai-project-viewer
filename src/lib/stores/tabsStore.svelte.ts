@@ -11,7 +11,6 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { SvelteMap } from "svelte/reactivity";
 import {
   inspectFile,
-  openWithDefaultApp,
   readBinaryFile,
   readMediaFile,
   readTextFile,
@@ -20,7 +19,6 @@ import {
 import {
   fileNameOf,
   isImageName,
-  isMediaName,
   isPdfName,
   viewerTypeFor,
   type ViewerType,
@@ -376,19 +374,6 @@ async function recheckDeleted(rootPath: string, rel: string) {
  * confirm dialog first (§106); images ride the media channel.
  */
 export async function openFile(rootPath: string, rel: string) {
-  // Media (video/audio) has no in-app viewer — Open hands off to the OS
-  // default player (owner 2026-10-24 MP4 report). Same verb for tree
-  // single-click and the context menu's Open; the player window appearing
-  // IS the feedback, a failure toasts.
-  if (isMediaName(rel)) {
-    try {
-      await openWithDefaultApp(rootPath, rel);
-    } catch (err) {
-      toast(`Cannot open media: ${err}`, { kind: "error" });
-    }
-    return;
-  }
-
   let info;
   try {
     info = await inspectFile(rootPath, rel);
@@ -424,6 +409,20 @@ export async function openFile(rootPath: string, rel: string) {
     addOrActivate(rootPath, {
       relativePath: rel,
       viewerType: "executable",
+      sizeBytes: info.sizeBytes,
+      modifiedMs: info.modified ?? undefined,
+    });
+    return;
+  }
+
+  // Media info card: stat-only like .exe. A tree click on a video/audio
+  // file means "show it here" — the launch lives on the card's button
+  // and the tree's right-click Open, never on the click itself (owner
+  // 2026-10-24: accidental players from single clicks, "含义必须唯一").
+  if (viewerTypeFor(rel) === "media") {
+    addOrActivate(rootPath, {
+      relativePath: rel,
+      viewerType: "media",
       sizeBytes: info.sizeBytes,
       modifiedMs: info.modified ?? undefined,
     });
@@ -532,7 +531,7 @@ export async function reloadFile(rootPath: string, rel: string): Promise<boolean
     return revived;
   }
 
-  if (tab.viewerType === "executable") {
+  if (tab.viewerType === "executable" || tab.viewerType === "media") {
     const modified = info.modified ?? undefined;
     const statChanged =
       revived || tab.sizeBytes !== info.sizeBytes || tab.modifiedMs !== modified;
@@ -669,10 +668,11 @@ export async function ensureContentLoaded(rootPath: string, rel: string) {
   );
   if (!tab || tab.deleted) return;
   if (tab.viewerType === "binary" || tab.viewerType === "unsupported") return;
-  // §122 stat-only card: no content channel to fill (spec-012 L-f11 — the
-  // "mirrors openFile" claim now actually holds; falling through to
-  // readTextFile used to mark a healthy .exe tab deleted).
-  if (tab.viewerType === "executable") return;
+  // §122 stat-only cards (exe + media): no content channel to fill
+  // (spec-012 L-f11 — the "mirrors openFile" claim now actually holds;
+  // falling through to readTextFile used to mark a healthy .exe tab
+  // deleted).
+  if (tab.viewerType === "executable" || tab.viewerType === "media") return;
   if (contentCache.has(cacheKey(rootPath, rel))) return;
 
   if (tab.viewerType === "image") {
