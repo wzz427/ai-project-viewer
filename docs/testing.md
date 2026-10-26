@@ -74,6 +74,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 3. **断言写进脚本自判 PASS/FAIL**,不留人工判读;
 4. **合成输入 ≠ 真实输入**(lessons L17)——合成只证 handler 逻辑;交付口径以 owner 亲手复验为准;
 5. **禁止**向"当前前台窗口"盲发按键(SendKeys 落进宿主终端;必须先 GetForegroundWindow 校验,lessons L3);禁止 SetForegroundWindow/AppActivate/SW_RESTORE 抢焦点。
+6. **视觉改动必过「截图亲验」**(0.8.15 教训,lessons L50):凡改动会改变屏幕上任何东西的外观(样式/布局/新增可见控件),发版前必须二选一——① 截图给人眼或视觉模型看过再放行(先例:`visual-check-014.py` 的出图终审流程);② 在 e2e 守卫里加 **computed-style 断言**(如边框宽/背景色/内边距,先例:phase3 `p8_exe_info_viewer` 的 chrome 断言)。**"元素存在"的结构断言不算视觉验证**——0.8.15 就是按钮个数断言全绿、按钮实为裸文字出的门。
 
 ## 3. 脚本清单(scripts/e2e/,2026-10-10 全量入库)
 
