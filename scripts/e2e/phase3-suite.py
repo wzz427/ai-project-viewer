@@ -1177,13 +1177,28 @@ with sync_playwright() as p:
     # card carries Run + Show in File Explorer, same as every other stat
     # card — Run rides the SAME trust gate as the right-click verb.
     exe_buttons = page.locator(".exe-info .actions button").count()
+    # 0.8.15 shipped these buttons as BARE TEXT: the global app.css reset
+    # strips button chrome and the card's scoped styles were missing —
+    # count==2 passed anyway. Since 0.8.16 the chrome itself is asserted
+    # (1px CSS border computes to 0.8px at this DPI — threshold 0.5).
+    chrome = page.evaluate("""() => {
+      const b = document.querySelector('.exe-info .actions button');
+      if (!b) return null;
+      const s = getComputedStyle(b);
+      return { bw: parseFloat(s.borderWidth), bg: s.backgroundColor,
+               pad: parseFloat(s.padding) };
+    }""")
+    chrome_ok = (chrome is not None and chrome["bw"] >= 0.5
+                 and chrome["bg"] not in ("rgba(0, 0, 0, 0)", "transparent")
+                 and chrome["pad"] >= 4)
     check("p8_exe_info_viewer",
           "windows executable" in low
           and "this file cannot be previewed." in low
           and "size:" in low and "modified:" in low
           and "path:" in low
-          and exe_buttons == 2,
-          repr(info_txt[:200]) + f" buttons={exe_buttons}")
+          and exe_buttons == 2
+          and chrome_ok,
+          repr(info_txt[:200]) + f" buttons={exe_buttons} chrome={chrome}")
 
     # §128 untrusted + test mode: Run Script auto-cancels — nothing launches
     tree_row("hello.bat").click(button="right")

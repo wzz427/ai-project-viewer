@@ -155,6 +155,27 @@
     font-weight: 600;
   }
 
+  /* The app resets buttons globally (app.css `button { background: none;
+     border: none }`) — every card that ships buttons re-styles them
+     locally. 0.8.15 shipped this card with ONLY the layout rules, so the
+     buttons rendered as bare bold text (owner report 2026-10-26). */
+  button {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-overlay);
+    transition: background-color var(--transition-fast);
+  }
+
+  button:hover {
+    background: var(--bg-hover);
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
   .actions {
     display: flex;
     gap: 10px;

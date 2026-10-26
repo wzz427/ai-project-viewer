@@ -388,3 +388,10 @@
 - **机理**:`open_url(file:///…)` → tauri-plugin-opener 2.7 → **open crate 5.4.4**(模块头"ShellExecuteW"的旧认知是错的)→ Windows 上先跑内嵌 PowerShell(`Test-Path` 分流:真路径→`Invoke-Item`,否则→`Start-Process`)。`file:///` URL 对 Test-Path 是 **False**(实测)→ Start-Process 找不到 → 回落 `explorer.exe file:///…` → **弹的就是截图那个框**;且 detached spawn 让 invoke 返回 Ok,应用侧无感。修=html/htm 交**解析后的路径**给 `open_path`:Test-Path=True→Invoke-Item=**双击语义**,三平台通吃(`open`/`xdg-open` 本来就吃路径)。
 - **判据**:①给"打开"类 API 传参前先问:**这个后端认路径还是认 URL**——Windows Shell 生态认路径,浏览器认 URL,`file:///` 是两者的三不管地带;②"代码看着对但行为错"时,把依赖的**插件→crate 链路翻到叶子**(opener→open 5.4.4 的 windows.rs),注释/文档里的后端描述会过期,源码不会;③零打扰验证链:Test-Path 实测(URL False/路径 True)+`.html` UserChoice 注册表读关联+owner 已验的双击行为,三段拼出全程,不弹一个窗;④e2e 零打扰红线下,"真弹浏览器"的终验交给 owner 的 Update 路径,不在测试里破例。
 - **出处**:owner 2026-10-12 报障(截图+「双击能开」关键对照);修复随 0.7.21(handoff.rs html 分支改 open_path,删 file_url_of 死码);同轮顺带修 CodeViewer 无软换行(lineWrapping 一行,probe 实证折行)。
+
+### L50:exe 卡按钮渲染成纯文本——全局 `button` 样式重置下,每个卡片自带按钮样式;**抄样式要抄全,结构断言(元素在)不算视觉验证**(2026-10-26 0.8.15 返修)
+
+- **症状**:owner 截图打脸:"你这哪是按钮啊?怎么验证的?"——exe 信息卡两个按钮渲染成两行裸文本(无边框/无底色);phase3 守卫全绿放了行。
+- **机理**:app.css 全局 `button { background:none; border:none }`(桌面美学重置),各卡片在 scoped style 里**自带**按钮补丁样式(padding/边框/底色/hover)。0.8.15 抄 UnsupportedViewer 样式时只抄了 `.actions` 布局与 `button.primary` 字重,**漏了 scoped `button` 本体规则**→按钮落到全局重置=纯文本。守卫只断言 `button.count()==2`(结构),样式层零覆盖。
+- **判据**:①改**视觉**的交付,验证必须是"眼看(截图)或计算样式断言"之一,结构在≠样子对(L45 几何断言的同族教训,这次是没做任何视觉验证);②全局样式重置的项目里,给卡片加按钮=布局类+**按钮本体规则**一起抄,对着抄来的文件 grep `button {` 确认;③返修守卫要封死本轮盲区:p8_exe_info_viewer 已加计算样式断言(边框≥0.5px 计算值/背景非透明/内边距≥4px——1px CSS 在 125% DPI 下计算值是 0.8px,阈值别写 1)。
+- **出处**:owner 2026-10-26 看 0.8.15 截图质问;返修=0.8.16(scoped button 样式补齐+探针截图亲验+守卫加样式断言,探针断完即删)。

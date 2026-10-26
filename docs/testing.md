@@ -130,6 +130,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 106/106+cargo 免跑(Rust 零改动)+phase3 **PASS**(p8_exe_info_viewer 加码:cards 字段全在+`.actions button`==2);freeze-guard 免跑 |
 | 版本 | **0.8.15 三处已核**;updates=exp 0.8.15(2026-10-26 18:19,UTF-16 核:0.8.15 FOUND/0.8.14 absent;拒发闸干净 staged 0.8.14→publishing 0.8.15);**离线安装包未动**(现役 0.8.14 双语包;这改动要不要进对外包=owner 喊再打,红线);owner 路径=Update→重启→点任一 .exe(如 离线安装包 里的 setup.exe)→两按钮在;未信任项目首点 Run 仍弹信任确认 |
 
+#### 0.8.16 exe 卡按钮返修(2026-10-26,owner 看 0.8.15 截图质问"你这哪是按钮?怎么验证的?";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 0.8.15 抄 UnsupportedViewer 样式只抄了 `.actions` 布局+`button.primary` 字重,**漏 scoped `button` 本体规则**——app.css 全局重置(`background:none;border:none`)下按钮=裸文本;守卫只断言 count==2,样式层零覆盖。**教训 L50**(改视觉的交付必须眼看或样式断言;全局重置项目里加按钮要抄全样式) |
+| 返修 | ExecutableInfoViewer 补 scoped 按钮样式(padding 5px 14px/边框/圆角/overlay 底/hover/disabled);发版前一次性探针**截图亲验**(真按钮:边框+浅底+圆角+并排)+计算样式实证,探针断完即删;p8_exe_info_viewer 守卫加**计算样式断言**(borderWidth≥0.5px——1px CSS 在 125% DPI 计算值 0.8px,backgroundColor 非透明,padding≥4px) |
+| 全档 | check 0/0+vitest 106/106+cargo 免跑(Rust 零改动)+phase3 **PASS**(样式断言版 p8_exe_info_viewer);freeze-guard 免跑 |
+| 版本 | **0.8.16 三处已核**;updates=exp 0.8.16(2026-10-26 19:08,UTF-16 核 0.8.16 FOUND);离线安装包未动(0.8.14 现役);owner 路径=Update→重启→点任一 .exe→真按钮;悬停底色变化;未信任项目首点 Run 仍弹信任确认 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |
