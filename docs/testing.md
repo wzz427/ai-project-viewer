@@ -140,6 +140,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 106/106+cargo 免跑(Rust 零改动)+phase3 **PASS**(样式断言版 p8_exe_info_viewer);freeze-guard 免跑 |
 | 版本 | **0.8.16 三处已核**;updates=exp 0.8.16(2026-10-26 19:08,UTF-16 核 0.8.16 FOUND);离线安装包未动(0.8.14 现役);owner 路径=Update→重启→点任一 .exe→真按钮;悬停底色变化;未信任项目首点 Run 仍弹信任确认 |
 
+#### 0.8.17 信息卡家族统一改版:按钮等宽+卡片放大(2026-10-26,owner 三指示:①exe 卡两按钮不等宽"看看 MP4 的,起码等宽"②媒体卡太小太丑要放大③全应用按钮样式盘一遍;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | 五张信息卡(exe/媒体/二进制/超大/兜底)+diff 截断卡的卡体与按钮底盘**收成 app.css 一份共享定义**(.stat-host/.stat-card/.card-actions——0.8.15 的病根"样式各抄各的"就此拔除);**成对按钮 flex:1 强制等宽**(单按钮自然宽,:only-child);卡片放大:padding 36/48、min-width 420、标题 17px 加粗、类型行小号大写、属性行两列 base 字号;媒体卡层级颠倒修正(旧版文件名 12px 灰、类型反而 13px 粗→与其他卡同层级);对话框钮(Error/Properties)高度对齐 8px 18px |
+| 全档 | check 0/0+vitest 106/106+cargo 132/132(仅版本号)+phase3 **PASS**(+守卫 media_card_equal_buttons_enlarged;p8_exe_info_viewer 加码等宽+放大断言:卡宽≥400/标题≥15px/两钮宽差<1px);**截图亲验双卡双主题 4/4 全过**(等宽 1:1/真按钮/卡片舒展——铁律 §2.3-6 首个完整流程版);freeze-guard 免跑 |
+| 踩坑 | **text-transform:uppercase 会改 innerText**——card-kind 全大写后 body_contains("Media file") 稳红;守卫改语义节点断言(.stat-card .card-kind,Playwright hasText 大小写不敏感)。watcher_deleted_tab_state 旧选择器 .unsupported→.stat-card(换类清扫,非功能回归) |
+| 版本 | **0.8.17 三处已核**;updates=exp 0.8.17(2026-10-26 20:48,UTF-16 核 0.8.17 FOUND/0.8.16 无残留;json 无 BOM);离线安装包未动(0.8.14 现役);owner 路径=Update→重启→①点 .exe:两按钮等宽;②点 mp4:卡片明显变大、按钮等宽;③右键 Properties:对话框按钮同高 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

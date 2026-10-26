@@ -746,10 +746,32 @@ with sync_playwright() as p:
     # players from single clicks). Single click = info-card tab, never a
     # launch; right-click Open = the launch (dry-run under test mode).
     open_file("demo.mp4")  # raises unless the mp4 tab ACTIVATES
+    # card-kind renders text-transform: uppercase — innerText comes back
+    # "MEDIA FILE", so match via the semantic .card-kind node instead.
     check("mp4_click_opens_info_card",
-          body_contains("Media file")
+          page.locator(".stat-card .card-kind", has_text="Media file").count() >= 1
           and page.locator("button", has_text="Open in Default Player").count() >= 1,
           "")
+    # 0.8.17 (owner 2026-10-26: media card too small + unequal buttons):
+    # the stat-card family moved to ONE shared definition (app.css
+    # .stat-card/.card-actions) — the pair must render EQUAL widths and
+    # the card must be enlarged (>=400px wide, title >=15px).
+    mstat = page.evaluate("""() => {
+      const card = document.querySelector('.stat-host .stat-card');
+      if (!card) return null;
+      const title = card.querySelector('.card-title');
+      const btns = [...card.querySelectorAll('.card-actions button')]
+          .map(b => Math.round(b.getBoundingClientRect().width * 10) / 10);
+      return { w: Math.round(card.getBoundingClientRect().width),
+               titlePx: parseFloat(getComputedStyle(title).fontSize),
+               btns };
+    }""")
+    check("media_card_equal_buttons_enlarged",
+          mstat is not None and mstat["w"] >= 400
+          and mstat["titlePx"] >= 15
+          and len(mstat["btns"]) == 2
+          and abs(mstat["btns"][0] - mstat["btns"][1]) < 1,
+          str(mstat))
     n_card = tab_count()
     tree_row("demo.mp4").click(button="right")
     page.locator(".menu [data-menu-id='open']").dispatch_event("click")
@@ -1170,35 +1192,53 @@ with sync_playwright() as p:
 
     # §122: left-click .exe -> stat card (no content read)
     tree_row("demo.exe").click()
-    page.wait_for_selector(".exe-info .kind", timeout=4000)
-    info_txt = page.locator(".exe-info").inner_text()
+    page.wait_for_selector(".stat-card .card-kind", timeout=4000)
+    info_txt = page.locator(".stat-host .stat-card").inner_text()
     low = info_txt.lower()
     # 0.8.15 (owner 2026-10-26, reversing the 0.8.11 exception): the exe
     # card carries Run + Show in File Explorer, same as every other stat
     # card — Run rides the SAME trust gate as the right-click verb.
-    exe_buttons = page.locator(".exe-info .actions button").count()
+    exe_buttons = page.locator(".stat-card .card-actions button").count()
     # 0.8.15 shipped these buttons as BARE TEXT: the global app.css reset
     # strips button chrome and the card's scoped styles were missing —
     # count==2 passed anyway. Since 0.8.16 the chrome itself is asserted
     # (1px CSS border computes to 0.8px at this DPI — threshold 0.5).
+    # 0.8.17: stat cards + buttons live in ONE shared definition (app.css
+    # .stat-card/.card-actions); the pair must render EQUAL widths and the
+    # card must stay enlarged (>=400px, title >=15px).
     chrome = page.evaluate("""() => {
-      const b = document.querySelector('.exe-info .actions button');
+      const b = document.querySelector('.stat-card .card-actions button');
       if (!b) return null;
       const s = getComputedStyle(b);
       return { bw: parseFloat(s.borderWidth), bg: s.backgroundColor,
-               pad: parseFloat(s.padding) };
+               pad: parseFloat(s.paddingTop) };
+    }""")
+    estat = page.evaluate("""() => {
+      const card = document.querySelector('.stat-host .stat-card');
+      if (!card) return null;
+      const title = card.querySelector('.card-title');
+      const btns = [...card.querySelectorAll('.card-actions button')]
+          .map(b => Math.round(b.getBoundingClientRect().width * 10) / 10);
+      return { w: Math.round(card.getBoundingClientRect().width),
+               titlePx: parseFloat(getComputedStyle(title).fontSize),
+               btns };
     }""")
     chrome_ok = (chrome is not None and chrome["bw"] >= 0.5
                  and chrome["bg"] not in ("rgba(0, 0, 0, 0)", "transparent")
-                 and chrome["pad"] >= 4)
+                 and chrome["pad"] >= 6)
+    equal_ok = (estat is not None and estat["w"] >= 400
+                and estat["titlePx"] >= 15
+                and len(estat["btns"]) == 2
+                and abs(estat["btns"][0] - estat["btns"][1]) < 1)
     check("p8_exe_info_viewer",
           "windows executable" in low
           and "this file cannot be previewed." in low
           and "size:" in low and "modified:" in low
           and "path:" in low
           and exe_buttons == 2
-          and chrome_ok,
-          repr(info_txt[:200]) + f" buttons={exe_buttons} chrome={chrome}")
+          and chrome_ok and equal_ok,
+          repr(info_txt[:200]) + f" buttons={exe_buttons} chrome={chrome}"
+          f" stat={estat}")
 
     # §128 untrusted + test mode: Run Script auto-cancels — nothing launches
     tree_row("hello.bat").click(button="right")
@@ -1324,7 +1364,7 @@ with sync_playwright() as p:
     os.remove(w_probe)
     deleted_card = body_contains("This file has been deleted.", timeout_s=6)
     row_gone = wait_row("data/zz-watch-me.txt", False)
-    close_btn = page.locator(".unsupported button", has_text="Close Tab")
+    close_btn = page.locator(".stat-card button", has_text="Close Tab")
     has_close = close_btn.count() == 1
     n_before = tab_count()
     if has_close:

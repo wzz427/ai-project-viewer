@@ -243,6 +243,125 @@ input {
   user-select: text;
 }
 
+/* ---- Stat-card family: exe / media / unsupported guard cards / diff
+   truncation ---- ONE definition for every centered info card and its
+   action buttons (owner 2026-10-26: exe-card pair ran unequal widths —
+   "Run" vs "Show in File Explorer"; media card too small). Cards carry
+   their own button chrome only because of the global button reset above
+   — that chrome lives HERE now, not copy-pasted per component. */
+.stat-host {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 36px 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  min-width: 420px;
+  max-width: 560px;
+}
+
+.stat-card .card-title {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  max-width: 520px;
+  overflow-wrap: anywhere;
+}
+
+.stat-card .card-kind {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-card dl {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-card .stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  font-size: var(--text-base);
+}
+
+.stat-card .stat-row dt {
+  color: var(--text-muted);
+}
+
+.stat-card .stat-row dd {
+  margin: 0;
+}
+
+.stat-card .stat-row.path dd {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+  max-width: 360px;
+  text-align: left;
+}
+
+.stat-card .card-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Paired action buttons share the row equally — a short label ("Run")
+   never renders narrower than its long neighbour (owner 2026-10-26).
+   A lone button keeps its natural width. */
+.card-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.card-actions button {
+  flex: 1 1 0;
+  min-width: 150px;
+  padding: 8px 18px;
+  font-size: var(--text-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-overlay);
+  transition: background-color var(--transition-fast);
+}
+
+.card-actions button:only-child {
+  flex: 0 1 auto;
+}
+
+.card-actions button:hover {
+  background: var(--bg-hover);
+}
+
+.card-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.card-actions button.primary {
+  font-weight: 600;
+  border-color: var(--border-strong);
+}
+
 .mono {
   font-family: var(--font-mono);
 }

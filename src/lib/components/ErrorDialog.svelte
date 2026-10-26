@@ -86,7 +86,7 @@
   }
 
   button {
-    padding: 5px 18px;
+    padding: 8px 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-overlay);

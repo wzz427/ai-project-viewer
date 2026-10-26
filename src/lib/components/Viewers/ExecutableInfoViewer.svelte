@@ -56,21 +56,21 @@
   }
 </script>
 
-<div class="exe-info">
-  <div class="card">
-    <p class="exe-name">{name}</p>
-    <p class="kind">{t("viewer.execKind")}</p>
+<div class="stat-host">
+  <div class="stat-card">
+    <p class="card-title">{name}</p>
+    <p class="card-kind">{t("viewer.execKind")}</p>
     <dl>
       {#if sizeText !== null}
-        <div class="row"><dt>{t("viewer.sizeLabel")}</dt><dd>{sizeText}</dd></div>
+        <div class="stat-row"><dt>{t("viewer.sizeLabel")}</dt><dd>{sizeText}</dd></div>
       {/if}
       {#if modifiedText !== null}
-        <div class="row"><dt>{t("viewer.modifiedLabel")}</dt><dd>{modifiedText}</dd></div>
+        <div class="stat-row"><dt>{t("viewer.modifiedLabel")}</dt><dd>{modifiedText}</dd></div>
       {/if}
-      <div class="row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
+      <div class="stat-row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
     </dl>
-    <p class="muted">{t("viewer.cannotPreviewPlain")}</p>
-    <div class="actions">
+    <p class="card-note">{t("viewer.cannotPreviewPlain")}</p>
+    <div class="card-actions">
       <button class="primary" onclick={run} disabled={running}>
         {running ? t("viewer.runningBtn") : t("menu.run")}
       </button>
@@ -78,107 +78,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  .exe-info {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .card {
-    text-align: center;
-    padding: 24px 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-    min-width: 280px;
-  }
-
-  .exe-name {
-    font-family: var(--font-mono);
-    font-size: var(--text-base);
-    font-weight: 600;
-    margin: 0;
-    max-width: 480px;
-    overflow-wrap: anywhere;
-  }
-
-  .kind {
-    margin: 0;
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  dl {
-    margin: 4px 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .row {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    font-size: var(--text-sm);
-  }
-
-  dt {
-    color: var(--text-muted);
-  }
-
-  dd {
-    margin: 0;
-    font-family: var(--font-mono);
-  }
-
-  .row.path dd {
-    max-width: 380px;
-    overflow-wrap: anywhere;
-    text-align: left;
-  }
-
-  .muted {
-    margin: 6px 0 0;
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-  }
-
-  button.primary {
-    font-weight: 600;
-  }
-
-  /* The app resets buttons globally (app.css `button { background: none;
-     border: none }`) — every card that ships buttons re-styles them
-     locally. 0.8.15 shipped this card with ONLY the layout rules, so the
-     buttons rendered as bare bold text (owner report 2026-10-26). */
-  button {
-    padding: 5px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-overlay);
-    transition: background-color var(--transition-fast);
-  }
-
-  button:hover {
-    background: var(--bg-hover);
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-
-  .actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 6px;
-  }
-</style>

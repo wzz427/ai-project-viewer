@@ -92,7 +92,9 @@
       <!-- §72: the backend stopped at 2 MB / 20k lines. -->
       <div class="too-large">
         <p>{t("viewer.diffTooLarge")}</p>
-        <button onclick={handOffToVSCode}>{t("viewer.openInVscodeBtn")}</button>
+        <div class="card-actions">
+          <button onclick={handOffToVSCode}>{t("viewer.openInVscodeBtn")}</button>
+        </div>
       </div>
     {:else if segments.length === 0}
       <p class="muted pad">
@@ -292,17 +294,8 @@
   }
 
   .too-large p {
-    margin: 0 0 10px;
+    margin: 0;
     font-weight: 600;
   }
 
-  .too-large button {
-    padding: 4px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-hover);
-    cursor: pointer;
-    font-size: var(--text-base);
-    transition: background-color var(--transition-fast);
-  }
 </style>

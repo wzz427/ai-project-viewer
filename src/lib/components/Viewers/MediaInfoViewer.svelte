@@ -52,21 +52,21 @@
   }
 </script>
 
-<div class="media-info">
-  <div class="card">
-    <p class="media-name">{name}</p>
-    <p class="kind">{t("viewer.mediaKind")}</p>
+<div class="stat-host">
+  <div class="stat-card">
+    <p class="card-title">{name}</p>
+    <p class="card-kind">{t("viewer.mediaKind")}</p>
     <dl>
       {#if sizeText !== null}
-        <div class="row"><dt>{t("viewer.sizeLabel")}</dt><dd>{sizeText}</dd></div>
+        <div class="stat-row"><dt>{t("viewer.sizeLabel")}</dt><dd>{sizeText}</dd></div>
       {/if}
       {#if modifiedText !== null}
-        <div class="row"><dt>{t("viewer.modifiedLabel")}</dt><dd>{modifiedText}</dd></div>
+        <div class="stat-row"><dt>{t("viewer.modifiedLabel")}</dt><dd>{modifiedText}</dd></div>
       {/if}
-      <div class="row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
+      <div class="stat-row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
     </dl>
-    <p class="muted">{t("viewer.cannotPreview")}</p>
-    <div class="actions">
+    <p class="card-note">{t("viewer.cannotPreview")}</p>
+    <div class="card-actions">
       <button class="primary" onclick={play} disabled={launching}>
         {launching ? t("viewer.openingBtn") : t("viewer.openInPlayer")}
       </button>
@@ -74,98 +74,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  .media-info {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .card {
-    text-align: center;
-    padding: 24px 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .media-name {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    margin: 0;
-    max-width: 480px;
-    overflow-wrap: anywhere;
-  }
-
-  .kind {
-    margin: 0;
-    font-size: var(--text-base);
-    font-weight: 600;
-  }
-
-  dl {
-    margin: 4px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 280px;
-  }
-
-  .row {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    font-size: var(--text-sm);
-  }
-
-  .row dt {
-    color: var(--text-muted);
-  }
-
-  .row dd {
-    margin: 0;
-  }
-
-  .row.path dd {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    overflow-wrap: anywhere;
-    max-width: 320px;
-    text-align: left;
-  }
-
-  .muted {
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    margin: 0;
-  }
-
-  .actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 6px;
-  }
-
-  button {
-    padding: 5px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-overlay);
-    transition: background-color var(--transition-fast);
-  }
-
-  button:hover {
-    background: var(--bg-hover);
-  }
-
-  button.primary {
-    border-color: var(--border-strong, var(--border));
-    font-weight: 600;
-  }
-</style>
