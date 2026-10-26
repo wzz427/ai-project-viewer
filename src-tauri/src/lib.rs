@@ -81,60 +81,87 @@ fn channel(app: tauri::AppHandle) -> String {
     }
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    let _ = STARTED_AT.set(Instant::now());
-
-    // Live-probe port (owner 2026-10-12, freeze hunt: "你应该有一种机制,
-    // 能够直接获取到我在本地打开的这个软件里面的信息"): dev & experience
-    // builds listen on a fixed localhost CDP port so live-inspect.py can
-    // attach to the RUNNING app — a field freeze becomes directly
-    // inspectable instead of reconstructed from logs. e2e launches pre-set
-    // their own port via env (aivlaunch), which wins. PRODUCTION PACKAGING
-    // MUST CLOSE THIS (spec-011 NSIS step — see that spec's debt note).
-    if std::env::var_os("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_none() {
-        std::env::set_var(
-            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
-            // --disable-direct-composition (2026-10-12 black-line hunt,
-            // round 4): a transient black line at the webview's TOP edge
-            // appears to the naked eye on big repaints (project switches),
-            // moves with the window, and is absent from EVERY pixel
-            // capture (owner PixPin + 197 forced-composite CDP frames) —
-            // i.e. it lives in the DirectComposition presentation layer,
-            // not in app pixels. This flag falls back to the conservative
-            // presentation path. Single-variable trial build; revisit if
-            // it costs measurable CPU/GPU. e2e sets its own args env, so
-            // suites keep exercising the default path.
-            "--remote-debugging-port=9322 --disable-direct-composition",
-        );
-    } else {
+/// Compose WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS.
+///
+/// The DirectComposition fallback rides along in EVERY channel
+/// (2026-10-12 black-line hunt, round 4): a transient black line at the
+/// webview's TOP edge appears to the naked eye on big repaints (project
+/// switches), moves with the window, and is absent from EVERY pixel
+/// capture (owner PixPin + 197 forced-composite CDP frames) — i.e. it
+/// lives in the DirectComposition presentation layer, not in app pixels.
+/// This flag falls back to the conservative presentation path. Revisit if
+/// it costs measurable CPU/GPU. e2e sets its own args env, so suites keep
+/// exercising the default path.
+///
+/// The live-inspect CDP port (owner 2026-10-12, freeze hunt: "你应该有一
+/// 种机制,能够直接获取到我在本地打开的这个软件里面的信息") is gated by
+/// `cdp_allowed`: only dev & experience builds listen on it so live-
+/// inspect.py can attach to the RUNNING app. FORMAL INSTALLS NEVER DO
+/// (spec-011 NSIS step): the default identifier in a release build means
+/// "NSIS setup" — no debug backdoor, not even when a parent process hands
+/// us browser arguments.
+fn merge_webview_args(current: Option<&str>, cdp_allowed: bool) -> String {
+    const DCOMP: &str = "--disable-direct-composition";
+    const PORT: &str = "--remote-debugging-port=9322";
+    match current {
+        None => {
+            if cdp_allowed {
+                format!("{PORT} {DCOMP}")
+            } else {
+                DCOMP.to_string()
+            }
+        }
         // L48 (2026-10-12, 0.7.19 field case): the updater's relaunch
         // spawns this exe WITH THE PARENT'S ENV — the parent (older
         // build) had set this var to its own value, so the first-write
         // gate above skipped and freshly added flags were silently
-        // dropped after every update-restart (the owner's formal app ran
-        // 0.7.19 WITHOUT the black-line flag while a fresh-launched copy
-        // had it). Make the patch idempotent: append whatever flag is
-        // missing; an e2e-provided port (different number) counts as
-        // present and is never duplicated.
+        // dropped after every update-restart. Append-only patch: add
+        // whatever flag is missing; an e2e-provided port (different
+        // number) counts as present and is never duplicated.
+        Some(cur) => {
+            let mut args = cur.trim().to_string();
+            let has_port = args
+                .split_whitespace()
+                .any(|a| a.starts_with("--remote-debugging-port"));
+            if cdp_allowed && !has_port {
+                if !args.is_empty() {
+                    args.push(' ');
+                }
+                args.push_str(PORT);
+            }
+            if !args.contains(DCOMP) {
+                if !args.is_empty() {
+                    args.push(' ');
+                }
+                args.push_str(DCOMP);
+            }
+            args
+        }
+    }
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    let _ = STARTED_AT.set(Instant::now());
+
+    // Channel gate for the CDP port: experience builds run under the .exp
+    // identifier (SPEC-INFRA-001), dev builds are debug-compiled — both
+    // keep live-inspect. A release build under the DEFAULT identifier is
+    // the NSIS install: port closed, fail-safe (nothing to remember at
+    // packaging time).
+    let context = tauri::generate_context!();
+    let cdp_allowed =
+        context.config().identifier.ends_with(".exp") || cfg!(debug_assertions);
+
+    if std::env::var_os("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_none() {
+        std::env::set_var(
+            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+            merge_webview_args(None, cdp_allowed),
+        );
+    } else {
         let cur = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
             .unwrap_or_default();
-        let mut args = cur.clone();
-        let has_port = cur
-            .split_whitespace()
-            .any(|a| a.starts_with("--remote-debugging-port"));
-        if !has_port {
-            if !args.is_empty() {
-                args.push(' ');
-            }
-            args.push_str("--remote-debugging-port=9322");
-        }
-        if !cur.contains("--disable-direct-composition") {
-            if !args.is_empty() {
-                args.push(' ');
-            }
-            args.push_str("--disable-direct-composition");
-        }
+        let args = merge_webview_args(Some(&cur), cdp_allowed);
         if args != cur {
             std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args);
         }
@@ -247,7 +274,7 @@ pub fn run() {
             updater::apply_update,
             updater::relaunch
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
             // V1.5 §26 final write on normal exit: the frontend flushes on
@@ -287,3 +314,60 @@ fn disable_browser_accelerators(window: &tauri::WebviewWindow) {
 
 #[cfg(not(target_os = "windows"))]
 fn disable_browser_accelerators(_window: &tauri::WebviewWindow) {}
+
+#[cfg(test)]
+mod tests {
+    use super::merge_webview_args;
+
+    const PORT: &str = "--remote-debugging-port=9322";
+    const DCOMP: &str = "--disable-direct-composition";
+
+    /// spec-011 NSIS step: a formal install (cdp off) must NEVER carry the
+    /// live-inspect port — not on first write, not appended to inherited
+    /// browser arguments.
+    #[test]
+    fn formal_first_write_has_no_cdp_port() {
+        let got = merge_webview_args(None, false);
+        assert!(!got.contains("remote-debugging-port"), "got: {got}");
+        assert_eq!(got, DCOMP);
+    }
+
+    #[test]
+    fn formal_never_appends_port_to_inherited_args() {
+        let got = merge_webview_args(Some("--foo=1"), false);
+        assert!(!got.contains("remote-debugging-port"), "got: {got}");
+        assert!(got.contains("--foo=1") && got.contains(DCOMP));
+    }
+
+    /// dev (tauri dev, debug) and experience (.exp identifier) keep the
+    /// port — live-inspect.py attaches there.
+    #[test]
+    fn dev_and_experience_first_write_carries_port() {
+        assert_eq!(merge_webview_args(None, true), format!("{PORT} {DCOMP}"));
+    }
+
+    /// L48: updater relaunch inherits parent env — missing flags are
+    /// appended, and a second pass changes nothing.
+    #[test]
+    fn inherited_args_get_missing_flags_appended() {
+        let got = merge_webview_args(Some(DCOMP), true);
+        assert_eq!(got, format!("{DCOMP} {PORT}"));
+    }
+
+    #[test]
+    fn second_pass_is_stable() {
+        let once = merge_webview_args(Some("--foo=1"), true);
+        let twice = merge_webview_args(Some(&once), true);
+        assert_eq!(once, twice);
+    }
+
+    /// aivlaunch presets its own port — that must count as present and
+    /// never be duplicated with the default one.
+    #[test]
+    fn foreign_port_is_never_duplicated() {
+        let e2e = "--remote-debugging-port=9455";
+        let got = merge_webview_args(Some(e2e), true);
+        assert_eq!(got, format!("{e2e} {DCOMP}"));
+        assert!(!got.contains("9322"));
+    }
+}

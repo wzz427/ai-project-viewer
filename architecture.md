@@ -12,8 +12,9 @@
 | 包管理 | pnpm(前端,**仓库 `.npmrc` 固定 npmmirror 镜像**,npmjs 直连不通)+ cargo(crates.io 直连可通);Windows 11 + WebView2 Runtime 143 |
 | 装依赖 | `pnpm install`(前端);Rust 依赖随首次构建自动拉取,`cd src-tauri && cargo fetch` 可预取 |
 | 启动(开发) | `pnpm tauri dev`(起 Vite:1420 + debug exe);要可独立运行的 debug exe:`pnpm tauri build --debug --no-bundle` → `src-tauri/target/debug/ai-project-viewer.exe` |
+| **打正式安装包** | `pnpm tauri build`(owner 点头才打,红线)→ `src-tauri\target\release\bundle\nsis\AI Project Viewer_<版本>_x64-setup.exe`;**离线大包** ~210MB(webviewInstallMode=offlineInstaller,owner 2026-10-26 拍板,对方电脑缺 WebView2 也能装);未签名→他人首装弹 SmartScreen 蓝警告属预期;正式版无 CDP 端口/无更新渠道(纯本地目录机制,别人电脑上天然不动作);**重发新版=重新打一个 setup.exe 给对方**(V1 决定:正式版不带自动更新) |
 | 跑测试 | 见 docs/testing.md §1(唯一真值):`pnpm check` / `cd src-tauri && cargo test` / 构建;Benchmark 档位见 V1.5 §162–§173 |
-| 调试端口(CDP) | dev/体验版**常开** 9322:lib.rs 启动时若 env 未设则给 WebView2 加 `--remote-debugging-port=9322`(e2e 自设端口优先);活体直连=`scripts/e2e/live-inspect.py` 只读快照(owner 2026-10-12 指令,现场报障第一动作)。**生产/NSIS 打包必须关**(spec-011 记档债务) |
+| 调试端口(CDP) | dev/体验版**常开** 9322:lib.rs 启动时若 env 未设则给 WebView2 加 `--remote-debugging-port=9322`(e2e 自设端口优先);活体直连=`scripts/e2e/live-inspect.py` 只读快照(owner 2026-10-12 指令,现场报障第一动作)。**正式安装版已关(2026-10-26,spec-011 债清偿)**:门禁按渠道标识——`.exp`(体验版)与 debug 构建(=tauri dev)保留端口;默认标识+release(=NSIS 正式版)**永不设端口**(lib.rs `merge_webview_args` 纯函数+6 单测;正式版启动实证全进程树零监听)。`--disable-direct-composition`(黑线案)全渠道保留 |
 | 🔒 备份(异地) | **remote `backup` = `git@github.com:wzz427/ai-project-viewer.git`**(SSH;owner 给的 https 直连在此网络被重置,且指南铁律=远程必须 SSH 地址)。认证=`~/.ssh/github_wzz` 账号级钥匙(一钥匙管一事,与 Gitee/服务器不共用;`ssh -T git@github.com` 回 `Hi wzz427!` 为通)。方法全文=docs/AI-Project-Guide/07-backup-secrets.md + Desktop 指南 advanced/02(两平台篇)。**本项目备份规则**(2026-10-12 立,细则见下方「备份规则」块) |
 | 平台已知坑 | ① 路径含空格/中文必须加引号;② WebView2 浏览器加速键抢占应用快捷键 → 已在 Rust 侧 COM 禁用(§147,src-tauri/src/lib.rs);③ git 输出路径基准不一致:status 相对 cwd、diff/log 相对 Git Root,一律用 `git -C <GitRoot>` 规避(V1.5 §196 附注A);④ Rust `canonicalize` 产生 `\\?\` 前缀 → 用 dunce crate(V1.5 §144);⑤ 无 BOM UTF-8 的 .ps1 含中文会被 PS5.1 按 GBK 误读导致解析错乱(lessons L2) |
 | 🚫 别碰 | 需求文档是唯一基线,不得未经 owner 修改;密钥文件别读(见 AGENTS.md 红线);不得绕过 V1.5 §143–§147 安全章节"图快" |
@@ -47,7 +48,7 @@
 | D10 | opener 插件授权(渲染层) | capabilities 只授 `opener:allow-open-url`(http/https);**不授 open-path/reveal/mailto** | 否决 `allow-open-path **`:渲染层处理不可信 PDF/代码文件(pdf.js/CM 为现实攻击面),曾授权任意路径 OS 关联打开=可执行程序;插件文档证实 scope 仅 IPC 层强制,Rust 自由函数(open_path/reveal)不受影响——收紧零代价(spec-011 R20/phase3 双拒探针) | spec-011 §四 D8;2026-10-11 |
 | D11 | cmd.exe 宿主传脚本路径 | `raw_arg` 双层引号 `""path""`(SpawnArg::CmdPath) | 否决裸 argv/单层引号:cmd 的 /K 文档行为=引号内含元字符即剥外层引号重析,单层引号下 `a&calc&` 文件夹实证跑出 calc(§145) | spec-011 §四 D7;2026-10-11 |
 | D12 | 前端工作区生命周期 | 每项目 viewer 区按 rootPath `{#key}` 整体重挂载(App.svelte);`projectTabs()` 创建分支返回 store 代理而非裸局部对象 | 否决"逐点修补订阅失效":ActiveViewer 的 `$derived(activeTab)` 与 tabsState 失联且跨项目蔓延(0.7.12 冻结大案,诊断 #3 MISMATCH 行+机理定位);keyed 重挂=订阅不可能跨项目变陈;本地复现率仅 ~2%,统计证不出但机理修(L43) | 0.7.12 冻结案;docs/testing.md §4 |
-| D13 | 常开探查端口 | lib.rs 启动时(env 未设则)给 WebView2 加 CDP `--remote-debugging-port=9322`;配合 `__aiv.snapshot()`(debugHook.ts)供 live-inspect.py 只读直连 | 否决"只靠诊断日志复盘":owner 指令——软件就在本地开着,应当能直接取现场信息;只读不控、不启不杀;**生产打包必须关**(债务记 spec-011 上下文+lib.rs 注释) | owner 2026-10-12 指令 |
+| D13 | 常开探查端口 | lib.rs 启动时(env 未设则)给 WebView2 加 CDP `--remote-debugging-port=9322`;配合 `__aiv.snapshot()`(debugHook.ts)供 live-inspect.py 只读直连 | 否决"只靠诊断日志复盘":owner 指令——软件就在本地开着,应当能直接取现场信息;只读不控、不启不杀;**正式安装版已关(2026-10-26):门禁=渠道标识(.exp/debug 保留,默认标识+release 永不设),见 §0 调试端口行** | owner 2026-10-12 指令 |
 | D14 | UI 皮肤体系(spec-014) | app.css 单文件 tokens:三档字阶 11/12/13(600 字重做层级,唯一例外=EmptyState hero 20px)+语义色(--danger 唯一错误红/--accent-soft 染色层/--accent-strong 实底专用)+暗色三面阶梯(壳/阅读面/浮层)+Icon.svelte 内联 SVG 单表(16 枚,2px 描边 24 网格,currentColor)+项目首字徽标 hash(rootPath)→8 色板稳定身份+文件类型图标族复用 viewerType 路由 | 否决图标库/五档字阶/随机徽标色/实底徽标:零依赖+内存最小化+颜色身份可学习+quiet 基调(论据全表=specs/spec-014 §四 D1–D8);对比度全数值化实测(WCAG AA) | owner 2026-10-12 拍板(A 方案/一步到位/亮色为主);评审快照 .impeccable/critique/2026-10-12T09-25-27Z |
 
 ## 1.5 待决问题(摆上桌但"以后再说"的;不是 bug 不是待办,是没被遗忘也没被拍死的取舍)
@@ -191,6 +192,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-26 | 0.8.13 | **正式安装版落地**:webviewInstallMode=**offlineInstaller**(离线大包 ~210MB,setup.exe 单文件拷走即装);CDP 端口门禁按渠道标识收口(D13 债清偿——`.exp`/debug 保留 9322,默认标识+release 永不设;merge_webview_args 纯函数+6 单测+正式版启动实证零监听);V1.5 §197 审计行 | owner 2026-10-26 拍板"离线大包"(webviewInstallMode 三选一,spec-011 收尾遗留) |
 | 2026-10-12 | 0.7.14 | **异地备份建线**(挂账清偿):remote `backup`=GitHub SSH(github_wzz 账号级钥匙),首推 main+核 0;备份规则八条落 §0(节奏/核账/force 语义/装不下红线/恢复/演练/第二平台预留/私有可见性=owner 确认项) | owner 指令(原计划 V1 后自建,提前委托) |
 | 2026-10-12 | 0.7.14 | 视觉改版落地(spec-014,owner 拍板 A 克制专业/一步到位/亮色为主,布局不动):tokens 三档字阶+语义色统一(--danger 唯一错误红,--accent-soft 染色层)+暗色三面阶梯+Icon.svelte 内联 SVG 图标集(16 枚,替换全部 Unicode/emoji)+项目首字徽标 hash 色身份+文件类型图标族(路由同源)+两级标签正交(项目条 40px 底条/文件条 28px 顶线)+交互态 100ms 过渡;对比度 WCAG AA 全数值实测(含 2 处返修:亮面徽标字母压暗/Up-to-date chip 分主题);e2e 断言与字形解耦(徽章去括号+指示器 data-state);**D14** | owner"整个页面设计得特别土…调用 frontend-design 和 impeccable";评审 19/40 后拍板 |
 | 2026-10-12 | 0.7.10–0.7.13 | T3 全量性能档跑通(A–I+Baseline 全过;idle 200MB 记账未达 150 目标,WebView2 基座占大头,非门);内容冻结大案修复:根因=ActiveViewer `$derived` 与 tabsState 失联跨项目蔓延 → 工作区按 rootPath keyed + projectTabs 返回 store 代理(**D12**);取证升级 0.7.11(data-rel 渲染标记/console 捕获/`__aiv.snapshot`);常开 CDP 9322 探查端口(**D13**);0.7.13 置顶图钉移行尾(层级对齐,owner 提案) | owner 报障"切页签内容不变"+活体直连指令;T3 预授权"开跑" |
