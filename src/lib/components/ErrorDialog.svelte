@@ -5,6 +5,7 @@
    * both close it.
    */
   import { errorDialog, closeErrorDialog } from "$lib/stores/errorDialogStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 
   const current = $derived(errorDialog.current);
 
@@ -33,7 +34,7 @@
       <p class="title">{current.title}</p>
       <p class="message">{current.message}</p>
       <div class="actions">
-        <button onclick={closeErrorDialog}>OK</button>
+        <button onclick={closeErrorDialog}>{t("common.ok")}</button>
       </div>
     </div>
   </div>

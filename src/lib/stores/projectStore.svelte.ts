@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { resolveProject } from "$lib/services/tauri";
 import { toast } from "$lib/stores/toastStore.svelte";
+import { tf, rt } from "$lib/i18n/t.svelte";
 import { forgetTree } from "$lib/stores/fileTreeStore.svelte";
 import { forgetTabs } from "$lib/stores/tabsStore.svelte";
 import { closeGitView, forgetGit } from "$lib/stores/gitStore.svelte";
@@ -98,7 +99,7 @@ export async function addProjectFromPath(rawPath: string) {
       // already-open project with NO project-active line — this path (and
       // the fresh add below) are the only store-active writers untraced.
       diagEvent(`project-active ${resolved.name} (re-open)`);
-      toast(`"${resolved.name}" is already open — switched to its tab.`);
+      toast(tf("toast.alreadyOpen", { name: resolved.name }));
       return;
     }
 
@@ -114,7 +115,7 @@ export async function addProjectFromPath(rawPath: string) {
     projectState.activeId = tab.id;
     diagEvent(`project-active ${tab.name} (add)`);
   } catch (err) {
-    toast(`Cannot open folder: ${err}`, { kind: "error" });
+    toast(tf("toast.cannotOpenFolder", { err: rt(err) }), { kind: "error" });
   }
 }
 
@@ -128,7 +129,7 @@ export async function addProjectViaPicker() {
       title: "Open Folder",
     });
   } catch (err) {
-    toast(`Cannot open folder picker: ${err}`, { kind: "error" });
+    toast(tf("toast.cannotOpenPicker", { err: rt(err) }), { kind: "error" });
     return;
   }
   if (typeof picked !== "string" || picked.length === 0) return;

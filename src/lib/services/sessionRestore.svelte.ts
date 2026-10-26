@@ -32,6 +32,7 @@ export async function restoreAppState(): Promise<void> {
     state.settings.fileTree.showSystemGeneratedFolders;
   settings.external.vsCodeNewWindow =
     state.settings.external?.vsCodeNewWindow ?? true;
+  settings.locale = state.settings.locale ?? "en";
 
   // Open Recent adopts the persisted list but never records the restore
   // itself (spec-010 D1): restart replay must not reorder the MRU.

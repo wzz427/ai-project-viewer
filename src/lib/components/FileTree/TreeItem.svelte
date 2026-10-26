@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { TreeEntry } from "$lib/services/tauri";
+  import { t } from "$lib/i18n/t.svelte";
+  
   import { visibleSorted } from "$lib/services/treeSort";
   import {
     contextMenuTarget,
@@ -189,7 +191,7 @@
     {#if error}
       <div class="hint error" style="padding-left: {22 + depth * 14}px">{error}</div>
     {:else if sortedChildren.length === 0 && !st.children[rel]}
-      <div class="hint" style="padding-left: {22 + depth * 14}px">Loading…</div>
+      <div class="hint" style="padding-left: {22 + depth * 14}px">{t("common.loading")}</div>
     {:else}
       {#each sortedChildren as child (child.name)}
         <Self rootPath={rootPath} parentRel={rel} entry={child} depth={depth + 1} />

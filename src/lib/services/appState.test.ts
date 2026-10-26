@@ -55,6 +55,7 @@ function sampleInput(): BuildInput {
       viewer: { fontSize: 15 },
       fileTree: { showSystemGeneratedFolders: true },
       external: { vsCodeNewWindow: true },
+      locale: "en",
     },
     recentFolders: [],
   };
@@ -183,6 +184,8 @@ describe("parseAppState", () => {
       fileTree: { showSystemGeneratedFolders: false },
       // Absent in older state files → §134 default (New Window).
       external: { vsCodeNewWindow: true },
+      // Absent in older state files → English (spec-016).
+      locale: "en",
     });
   });
 

@@ -3,6 +3,7 @@
     toastState,
     dismissToast,
   } from "$lib/stores/toastStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 </script>
 
 {#if toastState.current}
@@ -10,7 +11,7 @@
     <button
       class="toast {toastState.current.kind}"
       onclick={() => dismissToast(toastState.current!.id)}
-      title="Dismiss"
+      title={t("common.dismiss")}
     >
       {toastState.current.text}
     </button>

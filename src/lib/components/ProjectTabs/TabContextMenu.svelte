@@ -16,6 +16,7 @@
   } from "$lib/stores/tabsStore.svelte";
   import { fileHandoffGroups } from "$lib/services/handoffMenu";
   import { fileNameOf } from "$lib/services/viewerType";
+  import { t } from "$lib/i18n/t.svelte";
 
   let {
     rootPath,
@@ -105,7 +106,7 @@
             tab.markdownMode === "source" ? "rendered" : "source",
           ))}
     >
-      {tab.markdownMode === "source" ? "View Rendered" : "View Source"}
+      {tab.markdownMode === "source" ? t("menu.viewRendered") : t("menu.viewSource")}
     </button>
   {/if}
   {#if tab.viewerType === "json"}
@@ -119,14 +120,14 @@
             tab.jsonMode === "source" ? "formatted" : "source",
           ))}
     >
-      {tab.jsonMode === "source" ? "View Formatted" : "View Source"}
+      {tab.jsonMode === "source" ? t("menu.viewFormatted") : t("menu.viewSource")}
     </button>
   {/if}
   {#if tab.viewerType === "markdown" || tab.viewerType === "json"}
     <div class="sep"></div>
   {/if}
   <button class="menu-item" onclick={() => act(() => setTabPinned(rootPath, tab.relativePath, !tab.pinned))}>
-    {tab.pinned ? "Unpin Tab" : "Pin Tab"}
+    {tab.pinned ? t("menu.unpinTab") : t("menu.pinTab")}
   </button>
   {#each groups as group, gi}
     <div class="sep"></div>
@@ -143,28 +144,28 @@
   {/each}
   <div class="sep"></div>
   <button class="menu-item" onclick={() => act(() => closeFile(rootPath, tab.relativePath))}>
-    Close Tab
+    {t("menu.closeTab")}
   </button>
   <button
     class="menu-item"
     disabled={sideCounts.others === 0}
     onclick={() => act(() => closeSiblingTabs(rootPath, tab.relativePath, "others"))}
   >
-    Close Others
+    {t("menu.closeOthers")}
   </button>
   <button
     class="menu-item"
     disabled={sideCounts.left === 0}
     onclick={() => act(() => closeSiblingTabs(rootPath, tab.relativePath, "left"))}
   >
-    Close to the Left
+    {t("menu.closeLeft")}
   </button>
   <button
     class="menu-item"
     disabled={sideCounts.right === 0}
     onclick={() => act(() => closeSiblingTabs(rootPath, tab.relativePath, "right"))}
   >
-    Close to the Right
+    {t("menu.closeRight")}
   </button>
 </div>
 

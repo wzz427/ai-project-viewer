@@ -1,8 +1,11 @@
 import {
+  DEFAULT_LOCALE,
   DEFAULT_THEME,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
 } from "$lib/services/appState";
+import type { Locale } from "$lib/i18n/dict";
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * App themes (owner 2026-10-14, reference/AI_Project_Viewer_Theme_Pack):
@@ -22,6 +25,9 @@ export const settings = $state({
   theme: DEFAULT_THEME as Theme,
   /** Viewer/editor font size in px (§197 revision, D8 in spec-004). */
   fontSize: 13,
+  /** UI language (spec-016): "en" default; switching is instant because
+   * every label reads through t() which tracks this field. */
+  locale: DEFAULT_LOCALE as Locale,
   fileTree: {
     showSystemGeneratedFolders: false,
   },
@@ -60,6 +66,19 @@ export function setVsCodeNewWindow(value: boolean) {
   settings.external.vsCodeNewWindow = value;
 }
 
+/** The tray menu is built in Rust (English at boot); a language switch or
+ * a restored zh preference rebuilds it in place. Fire-and-forget: a failed
+ * rebuild keeps the English menu, never blocks the switch. */
+function syncTrayLanguage() {
+  void invoke("set_tray_language", { locale: settings.locale }).catch(() => {});
+}
+
+export function setLocale(locale: Locale) {
+  settings.locale = locale;
+  document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+  syncTrayLanguage();
+}
+
 /** Applies the persisted theme + font knob. Called from main.ts AFTER
  * restoreAppState and BEFORE mount — the theme lands before first paint,
  * so a glacier user never sees a paper flash (app.css :root carries the
@@ -67,4 +86,9 @@ export function setVsCodeNewWindow(value: boolean) {
 export function initTheme() {
   applyTheme();
   applyFontSize();
+  // Restored locale (spec-016): the tray menu was built English at boot;
+  // a zh user gets it rebuilt before first paint matters, plus the lang
+  // attribute for accessibility.
+  document.documentElement.lang = settings.locale === "zh" ? "zh-CN" : "en";
+  if (settings.locale !== "en") syncTrayLanguage();
 }

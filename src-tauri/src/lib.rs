@@ -211,11 +211,14 @@ pub fn run() {
             // System tray (owner 2026-10-09): single-click restores the
             // window; right-click menu carries Show + the only real Exit.
             // Exit goes through app.exit -> RunEvent::Exit -> the state
-            // flush already wired there.
+            // flush already wired there. Labels are English at boot; a
+            // language switch (or restored zh preference) rebuilds the
+            // menu in place via set_tray_language (spec-016).
             use tauri::menu::{Menu, MenuItem};
             use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-            let show = MenuItem::with_id(app, "tray-show", "Show AI Project Viewer", true, None::<&str>)?;
-            let exit = MenuItem::with_id(app, "tray-exit", "Exit", true, None::<&str>)?;
+            let (show_label, exit_label) = tray_labels("en");
+            let show = MenuItem::with_id(app, "tray-show", show_label, true, None::<&str>)?;
+            let exit = MenuItem::with_id(app, "tray-exit", exit_label, true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &exit])?;
             TrayIconBuilder::with_id("main-tray")
                 .tooltip("AI Project Viewer")
@@ -243,6 +246,7 @@ pub fn run() {
             startup_elapsed_ms,
             build_timestamp,
             channel,
+            set_tray_language,
             test_project_arg,
             test_mode_active,
             project::resolve_project,
@@ -286,6 +290,33 @@ pub fn run() {
         });
 }
 
+/// Tray menu labels per locale (spec-016). Single source for the boot
+/// build (English) and the in-place rebuild on a language switch.
+fn tray_labels(locale: &str) -> (&'static str, &'static str) {
+    if locale == "zh" {
+        ("显示 AI Project Viewer", "退出")
+    } else {
+        ("Show AI Project Viewer", "Exit")
+    }
+}
+
+/// Rebuild the tray menu in the requested language (spec-016). Item ids
+/// stay stable, so the existing menu-event handlers keep working.
+#[tauri::command]
+fn set_tray_language(app: tauri::AppHandle, locale: String) -> Result<(), String> {
+    use tauri::menu::{Menu, MenuItem};
+    let (show_label, exit_label) = tray_labels(&locale);
+    let show = MenuItem::with_id(&app, "tray-show", show_label, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let exit = MenuItem::with_id(&app, "tray-exit", exit_label, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(&app, &[&show, &exit]).map_err(|e| e.to_string())?;
+    let tray = app
+        .tray_by_id("main-tray")
+        .ok_or_else(|| "tray not found".to_string())?;
+    tray.set_menu(Some(menu)).map_err(|e| e.to_string())
+}
+
 /// Application shortcuts must take priority over WebView2 browser
 /// accelerators (V1.5 §147): disable them so Ctrl+F/Ctrl+R/etc. reach the
 /// DOM, where the frontend dispatcher claims them. Tauri 2 has no config
@@ -317,7 +348,7 @@ fn disable_browser_accelerators(_window: &tauri::WebviewWindow) {}
 
 #[cfg(test)]
 mod tests {
-    use super::merge_webview_args;
+    use super::{merge_webview_args, tray_labels};
 
     const PORT: &str = "--remote-debugging-port=9322";
     const DCOMP: &str = "--disable-direct-composition";
@@ -369,5 +400,13 @@ mod tests {
         let got = merge_webview_args(Some(e2e), true);
         assert_eq!(got, format!("{e2e} {DCOMP}"));
         assert!(!got.contains("9322"));
+    }
+
+    /// spec-016: the tray menu is the one Rust-owned UI surface — its
+    /// labels must follow the language switch (set_tray_language).
+    #[test]
+    fn tray_labels_follow_locale() {
+        assert_eq!(tray_labels("en"), ("Show AI Project Viewer", "Exit"));
+        assert_eq!(tray_labels("zh"), ("显示 AI Project Viewer", "退出"));
     }
 }

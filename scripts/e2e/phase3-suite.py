@@ -479,6 +479,42 @@ with sync_playwright() as p:
     time.sleep(0.3)
     page.click('button[title="Settings"]')
 
+    # --- spec-016: language switch (English default; live flip + persist) ---
+    # Locale-independent selectors from here on (.header-icon.settings keeps
+    # its class through the switch); steady state = English at the end.
+    page.click(".header-icon.settings")
+    time.sleep(0.3)
+    page.locator('input[name="language"][value="zh"]').check()
+    time.sleep(0.5)
+    header_zh = page.locator(".header-tab").first.inner_text()
+    check("language_header_flips_to_zh", "文件" in header_zh, header_zh)
+    page.click(".header-icon.settings")  # back to Files — the tree must be visible
+    time.sleep(0.4)
+    row = page.locator('.row[title="README.md"]')
+    row.click(button="right")
+    time.sleep(0.4)
+    labels_zh = page.locator(".menu .menu-item").all_inner_texts()
+    check("language_menu_flips_to_zh",
+          any("在记事本中编辑" in x for x in labels_zh)
+          and any("在资源管理器中显示" in x for x in labels_zh),
+          str(labels_zh))
+    # close via the app's own path (0.8.10 lesson: never click fixed coords)
+    page.evaluate("document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}))")
+    time.sleep(0.2)
+    # persistence: the debounced state file must carry locale zh
+    time.sleep(1.5)
+    with open(STATE, encoding="utf-8") as f:
+        locale_saved = json.load(f).get("settings", {}).get("locale")
+    check("language_persists_to_state_zh", locale_saved == "zh", str(locale_saved))
+    # switch back to English (product default steady state)
+    page.click(".header-icon.settings")
+    time.sleep(0.3)
+    page.locator('input[name="language"][value="en"]').check()
+    time.sleep(0.5)
+    header_en = page.locator(".header-tab").first.inner_text()
+    check("language_switch_back_to_en", "Files" in header_en, header_en)
+    page.click(".header-icon.settings")
+
     # --- #2: active tab has accent styling ---
     open_file("README.md")
     styled = page.evaluate("""() => {

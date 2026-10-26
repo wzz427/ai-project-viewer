@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright
 
 import aivlaunch
 
-EXE = os.path.expandvars(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\debug\ai-project-viewer.exe")
+EXE = os.path.expandvars(r"C:\Users\wzzpk\Desktop\PyProjects\VibeCoding\ProjectViewer\src-tauri\target\release\ai-project-viewer.exe")
 PROJECT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "AIV-TestProject")  # in-repo fixture (owner 2026-10-24)
 STATE = os.path.expandvars(r"%TEMP%\aiv-r3-state.json")
 CDP = 9231

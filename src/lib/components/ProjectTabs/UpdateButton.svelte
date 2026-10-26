@@ -11,6 +11,7 @@
   import { applyUpdate, checkUpdate, relaunch } from "$lib/services/tauri";
   import { toast } from "$lib/stores/toastStore.svelte";
   import Icon from "$lib/components/Icon.svelte";
+  import { t, tf, rt } from "$lib/i18n/t.svelte";
 
   // Scripted runs pick "Later" automatically: the native dialog is a
   // TaskDialog (no clickable child HWNDs, lessons L7 addendum) and would
@@ -47,22 +48,22 @@
         const restart = testMode
           ? false
           : await ask(
-              "Update installed. Restart AI Project Viewer now?",
-              { title: "Update Ready", kind: "info", okLabel: "Restart Now", cancelLabel: "Later" },
+              t("update.readyAsk"),
+              { title: t("update.readyTitle"), kind: "info", okLabel: t("update.restartNow"), cancelLabel: t("update.later") },
             );
         if (restart) {
           await relaunch();
         } else {
-          toast("✓ Update installed — it takes effect on next launch");
+          toast(t("update.installedToast"));
           status = "idle";
         }
       } catch (err) {
-        toast(`Update failed: ${err}`, { kind: "error" });
+        toast(tf("update.failedToast", { err: rt(err) }), { kind: "error" });
         status = "available";
       }
     } else {
       await refresh();
-      if (status === "idle") toast("You are on the latest version");
+      if (status === "idle") toast(t("update.latestToast"));
     }
   }
 </script>
@@ -73,11 +74,11 @@
   class:busy={status === "busy"}
   onclick={onClick}
   title={status === "available" && note
-    ? `Version ${__APP_VERSION__} — update available: ${note}`
-    : `Version ${__APP_VERSION__} — you are on the latest build`}
-  aria-label="Update"
+    ? tf("update.titleAvail", { v: __APP_VERSION__, note })
+    : tf("update.titleCurrent", { v: __APP_VERSION__ })}
+  aria-label={t("update.label")}
 >
-  {#if status === "available"}<span class="btn-inner"><Icon name="arrow-up" size={12} />Update</span>{:else if status === "busy"}Updating…{:else}Up to date{/if}
+  {#if status === "available"}<span class="btn-inner"><Icon name="arrow-up" size={12} />{t("update.label")}</span>{:else if status === "busy"}{t("update.updating")}{:else}{t("update.upToDate")}{/if}
 </button>
 
 <style>

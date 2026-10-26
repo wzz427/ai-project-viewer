@@ -8,6 +8,7 @@
   } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
   import { projectHandoffGroups } from "$lib/services/handoffMenu";
+  import { t, tf } from "$lib/i18n/t.svelte";
 
   let {
     project,
@@ -52,12 +53,12 @@
     onclose();
     // Removing only detaches it from the viewer — never touches disk (V1.5 §15).
     const yes = await ask(
-      `Remove "${tab.name}" from AI Project Viewer?\n\nThe folder on disk is not modified or deleted.`,
-      { title: "Remove Project", kind: "warning" },
+      tf("props.removeBody", { name: tab.name }),
+      { title: t("props.removeTitle"), kind: "warning" },
     );
     if (yes) {
       removeProject(tab.id);
-      toast(`Removed "${tab.name}" (folder untouched on disk).`);
+      toast(tf("props.removedToast", { name: tab.name }));
     }
   }
   import { clampMenu } from "$lib/components/ContextMenu/menuPosition";
@@ -95,7 +96,7 @@
         void onRefreshProject?.(project.rootPath);
         onclose();
       }}
-    >Refresh Project</button>
+    >{t("menu.refreshProject")}</button>
   {/if}
   <button
     class="menu-item"
@@ -107,14 +108,14 @@
       setProjectTrusted(project.rootPath, !wasTrusted);
       toast(
         wasTrusted
-          ? `“${project.name}” is no longer trusted for execution.`
-          : `“${project.name}” is now trusted for execution.`,
+          ? tf("trust.noLongerToast", { name: project.name })
+          : tf("trust.nowToast", { name: project.name }),
       );
       onclose();
     }}
-  >{trusted ? "Untrust Project" : "Trust Project for Execution"}</button>
+  >{trusted ? t("menu.untrustProject") : t("menu.trustProject")}</button>
   <div class="sep"></div>
-  <button class="menu-item" onclick={confirmRemove}>Remove Project</button>
+  <button class="menu-item" onclick={confirmRemove}>{t("menu.removeProject")}</button>
 </div>
 
 <style>

@@ -2,11 +2,14 @@
   import {
     settings,
     setFontSize,
+    setLocale,
     setShowSystemFolders,
     setTheme,
     setVsCodeNewWindow,
     type Theme,
   } from "$lib/stores/settingsStore.svelte";
+  import { t, tf, rt, type I18nKey } from "$lib/i18n/t.svelte";
+  import type { Locale } from "$lib/i18n/dict";
   import { diagnostics } from "$lib/stores/diagnosticsStore.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { activeProject, projectState } from "$lib/stores/projectStore.svelte";
@@ -18,13 +21,18 @@
     treeState,
   } from "$lib/stores/fileTreeStore.svelte";
 
-  // Theme pack (owner 2026-10-14): exactly two light skins — UI copy stays
-  // English per the language discipline; owner-facing names 冰川蓝/暖纸书卷.
-  // Default-first ordering: paper is the default (owner's 2026-10-14 order,
-  // overriding the pack JSON's glacier default).
-  const themes: { value: Theme; label: string }[] = [
-    { value: "paper", label: "Warm Paper" },
-    { value: "glacier", label: "Glacier Blue" },
+  // Theme pack (owner 2026-10-14): exactly two light skins. zh labels are
+  // the owner's own names for them (暖纸书卷/冰川蓝); default-first
+  // ordering: paper is the default (owner's 2026-10-14 order, overriding
+  // the pack JSON's glacier default).
+  const themes: { value: Theme; key: I18nKey }[] = [
+    { value: "paper", key: "settings.themePaper" },
+    { value: "glacier", key: "settings.themeGlacier" },
+  ];
+  // Language options (spec-016): names render in their OWN language.
+  const languages: { value: Locale; key: I18nKey }[] = [
+    { value: "en", key: "settings.langEn" },
+    { value: "zh", key: "settings.langZh" },
   ];
 
   const project = $derived(activeProject());
@@ -114,9 +122,9 @@
         text: lines.join("\r\n"),
       });
       diagEvent("diagnostics exported");
-      toast(`Diagnostics exported: ${path}`);
+      toast(tf("toast.diagExported", { path }));
     } catch (err) {
-      toast(`Export failed: ${err}`, { kind: "error" });
+      toast(tf("toast.diagExportFailed", { err: rt(err) }), { kind: "error" });
     }
     exporting = false;
   }
@@ -125,7 +133,7 @@
 <div class="settings-panel">
   {#if project && tree}
     <section>
-      <h3>File Tree</h3>
+      <h3>{t("settings.fileTree")}</h3>
       <label class="row">
         <input
           type="checkbox"
@@ -133,40 +141,40 @@
           onchange={(e) =>
             setFoldersFirst(project.rootPath, e.currentTarget.checked)}
         />
-        Folders First
+        {t("settings.foldersFirst")}
       </label>
-      <p class="muted hint">Refresh lives in the sidebar header (circular-arrow icon, left of the gear).</p>
+      <p class="muted hint">{t("settings.refreshHint")}</p>
     </section>
   {/if}
 
   <section>
-    <h3>Visibility</h3>
+    <h3>{t("settings.visibility")}</h3>
     <label class="row">
       <input
         type="checkbox"
         checked={settings.fileTree.showSystemGeneratedFolders}
         onchange={(e) => setShowSystemFolders(e.currentTarget.checked)}
       />
-      Show system/generated folders
+      {t("settings.showSystemFolders")}
     </label>
-    <p class="muted hint">Applies to every project (V1.5 §22 AppSettings).</p>
+    <p class="muted hint">{t("settings.appliesHint")}</p>
   </section>
 
   <section>
-    <h3>Viewer</h3>
+    <h3>{t("settings.viewer")}</h3>
     <div class="row">
-      <span>Font size</span>
+      <span>{t("settings.fontSize")}</span>
       <span class="spacer"></span>
-      <button class="step" aria-label="Smaller font" onclick={() => setFontSize(settings.fontSize - 1)}>−</button>
+      <button class="step" aria-label={t("settings.smallerFont")} onclick={() => setFontSize(settings.fontSize - 1)}>−</button>
       <span class="mono size">{settings.fontSize} px</span>
-      <button class="step" aria-label="Larger font" onclick={() => setFontSize(settings.fontSize + 1)}>+</button>
+      <button class="step" aria-label={t("settings.largerFont")} onclick={() => setFontSize(settings.fontSize + 1)}>+</button>
     </div>
   </section>
 
   <section>
-    <h3>External Editors</h3>
+    <h3>{t("settings.externalEditors")}</h3>
     <div class="row">
-      <span>Open in VS Code</span>
+      <span>{t("settings.openInVscode")}</span>
       <span class="spacer"></span>
       <label class="row inline">
         <input
@@ -175,7 +183,7 @@
           checked={settings.external.vsCodeNewWindow}
           onchange={() => setVsCodeNewWindow(true)}
         />
-        New Window
+        {t("settings.newWindow")}
       </label>
       <label class="row inline">
         <input
@@ -184,40 +192,54 @@
           checked={!settings.external.vsCodeNewWindow}
           onchange={() => setVsCodeNewWindow(false)}
         />
-        Reuse Existing Window
+        {t("settings.reuseWindow")}
       </label>
     </div>
   </section>
 
   <section>
-    <h3>Theme</h3>
-    {#each themes as t (t.value)}
+    <h3>{t("settings.theme")}</h3>
+    {#each themes as th (th.value)}
       <label class="row">
         <input
           type="radio"
           name="theme"
-          value={t.value}
-          checked={settings.theme === t.value}
-          onchange={() => setTheme(t.value)}
+          value={th.value}
+          checked={settings.theme === th.value}
+          onchange={() => setTheme(th.value)}
         />
-        {t.label}
+        {t(th.key)}
       </label>
     {/each}
   </section>
 
   <section>
-    <h3>Diagnostics</h3>
+    <h3>{t("settings.language")}</h3>
+    {#each languages as lang (lang.value)}
+      <label class="row">
+        <input
+          type="radio"
+          name="language"
+          value={lang.value}
+          checked={settings.locale === lang.value}
+          onchange={() => setLocale(lang.value)}
+        />
+        {t(lang.key)}
+      </label>
+    {/each}
+  </section>
+
+  <section>
+    <h3>{t("settings.diagnostics")}</h3>
     <!-- Owner 2026-10-11: "留一个 Export 的按钮不就完了吗" — the Channel/
          Build/Startup/Shortcut readouts are gone from the panel; the
          numbers still land in the exported report where they matter. -->
     <div class="row">
       <button class="export-diag" onclick={() => void exportDiagnostics()} disabled={exporting}>
-        {exporting ? "Exporting…" : "Export Diagnostics"}
+        {exporting ? t("settings.exporting") : t("settings.exportDiag")}
       </button>
     </div>
   </section>
-
-  <p class="muted note">Git settings arrive with their feature (Phase 7).</p>
 </div>
 
 <style>
@@ -277,8 +299,4 @@
     margin: 2px 0 0;
   }
 
-  .note {
-    margin: 0;
-    font-size: var(--text-sm);
-  }
 </style>

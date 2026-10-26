@@ -9,6 +9,7 @@
   import { closeFile, type RuntimeTab } from "$lib/stores/tabsStore.svelte";
   import { openWithDefaultApp, revealInExplorer } from "$lib/services/tauri";
   import { toast } from "$lib/stores/toastStore.svelte";
+  import { t, tf, rt } from "$lib/i18n/t.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -22,11 +23,11 @@
     if (launching) return;
     launching = true;
     const name = tab.relativePath.split("/").pop() ?? tab.relativePath;
-    toast(`Opening ${name}…`);
+    toast(tf("toast.opening", { name }));
     try {
       await openWithDefaultApp(rootPath, tab.relativePath);
     } catch (err) {
-      toast(`Cannot open file: ${err}`, { kind: "error" });
+      toast(tf("toast.cannotOpenFile", { err: rt(err) }), { kind: "error" });
     } finally {
       launching = false;
     }
@@ -36,7 +37,7 @@
     try {
       await revealInExplorer(rootPath, tab.relativePath);
     } catch (err) {
-      toast(`Explorer failed: ${err}`, { kind: "error" });
+      toast(tf("toast.explorerFailed", { err: rt(err) }), { kind: "error" });
     }
   }
 </script>
@@ -45,44 +46,44 @@
   {#if tab.deleted}
     <div class="card">
       <p class="name">{tab.relativePath}</p>
-      <p>This file has been deleted.</p>
+      <p>{t("viewer.deleted")}</p>
       <button onclick={() => closeFile(rootPath, tab.relativePath)}>
-        Close Tab
+        {t("menu.closeTab")}
       </button>
     </div>
   {:else if tab.unsupportedReason === "binary"}
     <div class="card">
       <p class="name">{tab.relativePath}</p>
-      <p>Binary file — not shown as text.</p>
+      <p>{t("viewer.binaryNote")}</p>
       <p class="muted">{sizeMb} MB</p>
       <div class="actions">
         <button class="primary" onclick={launchDefault} disabled={launching}>
-          {launching ? "Opening…" : "Open with Default App"}
+          {launching ? t("viewer.openingBtn") : t("viewer.openDefaultAppBtn")}
         </button>
-        <button onclick={reveal}>Show in File Explorer</button>
+        <button onclick={reveal}>{t("viewer.showExplorerBtn")}</button>
       </div>
     </div>
   {:else if tab.unsupportedReason === "huge"}
     <div class="card">
       <p class="name">{tab.relativePath}</p>
-      <p>File is larger than 20 MB and will not be opened in the viewer.</p>
+      <p>{t("viewer.tooLarge")}</p>
       <p class="muted">{sizeMb} MB</p>
       <div class="actions">
         <button class="primary" onclick={launchDefault} disabled={launching}>
-          {launching ? "Opening…" : "Open with Default App"}
+          {launching ? t("viewer.openingBtn") : t("viewer.openDefaultAppBtn")}
         </button>
-        <button onclick={reveal}>Show in File Explorer</button>
+        <button onclick={reveal}>{t("viewer.showExplorerBtn")}</button>
       </div>
     </div>
   {:else}
     <div class="card">
       <p class="name">{tab.relativePath}</p>
-      <p>Cannot display this file.</p>
+      <p>{t("viewer.cannotDisplay")}</p>
       <div class="actions">
         <button class="primary" onclick={launchDefault} disabled={launching}>
-          {launching ? "Opening…" : "Open with Default App"}
+          {launching ? t("viewer.openingBtn") : t("viewer.openDefaultAppBtn")}
         </button>
-        <button onclick={reveal}>Show in File Explorer</button>
+        <button onclick={reveal}>{t("viewer.showExplorerBtn")}</button>
       </div>
     </div>
   {/if}

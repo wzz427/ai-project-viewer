@@ -24,6 +24,7 @@ import {
   type ViewerType,
 } from "$lib/services/viewerType";
 import { toast } from "$lib/stores/toastStore.svelte";
+import { t, tf, rt } from "$lib/i18n/t.svelte";
 import { diagError, diagEvent } from "$lib/stores/diagnosticsStore.svelte";
 import { renamedRel } from "$lib/services/watcherApply";
 import { revealInTree } from "$lib/stores/fileTreeStore.svelte";
@@ -378,7 +379,7 @@ export async function openFile(rootPath: string, rel: string) {
   try {
     info = await inspectFile(rootPath, rel);
   } catch (err) {
-    toast(`Cannot open file: ${err}`, { kind: "error" });
+    toast(tf("toast.cannotOpenFile", { err: rt(err) }), { kind: "error" });
     return;
   }
 
@@ -397,7 +398,7 @@ export async function openFile(rootPath: string, rel: string) {
         sizeBytes: info.sizeBytes,
       });
     } catch (err) {
-      toast(`Cannot open PDF: ${err}`, { kind: "error" });
+      toast(tf("toast.cannotOpenPdf", { err: rt(err) }), { kind: "error" });
     }
     return;
   }
@@ -452,7 +453,7 @@ export async function openFile(rootPath: string, rel: string) {
         sizeBytes: info.sizeBytes,
       });
     } catch (err) {
-      toast(`Cannot open image: ${err}`, { kind: "error" });
+      toast(tf("toast.cannotOpenImage", { err: rt(err) }), { kind: "error" });
     }
     return;
   }
@@ -469,8 +470,8 @@ export async function openFile(rootPath: string, rel: string) {
 
   if (info.sizeClass === "large") {
     const yes = await ask(
-      `${fileNameOf(rel)} is ${(info.sizeBytes / 1048576).toFixed(1)} MB.\n\nOpening this file may affect performance.`,
-      { title: "Large File", kind: "warning", okLabel: "Open Anyway", cancelLabel: "Cancel" },
+      tf("viewer.hugeBody", { name: fileNameOf(rel), size: (info.sizeBytes / 1048576).toFixed(1) }),
+      { title: t("viewer.hugeTitle"), kind: "warning", okLabel: t("viewer.openAnyway"), cancelLabel: t("common.cancel") },
     );
     if (!yes) return;
   }
@@ -492,7 +493,7 @@ export async function openFile(rootPath: string, rel: string) {
       scrollPosition: 0,
     });
   } catch (err) {
-    toast(`Cannot open file: ${err}`, { kind: "error" });
+    toast(tf("toast.cannotOpenFile", { err: rt(err) }), { kind: "error" });
   }
 }
 
@@ -501,7 +502,7 @@ export async function refreshActiveFile(rootPath: string) {
   const rel = projectTabs(rootPath).activeFileRelativePath;
   if (!rel) return;
   if (await reloadFile(rootPath, rel)) {
-    toast(`✓ ${fileNameOf(rel)} updated`);
+    toast(tf("toast.fileUpdated", { name: fileNameOf(rel) }));
   }
 }
 

@@ -2,6 +2,7 @@
   import { activeProject } from "$lib/stores/projectStore.svelte";
   import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
   import FileTree from "$lib/components/FileTree/FileTree.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import {
     dragState,
     movePinnedToTop,
@@ -68,7 +69,7 @@
     <FileTree rootPath={project.rootPath} />
   </div>
 {:else}
-  <p class="muted note">No project open.</p>
+  <p class="muted note">{t("common.noProject")}</p>
 {/if}
 
 {#if menu && project}

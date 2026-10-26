@@ -6,6 +6,7 @@
    * ride the inspect stat call, so there is no content buffer to release.
    */
   import type { RuntimeTab } from "$lib/stores/tabsStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -25,18 +26,17 @@
 <div class="exe-info">
   <div class="card">
     <p class="exe-name">{name}</p>
-    <p class="kind">Windows Executable</p>
+    <p class="kind">{t("viewer.execKind")}</p>
     <dl>
       {#if sizeText !== null}
-        <div class="row"><dt>Size:</dt><dd>{sizeText}</dd></div>
+        <div class="row"><dt>{t("viewer.sizeLabel")}</dt><dd>{sizeText}</dd></div>
       {/if}
       {#if modifiedText !== null}
-        <div class="row"><dt>Modified:</dt><dd>{modifiedText}</dd></div>
+        <div class="row"><dt>{t("viewer.modifiedLabel")}</dt><dd>{modifiedText}</dd></div>
       {/if}
-      <div class="row path"><dt>Path:</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
+      <div class="row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
     </dl>
-    <p class="muted">This file cannot be previewed.
-      Use Run (right-click) to execute it.</p>
+    <p class="muted">{t("viewer.cannotPreviewPlain")} {t("viewer.runHint")}</p>
   </div>
 </div>
 

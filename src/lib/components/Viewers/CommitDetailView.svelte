@@ -7,6 +7,7 @@
   import { fileNameOf } from "$lib/services/viewerType";
   import { letterClass } from "$lib/services/gitFormat";
   import Icon from "$lib/components/Icon.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 
   const view = $derived(
     gitViewSlot.current?.kind === "commit" ? gitViewSlot.current : null,
@@ -52,25 +53,25 @@
     <span class="title"><span class="glyph"><Icon name="dot" size={12} /></span> Commit</span>
     <span class="hash mono">{detail?.hash.slice(0, 7) ?? ""}</span>
     <span class="spacer"></span>
-    <button class="close" onclick={closeGitView} title="Close" aria-label="Close"><Icon name="x" size={14} /></button>
+    <button class="close" onclick={closeGitView} title={t("common.close")} aria-label={t("common.close")}><Icon name="x" size={14} /></button>
   </div>
   <div class="c-body">
     {#if error}
       <p class="muted pad">{error}</p>
     {:else if !detail}
-      <p class="muted pad">Loading…</p>
+      <p class="muted pad">{t("common.loading")}</p>
     {:else}
       <div class="card">
-        <pre class="message">{detail.message.trim() || "(no message)"}</pre>
+        <pre class="message">{detail.message.trim() || t("viewer.noMessage")}</pre>
         <dl class="meta">
-          <div><dt>Author</dt><dd>{detail.author}</dd></div>
-          <div><dt>Date</dt><dd>{detail.date}</dd></div>
-          <div><dt>Hash</dt><dd class="mono">{detail.hash}</dd></div>
+          <div><dt>{t("viewer.author")}</dt><dd>{detail.author}</dd></div>
+          <div><dt>{t("viewer.date")}</dt><dd>{detail.date}</dd></div>
+          <div><dt>{t("viewer.hash")}</dt><dd class="mono">{detail.hash}</dd></div>
         </dl>
       </div>
-      <h3 class="files-title">FILES CHANGED <span class="count">{detail.files.length}</span></h3>
+      <h3 class="files-title">{t("viewer.filesChanged")} <span class="count">{detail.files.length}</span></h3>
       {#if detail.files.length === 0}
-        <p class="muted pad">No files in this project's scope.</p>
+        <p class="muted pad">{t("viewer.noScopedFiles")}</p>
       {/if}
       {#each detail.files as f (f.rel)}
         <button class="entry" title={f.origRel ? `${f.origRel} → ${f.rel}` : f.rel} onclick={() => clickFile(f.rel)}>

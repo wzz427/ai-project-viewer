@@ -12,6 +12,7 @@
     revealInExplorer,
   } from "$lib/services/tauri";
   import { toast } from "$lib/stores/toastStore.svelte";
+  import { t, tf, rt } from "$lib/i18n/t.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -32,11 +33,11 @@
   async function play() {
     if (launching) return;
     launching = true;
-    toast(`Opening ${name}…`);
+    toast(tf("toast.opening", { name }));
     try {
       await openWithDefaultApp(rootPath, tab.relativePath);
     } catch (err) {
-      toast(`Cannot open media: ${err}`, { kind: "error" });
+      toast(tf("toast.cannotOpenMedia", { err: rt(err) }), { kind: "error" });
     } finally {
       launching = false;
     }
@@ -46,7 +47,7 @@
     try {
       await revealInExplorer(rootPath, tab.relativePath);
     } catch (err) {
-      toast(`Explorer failed: ${err}`, { kind: "error" });
+      toast(tf("toast.explorerFailed", { err: rt(err) }), { kind: "error" });
     }
   }
 </script>
@@ -54,22 +55,22 @@
 <div class="media-info">
   <div class="card">
     <p class="media-name">{name}</p>
-    <p class="kind">Media file (video/audio)</p>
+    <p class="kind">{t("viewer.mediaKind")}</p>
     <dl>
       {#if sizeText !== null}
-        <div class="row"><dt>Size:</dt><dd>{sizeText}</dd></div>
+        <div class="row"><dt>{t("viewer.sizeLabel")}</dt><dd>{sizeText}</dd></div>
       {/if}
       {#if modifiedText !== null}
-        <div class="row"><dt>Modified:</dt><dd>{modifiedText}</dd></div>
+        <div class="row"><dt>{t("viewer.modifiedLabel")}</dt><dd>{modifiedText}</dd></div>
       {/if}
-      <div class="row path"><dt>Path:</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
+      <div class="row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
     </dl>
-    <p class="muted">This file cannot be previewed in the app.</p>
+    <p class="muted">{t("viewer.cannotPreview")}</p>
     <div class="actions">
       <button class="primary" onclick={play} disabled={launching}>
-        {launching ? "Opening…" : "Open in Default Player"}
+        {launching ? t("viewer.openingBtn") : t("viewer.openInPlayer")}
       </button>
-      <button onclick={reveal}>Show in File Explorer</button>
+      <button onclick={reveal}>{t("viewer.showExplorerBtn")}</button>
     </div>
   </div>
 </div>

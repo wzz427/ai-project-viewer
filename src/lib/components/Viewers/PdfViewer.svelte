@@ -21,6 +21,7 @@
     releaseEngineIfIdle,
   } from "$lib/services/pdfEngine";
   import { registerFindFocus, unregisterFindFocus } from "./activeFind";
+  import { t, tf } from "$lib/i18n/t.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -796,7 +797,7 @@
 
 <div class="pdf-viewer">
   <div class="toolbar">
-    <button class="tb" onclick={() => go(-1)} disabled={currentPage <= 1} aria-label="Previous page">‹</button>
+    <button class="tb" onclick={() => go(-1)} disabled={currentPage <= 1} aria-label={t("viewer.prevPage")}>‹</button>
     <input
       class="page-no"
       type="number"
@@ -804,23 +805,23 @@
       max={totalPages}
       value={currentPage}
       onchange={jumpTo}
-      aria-label="Page number"
+      aria-label={t("viewer.pageAria")}
     />
     <span class="tb-label">/ {totalPages}</span>
-    <button class="tb" onclick={() => go(1)} disabled={currentPage >= totalPages} aria-label="Next page">›</button>
+    <button class="tb" onclick={() => go(1)} disabled={currentPage >= totalPages} aria-label={t("viewer.nextPage")}>›</button>
 
     <span class="sep"></span>
-    <button class="tb" onclick={() => zoomBy(1 / 1.2)} aria-label="Zoom out">−</button>
+    <button class="tb" onclick={() => zoomBy(1 / 1.2)} aria-label={t("viewer.zoomOut")}>−</button>
     <span class="tb-label mono">{zoomPercent}</span>
-    <button class="tb" onclick={() => zoomBy(1.2)} aria-label="Zoom in">+</button>
-    <button class="tb" class:on={zoomMode === "fit-width"} onclick={() => setZoomMode("fit-width")}>Fit Width</button>
-    <button class="tb" class:on={zoomMode === "fit-page"} onclick={() => setZoomMode("fit-page")}>Fit Page</button>
+    <button class="tb" onclick={() => zoomBy(1.2)} aria-label={t("viewer.zoomIn")}>+</button>
+    <button class="tb" class:on={zoomMode === "fit-width"} onclick={() => setZoomMode("fit-width")}>{t("viewer.fitWidth")}</button>
+    <button class="tb" class:on={zoomMode === "fit-page"} onclick={() => setZoomMode("fit-page")}>{t("viewer.fitPage")}</button>
 
     <span class="grow"></span>
     <input
       class="search"
       type="search"
-      placeholder="Find in document…"
+      placeholder={t("viewer.findPlaceholder")}
       bind:this={searchInput}
       bind:value={query}
       oninput={(e) => {
@@ -837,14 +838,14 @@
           searchInput?.blur();
         }
       }}
-      aria-label="Search document"
+      aria-label={t("viewer.searchDoc")}
     />
     {#if searching}
       <span class="tb-label">…</span>
     {:else if matchCount > 0}
       <span class="tb-label">{matchIdx + 1} / {matchCount}</span>
-      <button class="tb" onclick={() => nextMatch(-1)} aria-label="Previous match">‹</button>
-      <button class="tb" onclick={() => nextMatch(1)} aria-label="Next match">›</button>
+      <button class="tb" onclick={() => nextMatch(-1)} aria-label={t("viewer.prevMatch")}>‹</button>
+      <button class="tb" onclick={() => nextMatch(1)} aria-label={t("viewer.nextMatch")}>›</button>
     {:else if query.trim() && !searching}
       <span class="tb-label">0 results</span>
     {/if}
@@ -857,11 +858,11 @@
     onwheel={onWheel}
   >
     {#if loadError}
-      <div class="message error">Cannot render PDF: {loadError}</div>
+      <div class="message error">{tf("viewer.cannotRender", { err: loadError })}</div>
     {:else if totalPages === 0}
       <!-- totalPages ($state) is the branch driver: `doc` is a plain
            variable now, so it alone could never flip this branch. -->
-      <div class="message">Loading…</div>
+      <div class="message">{t("common.loading")}</div>
     {:else}
       <div class="pages" style:width={`${pxW}px`}>
         {#each Array(totalPages) as _, i (i)}

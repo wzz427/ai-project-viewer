@@ -5,6 +5,7 @@
    */
   import { json } from "@codemirror/lang-json";
   import CodeViewer from "./CodeViewer.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import { cachedContent, type RuntimeTab } from "$lib/stores/tabsStore.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
@@ -38,7 +39,7 @@
     {/if}
   </div>
   {#if !formatted.ok}
-    <div class="note">Invalid JSON — showing source.</div>
+    <div class="note">{t("viewer.invalidJson")}</div>
   {/if}
 </div>
 

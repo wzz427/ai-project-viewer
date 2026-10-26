@@ -127,6 +127,7 @@ ProjectViewer/(仓库根)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案;0.7.3 §198-b:最近列表非空时 Open Folder 下方渲染只读 Recent 列表,点击即开,失效置灰)
 │       ├── components/Toast/(单槽 toast)
 │       ├── stores/projectStore.svelte.ts(项目列表+去重+增删+每项目 sidebarMode/Width;会话字段,持久化走 appState;addProjectFromPath 成功两分支(新加/切换)记 Open Recent,spec-010 D1:会话恢复不记)
+│       ├── i18n/(**spec-016 语言切换**:dict.ts=en/zh 双字典~210 键+translate/relativeTimeDict 纯函数;t.svelte.ts=t/tf/rt/relTime 响应层(读 settings.locale);rustErrors.ts=后端报错 30 条前缀映射+源锚点防漂移)
 │       ├── stores/settingsStore.svelte.ts(AppSettings:theme/fontSize/全局 showSystemFolders;Phase 4 起持久化)
 │       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据;0.6.12 增 600 条运行日志环——全局 error/rejection+boot/tab/viewer/project/git-view 事件,Settings Export Diagnostics 经 Rust write_diagnostics 落盘 app_config_dir/diagnostics;0.6.13 §164 增量:面板只留导出按钮,读数进报告)
 │       ├── stores/toastStore.svelte.ts
@@ -192,6 +193,7 @@ ProjectViewer/(仓库根)
 
 | 日期 | 版本 | 变更 | 触发 |
 |---|---|---|---|
+| 2026-10-26 | 0.8.14 | **界面语言切换落地(spec-016,V1.5 §199)**:Settings 加 Language(English 默认/简体中文),切换即时生效+持久化(locale 入 appState.settings,旧文件自愈 en);字典纯模块+响应薄层(D1/D2)、后端报错展示期映射+源锚点守卫(D3)、托盘菜单 set_tray_language 原地重建(D4)、--font-ui 补微软雅黑(D5);全档 check 0/0+vitest 106/106(+6)+cargo 132/132(+1)+phase3 PASS(+4 语言守卫)+git 33/33(**顺手修两枚测试基建雷**:git-suite 实例 C 用的夹具 10-24 迁入仓库后被父仓罩住失了"非 Git"身份→改 %TEMP% 现造;acceptance-r3 仍指 debug exe→切 release,0.8.9 pdf-suite 同款)+recent 21/21+pdf 27/27+r3 8/8;安装包重打(两语言一包) | owner 2026-10-26 指令"做一个中文版",对齐六默认后拍板"按方案开工" |
 | 2026-10-26 | 0.8.13 | **正式安装版落地**:webviewInstallMode=**offlineInstaller**(离线大包 ~210MB,setup.exe 单文件拷走即装);CDP 端口门禁按渠道标识收口(D13 债清偿——`.exp`/debug 保留 9322,默认标识+release 永不设;merge_webview_args 纯函数+6 单测+正式版启动实证零监听);V1.5 §197 审计行 | owner 2026-10-26 拍板"离线大包"(webviewInstallMode 三选一,spec-011 收尾遗留) |
 | 2026-10-12 | 0.7.14 | **异地备份建线**(挂账清偿):remote `backup`=GitHub SSH(github_wzz 账号级钥匙),首推 main+核 0;备份规则八条落 §0(节奏/核账/force 语义/装不下红线/恢复/演练/第二平台预留/私有可见性=owner 确认项) | owner 指令(原计划 V1 后自建,提前委托) |
 | 2026-10-12 | 0.7.14 | 视觉改版落地(spec-014,owner 拍板 A 克制专业/一步到位/亮色为主,布局不动):tokens 三档字阶+语义色统一(--danger 唯一错误红,--accent-soft 染色层)+暗色三面阶梯+Icon.svelte 内联 SVG 图标集(16 枚,替换全部 Unicode/emoji)+项目首字徽标 hash 色身份+文件类型图标族(路由同源)+两级标签正交(项目条 40px 底条/文件条 28px 顶线)+交互态 100ms 过渡;对比度 WCAG AA 全数值实测(含 2 处返修:亮面徽标字母压暗/Up-to-date chip 分主题);e2e 断言与字形解耦(徽章去括号+指示器 data-state);**D14** | owner"整个页面设计得特别土…调用 frontend-design 和 impeccable";评审 19/40 后拍板 |

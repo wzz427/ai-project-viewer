@@ -11,6 +11,7 @@
   import { recentState } from "$lib/stores/recentStore.svelte";
   import { avatarColorOf, avatarInitialOf } from "$lib/services/avatarColor";
   import Icon from "$lib/components/Icon.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import ProjectContextMenu from "$lib/components/ContextMenu/ProjectContextMenu.svelte";
   import UpdateButton from "$lib/components/ProjectTabs/UpdateButton.svelte";
   import AddProjectMenu from "$lib/components/ProjectTabs/AddProjectMenu.svelte";
@@ -159,8 +160,8 @@
   <button
     class="add"
     onclick={onAddClick}
-    title="Add project"
-    aria-label="Add project"
+    title={t("addMenu.addProject")}
+    aria-label={t("addMenu.addProject")}
     aria-haspopup="menu"
   >
     <Icon name="plus" />

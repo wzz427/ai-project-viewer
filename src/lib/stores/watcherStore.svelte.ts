@@ -25,6 +25,7 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { activeProject } from "$lib/stores/projectStore.svelte";
+import { tf } from "$lib/i18n/t.svelte";
 import { applyTabRenames, reloadFile, tabsState } from "$lib/stores/tabsStore.svelte";
 import {
   applyTreeRenames,
@@ -135,5 +136,5 @@ async function processBatch(batch: FsChangeBatch) {
   // window woke. The lane's pacing already bounds the rate, and
   // git_snapshot itself is an async command (off the main thread, L35).
   void refreshGitNow(root);
-  if (activeUpdatedName) toast(`✓ ${activeUpdatedName} updated`);
+  if (activeUpdatedName) toast(tf("toast.fileUpdated", { name: activeUpdatedName }));
 }

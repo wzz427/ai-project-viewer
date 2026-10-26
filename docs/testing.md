@@ -113,6 +113,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 > 当时名**——现行对应见 §3;未入库者(标注"未存档")其断言清单即重建规格。
 > 现行回归一律跑 §3 清单,不在本区找命令。
 
+#### 0.8.14 界面语言切换:English/简体中文(2026-10-26,owner 增量需求"做一个中文版",V1.5 §199/spec-016;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | Settings 加 Language(English/简体中文,默认 en);locale 入 appState.settings 持久化(可选字段,旧状态文件自愈 en);字典纯模块 dict.ts(en/zh ~210 键,I18nKey 类型+vitest 键位对齐守卫)+响应薄层 t.svelte.ts(t/tf/rt/relTime 读 settings.locale——模板里调用即响应,切换零重挂);31 组件+菜单工厂 handoffMenu+3 store 全换;后端报错 rustErrors.ts 30 条前缀/精确映射(未知透传)+**源锚点防漂移守卫**(vitest grep Rust 源码,Rust 文案改词即红);托盘 set_tray_language 原地重建(条目 id 稳定);--font-ui 补微软雅黑;gitFormat.relativeTime 委托字典(en 默认,既有单测不动);顺手清 Settings 过时备注"Git settings arrive with Phase 7"(D7) |
+| 全档 | check 0/0+vitest **106/106**(+6:键位对齐/非空/插值/双语时间/锚点守卫/映射行为)+cargo **132/132**(+1 tray_labels_follow_locale)+phase3 **PASS**(+4 语言守卫:header 切中文=文件/右键菜单中文=在记事本中编辑+在资源管理器中显示/状态文件 locale=zh/切回 en 稳态;守卫首版忘了关设置面板树不可见,当轮修)+git-suite **33/33**+recent 21/21+pdf-suite 27/27+acceptance-r3 8/8;freeze-guard 免跑(watcher 链零改动) |
+| 测试基建 | **两枚顺手雷**:①git-suite 实例 C(非 Git 态)用的夹具 2026-10-24 迁入仓库后,git 视角被 ProjectViewer 父仓罩住(scope=fixture 子目录),"非 Git"守卫失效两天无人踩(0.8.10 起没跑过 git-suite)——修=%TEMP% 现造最小非 Git 目录(aiv-p7-nongit);②acceptance-r3.py 仍指 target/debug 旧路径(FileNotFound)——切 release,0.8.9 pdf-suite 同款病 |
+| 版本 | **0.8.14 三处已核**;updates=exp 0.8.14(2026-10-26 17:46,UTF-16 核:0.8.14 FOUND/0.8.13 absent;exp 标识+中文字典探针 FOUND;新 json 无 BOM);**安装包重打**:离线大包 0.8.14 入仓库 `离线安装包/`(210MB,两语言一包,0.8.13 旧包已替);owner 路径=Update→重启→Settings→Language→简体中文:①全界面变中文;②右键文件菜单中文;③重启仍中文;④切回 English 立即回;术语不满意随时报(改词分钟级) |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

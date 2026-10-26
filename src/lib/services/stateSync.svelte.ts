@@ -53,6 +53,7 @@ function snapshotStores(): BuildInput {
           settings.fileTree.showSystemGeneratedFolders,
       },
       external: { vsCodeNewWindow: settings.external.vsCodeNewWindow },
+      locale: settings.locale,
     },
   };
 }

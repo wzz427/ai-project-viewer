@@ -17,6 +17,7 @@
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
   import { fileNameOf, iconFamilyOf } from "$lib/services/viewerType";
+  import { t } from "$lib/i18n/t.svelte";
   import Icon, { FILE_ICONS } from "$lib/components/Icon.svelte";
   import TabContextMenu from "./TabContextMenu.svelte";
 
@@ -109,7 +110,7 @@
     class:band-drop={bandDrop}
     bind:this={bar}
     role="tablist"
-    aria-label="Open files"
+    aria-label={t("viewer.openFiles")}
     tabindex="-1"
     ondragenter={overBar}
     ondragover={overBar}

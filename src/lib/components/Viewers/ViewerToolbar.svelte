@@ -11,6 +11,7 @@
   import { settings, setFontSize } from "$lib/stores/settingsStore.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import { registerFindFocus, unregisterFindFocus } from "./activeFind";
+  import { t } from "$lib/i18n/t.svelte";
 
   let {
     findApi,
@@ -58,9 +59,9 @@
 </script>
 
 <div class="vtb">
-  <button class="tb" onclick={() => setFontSize(settings.fontSize - 1)} aria-label="Smaller text">A−</button>
+  <button class="tb" onclick={() => setFontSize(settings.fontSize - 1)} aria-label={t("viewer.smallerText")}>A−</button>
   <span class="tb-label mono">{settings.fontSize}px</span>
-  <button class="tb" onclick={() => setFontSize(settings.fontSize + 1)} aria-label="Larger text">A+</button>
+  <button class="tb" onclick={() => setFontSize(settings.fontSize + 1)} aria-label={t("viewer.largerText")}>A+</button>
 
   <span class="grow"></span>
 
@@ -68,19 +69,19 @@
     <input
       class="search"
       type="search"
-      placeholder="Find in document…"
+      placeholder={t("viewer.findPlaceholder")}
       bind:this={input}
       bind:value={query}
       oninput={recompute}
       onkeydown={onKey}
-      aria-label="Search document"
+      aria-label={t("viewer.searchDoc")}
     />
     {#if query.trim() && total > 0}
       <span class="tb-label">{idx + 1} / {total}</span>
       <button class="tb" onclick={() => step(-1)} aria-label="Previous match"><Icon name="chevron-left" size={14} /></button>
       <button class="tb" onclick={() => step(1)} aria-label="Next match"><Icon name="chevron-right" size={14} /></button>
     {:else if query.trim()}
-      <span class="tb-label">0 results</span>
+      <span class="tb-label">{t("viewer.findNoResults")}</span>
     {/if}
   {/if}
 </div>

@@ -13,6 +13,7 @@
     propertiesState,
     closeProperties,
   } from "$lib/stores/propertiesStore.svelte";
+  import { t, tf } from "$lib/i18n/t.svelte";
   import {
     fileProperties,
     gitFileHistory,
@@ -106,7 +107,7 @@
       class="dialog props-dialog"
       role="dialog"
       aria-modal="true"
-      aria-label={`Properties: ${req.name}`}
+      aria-label={tf("props.aria", { name: req.name })}
     >
       <p class="title">{req.name}</p>
       <p class="path mono">{req.rel === "." ? req.rootPath : absolutePathOf(req.rootPath, req.rel)}</p>
@@ -114,25 +115,25 @@
       {#if info}
         <dl class="facts">
           {#if !info.isDir}
-            <div class="fact"><dt>Size</dt><dd>{formatSize(info.sizeBytes)}</dd></div>
+            <div class="fact"><dt>{t("props.size")}</dt><dd>{formatSize(info.sizeBytes)}</dd></div>
           {/if}
-          <div class="fact"><dt>Modified</dt><dd class="prop-modified">{fmt(info.modifiedMs)}</dd></div>
-          <div class="fact"><dt>Created</dt><dd>{fmt(info.createdMs)}</dd></div>
-          <div class="fact"><dt>Accessed</dt><dd>{fmt(info.accessedMs)}</dd></div>
+          <div class="fact"><dt>{t("props.modified")}</dt><dd class="prop-modified">{fmt(info.modifiedMs)}</dd></div>
+          <div class="fact"><dt>{t("props.created")}</dt><dd>{fmt(info.createdMs)}</dd></div>
+          <div class="fact"><dt>{t("props.accessed")}</dt><dd>{fmt(info.accessedMs)}</dd></div>
         </dl>
       {:else if infoError}
         <p class="muted">{infoError}</p>
       {:else}
-        <p class="muted">Loading…</p>
+        <p class="muted">{t("common.loading")}</p>
       {/if}
 
       {#if history === "loading"}
-        <p class="muted">Loading history…</p>
+        <p class="muted">{t("props.loadingHistory")}</p>
       {:else if Array.isArray(history)}
         <div class="props-history">
-          <p class="hist-title">History <span class="muted">(git)</span></p>
+          <p class="hist-title">{t("props.history")} <span class="muted">{t("props.historyGit")}</span></p>
           {#if history.length === 0}
-            <p class="muted">No recorded changes.</p>
+            <p class="muted">{t("props.noHistory")}</p>
           {:else}
             <ul>
               {#each history as c (c.hash)}
@@ -147,7 +148,7 @@
       {/if}
 
       <div class="actions">
-        <button onclick={closeProperties}>Close</button>
+        <button onclick={closeProperties}>{t("common.close")}</button>
       </div>
     </div>
   </div>

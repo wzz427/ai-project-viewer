@@ -8,6 +8,7 @@
     cachedContent,
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -75,11 +76,11 @@
 </script>
 
 <div class="image-viewer">
-  <div class="toolbar" role="toolbar" aria-label="Image controls">
-    <button class:active={mode === "fit"} onclick={setFit}>Fit</button>
+  <div class="toolbar" role="toolbar" aria-label={t("viewer.imageControls")}>
+    <button class:active={mode === "fit"} onclick={setFit}>{t("viewer.fit")}</button>
     <button class:active={mode === "actual"} onclick={setActual}>100%</button>
-    <button onclick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
-    <button onclick={() => zoomBy(1 / 1.25)} aria-label="Zoom out">−</button>
+    <button onclick={() => zoomBy(1.25)} aria-label={t("viewer.zoomIn")}>+</button>
+    <button onclick={() => zoomBy(1 / 1.25)} aria-label={t("viewer.zoomOut")}>−</button>
     {#if natural}
       <span class="muted">{natural.w}×{natural.h}{mode === "actual" ? ` · ${Math.round(zoom * 100)}%` : ""}</span>
     {/if}

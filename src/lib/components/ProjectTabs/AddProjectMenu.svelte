@@ -12,6 +12,7 @@
     removeRecentFolder,
     clearRecentFolders,
   } from "$lib/stores/recentStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 
   let {
     x,
@@ -88,10 +89,10 @@
       onclose();
       void addProjectViaPicker();
     }}
-  >Browse for Folder…</button>
+  >{t("addMenu.browse")}</button>
   {#if recentState.folders.length > 0}
     <div class="sep"></div>
-    <div class="menu-label">Open Recent</div>
+    <div class="menu-label">{t("addMenu.openRecent")}</div>
     {#each recentState.folders as path (path)}
       <div
         class="recent-row"
@@ -104,8 +105,8 @@
         </button>
         <button
           class="recent-remove"
-          aria-label="Remove from recent"
-          title="Remove from recent"
+          aria-label={t("addMenu.removeFromRecent")}
+          title={t("addMenu.removeFromRecent")}
           onclick={(e) => {
             e.stopPropagation();
             removeRecentFolder(path);
@@ -121,7 +122,7 @@
         clearRecentFolders();
         onclose();
       }}
-    >Clear Recent</button>
+    >{t("addMenu.clearRecent")}</button>
   {/if}
 </div>
 

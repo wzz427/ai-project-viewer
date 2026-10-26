@@ -10,6 +10,7 @@
   import { recordStartup, recordBuildTime } from "$lib/stores/diagnosticsStore.svelte";
   import { projectState, activeProject } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
+  import { t, tf } from "$lib/i18n/t.svelte";
   import {
     installShortcutDispatcher,
     onShortcut,
@@ -127,7 +128,7 @@
     e.stopPropagation();
     const n = (window.getSelection()?.toString() ?? "").length;
     if (document.execCommand("copy")) {
-      toast(`✓ Copied ${n} characters`);
+      toast(tf("toast.copiedChars", { n }));
     }
     copyMenu = null;
   }
@@ -298,7 +299,7 @@
       onkeydown={resizeViaKeyboard}
       role="slider"
       aria-orientation="vertical"
-      aria-label="Sidebar width"
+      aria-label={t("common.sidebarWidth")}
       aria-valuemin={180}
       aria-valuemax={600}
       aria-valuenow={project?.sidebarWidth ?? 260}
@@ -328,7 +329,7 @@
               <div
                 class="viewer-body"
                 role="region"
-                aria-label="File content"
+                aria-label={t("viewer.fileContent")}
                 oncontextmenu={onViewerContextMenu}
               >
                 {#if gitViewShowing && gitView?.kind === "commit"}
@@ -344,7 +345,7 @@
               <div class="placeholder-card">
                 <h2>{project.name}</h2>
                 <p class="mono muted">{project.rootPath}</p>
-                <p class="muted">Open a file from the tree to view it.</p>
+                <p class="muted">{t("viewer.openAFileHint")}</p>
               </div>
             </div>
           {/if}
@@ -363,7 +364,7 @@
       }}
       onclick={doCopy}
       oncontextmenu={(e) => e.preventDefault()}
-    >Copy</button>
+    >{t("common.copy")}</button>
   {/if}
   <ToastHost />
   <ErrorDialog />

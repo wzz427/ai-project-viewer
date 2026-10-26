@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
+  import { t } from "$lib/i18n/t.svelte";
 
   let {
     mode,
@@ -50,14 +51,14 @@
     class:active={mode === "files"}
     onclick={() => onModeChange("files")}
   >
-    Files
+    {t("header.files")}
   </button>
   <button
     class="header-tab"
     class:active={mode === "git"}
     onclick={() => onModeChange("git")}
   >
-    <Icon name="git-branch" size={14} /><span>Git</span>{#if gitBadge}<span class="git-badge">{gitBadge}</span>{/if}
+    <Icon name="git-branch" size={14} /><span>{t("header.git")}</span>{#if gitBadge}<span class="git-badge">{gitBadge}</span>{/if}
   </button>
   <div class="spacer"></div>
   {#if onRefresh}
@@ -65,8 +66,8 @@
       class="header-icon refresh"
       class:spinning
       onclick={refresh}
-      title="Refresh"
-      aria-label="Refresh"
+      title={t("header.refresh")}
+      aria-label={t("header.refresh")}
       aria-busy={spinning}
     >
       <span class="glyph"><Icon name="refresh" size={15} /></span>
@@ -76,8 +77,8 @@
     class="header-icon settings"
     class:active={mode === "settings"}
     onclick={toggleSettings}
-    title="Settings"
-    aria-label="Settings"
+    title={t("header.settings")}
+    aria-label={t("header.settings")}
   >
     <Icon name="gear" size={15} />
   </button>

@@ -15,7 +15,10 @@
    Theme driven by [data-theme] on <html>. */
 
 :root {
-  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* YaHei entries (spec-016): explicit CJK glyphs for the Chinese UI so
+     mixed text renders consistently instead of relying on silent system
+     font fallback. */
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
   --font-mono: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
   /* Type scale (spec-014 D2): exactly three sizes; hierarchy comes from
      weight (600) and color, never from extra sizes. */

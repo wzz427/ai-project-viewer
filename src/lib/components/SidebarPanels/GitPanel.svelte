@@ -2,7 +2,8 @@
   import { activeProject } from "$lib/stores/projectStore.svelte";
   import { gitState, openCommit, openDiff, refreshGit } from "$lib/stores/gitStore.svelte";
   import { openFile } from "$lib/stores/tabsStore.svelte";
-  import { letterClass, relativeTime } from "$lib/services/gitFormat";
+  import { letterClass } from "$lib/services/gitFormat";
+  import { t, tf, relTime } from "$lib/i18n/t.svelte";
   import { fileNameOf } from "$lib/services/viewerType";
   import Icon from "$lib/components/Icon.svelte";
   import type { GitChangeEntry } from "$lib/services/tauri";
@@ -50,31 +51,31 @@
 </script>
 
 {#if !project}
-  <p class="muted note">No project open.</p>
+  <p class="muted note">{t("common.noProject")}</p>
 {:else if !snap && st?.loading}
-  <p class="muted note">Loading…</p>
+  <p class="muted note">{t("common.loading")}</p>
 {:else if snap?.status === "gitMissing"}
   <div class="state">
-    <p class="strong">Git is not installed or cannot be found.</p>
-    <p>Git review is unavailable.</p>
-    <p>File browsing remains available.</p>
+    <p class="strong">{t("git.missing1")}</p>
+    <p>{t("git.missing2")}</p>
+    <p>{t("git.missing3")}</p>
   </div>
 {:else if snap?.status === "nonGit"}
   <div class="state">
-    <p class="strong">This folder is not a Git repository.</p>
+    <p class="strong">{t("git.notRepo")}</p>
   </div>
 {:else if snap?.status === "error"}
   <div class="state">
-    <p class="strong">Git state could not be read.</p>
+    <p class="strong">{t("git.unreadable")}</p>
     <p class="mono small break">{snap.error}</p>
     <button class="retry" onclick={() => void refreshGit(project.rootPath)}>
-      Retry
+      {t("git.retry")}
     </button>
   </div>
 {:else if snap}
   <div class="git-panel">
     <!-- §50 branch row: name + §67 ahead/behind (omitted without upstream). -->
-    <div class="branch-row" title={snap.upstream ? `Upstream: ${snap.upstream}` : ""}>
+    <div class="branch-row" title={snap.upstream ? tf("git.upstream", { name: snap.upstream }) : ""}>
       <span class="glyph"><Icon name="git-branch" size={14} /></span>
       <span class="branch-name">{snap.branch}</span>
       {#if snap.ahead !== undefined || snap.behind !== undefined}
@@ -83,15 +84,15 @@
     </div>
     {#if snap.scopeRel}
       <div class="scope-box">
-        <div><span class="label">Repository:</span> {repoName}</div>
-        <div><span class="label">Scope:</span> {snap.scopeRel}</div>
+        <div><span class="label">{t("git.repository")}</span> {repoName}</div>
+        <div><span class="label">{t("git.scope")}</span> {snap.scopeRel}</div>
       </div>
     {/if}
 
     <section>
       <button class="sec-head" onclick={() => toggle("changes")} aria-expanded={!collapsed.changes}>
         <span class="chev" class:open={!collapsed.changes}><Icon name="chevron-right" size={12} /></span>
-        <span class="sec-title">Changes</span>
+        <span class="sec-title">{t("git.changes")}</span>
         {#if snap.changes.length}<span class="sec-count">{snap.changes.length}</span>{/if}
       </button>
       {#if !collapsed.changes}
@@ -107,7 +108,7 @@
           </button>
         {/each}
         {#if snap.changes.length === 0 && snap.staged.length === 0}
-          <p class="muted note">No changes.</p>
+          <p class="muted note">{t("git.noChanges")}</p>
         {/if}
       {/if}
     </section>
@@ -116,7 +117,7 @@
       <section>
         <button class="sec-head" onclick={() => toggle("staged")} aria-expanded={!collapsed.staged}>
           <span class="chev" class:open={!collapsed.staged}><Icon name="chevron-right" size={12} /></span>
-          <span class="sec-title">Staged Changes</span>
+          <span class="sec-title">{t("git.staged")}</span>
           <span class="sec-count">{snap.staged.length}</span>
         </button>
         {#if !collapsed.staged}
@@ -138,12 +139,12 @@
     <section>
       <button class="sec-head" onclick={() => toggle("commits")} aria-expanded={!collapsed.commits}>
         <span class="chev" class:open={!collapsed.commits}><Icon name="chevron-right" size={12} /></span>
-        <span class="sec-title">Recent Commits</span>
+        <span class="sec-title">{t("git.commits")}</span>
         {#if snap.commits.length}<span class="sec-count">{snap.commits.length}</span>{/if}
       </button>
       {#if !collapsed.commits}
         {#if snap.commits.length === 0}
-          <p class="muted note">No commits yet.</p>
+          <p class="muted note">{t("git.noCommits")}</p>
         {/if}
         {#each snap.commits as c, i (c.hash)}
           {@const date = new Date(c.ts).toLocaleString()}
@@ -158,14 +159,14 @@
             {#if i === 0 && snap.branch && snap.branch !== "(detached)"}
               <span class="cbadge">{snap.branch}</span>
             {/if}
-            <span class="cwhen">{relativeTime(Date.now(), c.ts)}</span>
+            <span class="cwhen">{relTime(c.ts)}</span>
           </button>
         {/each}
       {/if}
     </section>
   </div>
 {:else}
-  <p class="muted note">Loading…</p>
+  <p class="muted note">{t("common.loading")}</p>
 {/if}
 
 <style>

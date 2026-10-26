@@ -451,11 +451,19 @@ def main():
                  9261, instance_a)
     run_instance(VIEWER, os.path.join(os.environ["TEMP"], "aiv-p7git-b.json"),
                  9262, instance_b)
-    if os.path.isdir(PLAIN):
-        run_instance(PLAIN, os.path.join(os.environ["TEMP"], "aiv-p7git-c.json"),
-                     9263, instance_c)
-    else:
-        check("git_non_git_message", False, f"{PLAIN} missing")
+    # Instance C needs a GENUINELY non-git folder. The in-repo fixture
+    # (owner 2026-10-24 move) sits inside the ProjectViewer work tree, so
+    # git sees the PARENT repo and the "not a repository" state never
+    # shows (latent break since the move; caught by the 0.8.14 battery).
+    # Build a minimal plain folder in %TEMP% instead — outside any repo.
+    plain_tmp = os.path.join(os.environ["TEMP"], "aiv-p7-nongit")
+    os.makedirs(os.path.join(plain_tmp, "src"), exist_ok=True)
+    with open(os.path.join(plain_tmp, "readme.md"), "w", encoding="utf-8") as f:
+        f.write("# plain non-git project\n")
+    with open(os.path.join(plain_tmp, "src", "main.py"), "w", encoding="utf-8") as f:
+        f.write("print('non-git')\n")
+    run_instance(plain_tmp, os.path.join(os.environ["TEMP"], "aiv-p7git-c.json"),
+                 9263, instance_c)
     print(json.dumps(results, indent=1, ensure_ascii=False))
     if FAIL:
         raise SystemExit(f"FAILED: {FAIL}")

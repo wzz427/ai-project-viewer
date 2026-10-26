@@ -7,6 +7,7 @@
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
   import { settings } from "$lib/stores/settingsStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import TreeItem from "$lib/components/FileTree/TreeItem.svelte";
 
   let { rootPath }: { rootPath: string } = $props();
@@ -66,13 +67,13 @@
   const error = $derived(st?.loadErrors[TREE_ROOT]);
 </script>
 
-<div class="file-tree" role="tree" aria-label="Project files" bind:this={host}>
+<div class="file-tree" role="tree" aria-label={t("viewer.projectFiles")} bind:this={host}>
   {#if error}
     <div class="hint error">{error}</div>
   {:else if !st || !st.children[TREE_ROOT]}
-    <div class="hint">Loading…</div>
+    <div class="hint">{t("common.loading")}</div>
   {:else if sorted.length === 0}
-    <div class="hint">Empty folder</div>
+    <div class="hint">{t("common.emptyFolder")}</div>
   {:else}
     {#each sorted as entry (entry.name)}
       <TreeItem {rootPath} parentRel={TREE_ROOT} {entry} depth={0} />

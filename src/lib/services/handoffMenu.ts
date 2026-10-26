@@ -14,6 +14,7 @@ import { openFile } from "$lib/stores/tabsStore.svelte";
 import { isProjectTrusted, setProjectTrusted } from "$lib/stores/projectStore.svelte";
 import { showErrorDialog } from "$lib/stores/errorDialogStore.svelte";
 import { openProperties } from "$lib/stores/propertiesStore.svelte";
+import { t, tf, rt, type I18nKey } from "$lib/i18n/t.svelte";
 import { extOf, fileNameOf, isMediaName } from "$lib/services/viewerType";
 import { menuKindOf } from "$lib/services/menuKind";
 import {
@@ -50,8 +51,9 @@ function quotedPath(p: string): string {
   return `"${p}"`;
 }
 
-/** Clipboard write with a legacy fallback; always reports via toast. */
-export async function copyText(text: string, what: string): Promise<void> {
+/** Clipboard write with a legacy fallback; always reports via toast.
+ * `what` is an i18n key so the toast reads in the active language. */
+export async function copyText(text: string, whatKey: I18nKey): Promise<void> {
   let ok = false;
   try {
     if (navigator.clipboard?.writeText) {
@@ -73,17 +75,20 @@ export async function copyText(text: string, what: string): Promise<void> {
     ok = document.execCommand("copy");
     ta.remove();
   }
-  if (ok) toast(`Copied ${what}: ${text}`);
-  else toast(`Copy failed (${what})`, { kind: "error" });
+  if (ok) toast(tf("toast.copied", { what: t(whatKey), text }));
+  else toast(tf("toast.copyFailed", { what: t(whatKey) }), { kind: "error" });
 }
 
-/** Launch wrapper: every handoff verb reports failures as a toast (§188). */
-function guarded(label: string, fn: () => Promise<void>): () => Promise<void> {
+/** Launch wrapper: every handoff verb reports failures as a toast (§188).
+ * `labelKey` is an i18n key, translated at toast time. */
+function guarded(labelKey: I18nKey, fn: () => Promise<void>): () => Promise<void> {
   return async () => {
     try {
       await fn();
     } catch (err) {
-      toast(`${label} failed: ${err}`, { kind: "error" });
+      toast(tf("toast.actionFailed", { label: t(labelKey), err: rt(err) }), {
+        kind: "error",
+      });
     }
   };
 }
@@ -104,10 +109,12 @@ export async function runWithTrust(
 ): Promise<void> {
   if (!isProjectTrusted(rootPath)) {
     if (await testModeActive().catch(() => false)) return;
-    const yes = await ask(
-      "This project contains executable files.\n\nRunning scripts or programs can modify files or your system.",
-      { title: "Trust Project", kind: "warning", okLabel: "Trust and Run", cancelLabel: "Cancel" },
-    );
+    const yes = await ask(t("trust.body"), {
+      title: t("trust.title"),
+      kind: "warning",
+      okLabel: t("trust.ok"),
+      cancelLabel: t("common.cancel"),
+    });
     if (!yes) return;
     setProjectTrusted(rootPath, true);
   }
@@ -120,7 +127,7 @@ export async function runWithTrust(
     console.error("launch failed:", err);
     // Failure must be unmissable and state its reason (owner 2026-10-11):
     // centered modal dialog, not the corner toast.
-    showErrorDialog(`Failed to launch ${name}`, String(err));
+    showErrorDialog(tf("dlg.launchFailedTitle", { name }), rt(err));
   }
 }
 
@@ -146,78 +153,78 @@ export function fileHandoffGroups(
 
   const open: HandoffEntry = {
     id: "open",
-    label: "Open",
+    label: t("menu.open"),
     // Media Open IS the player launch (owner 2026-10-24: right-click Open
     // is the launcher; the tree click opens the info card instead). The
     // instant toast bridges the player's cold start ("did my click even
     // register?") — the window appearing is the real success signal.
     run: isDir || isMediaName(name)
-      ? guarded("Open", () => {
-          toast(`Opening ${name}…`);
+      ? guarded("menu.open", () => {
+          toast(tf("toast.opening", { name }));
           return openWithDefaultApp(rootPath, rel);
         })
       : () => openFile(rootPath, rel).then(() => undefined),
   };
   const notepad: HandoffEntry = {
     id: "notepad",
-    label: "Edit in Notepad",
-    run: guarded("Edit in Notepad", () => editInQuickEditor(rootPath, rel)),
+    label: t("menu.editNotepad"),
+    run: guarded("menu.editNotepad", () => editInQuickEditor(rootPath, rel)),
   };
   const vscode: HandoffEntry = {
     id: "vscode",
-    label: "Open in VS Code",
-    run: guarded("VS Code", () => openInCodeEditor(rootPath, rel, newWindow())),
+    label: t("menu.openVscode"),
+    run: guarded("menu.openVscode", () => openInCodeEditor(rootPath, rel, newWindow())),
   };
   const vscodeFolder: HandoffEntry = {
     id: "vscode-folder",
-    label: "Open Folder in VS Code",
-    run: guarded("VS Code", () => openInCodeEditor(rootPath, rel, newWindow())),
+    label: t("menu.openFolderVscode"),
+    run: guarded("menu.openFolderVscode", () => openInCodeEditor(rootPath, rel, newWindow())),
   };
   const browser: HandoffEntry = {
     id: "browser",
-    label: "Open in Browser",
-    run: guarded("Browser", () => openInBrowser(rootPath, rel)),
+    label: t("menu.openBrowser"),
+    run: guarded("menu.openBrowser", () => openInBrowser(rootPath, rel)),
   };
   const defaultApp: HandoffEntry = {
     id: "default-app",
-    label: "Open with Default App",
-    run: guarded("Open", () => openWithDefaultApp(rootPath, rel)),
+    label: t("menu.openDefaultApp"),
+    run: guarded("menu.openDefaultApp", () => openWithDefaultApp(rootPath, rel)),
   };
   const pdfApp: HandoffEntry = {
     id: "pdf-app",
-    label: "Open with Default PDF App",
-    run: guarded("Open", () => openWithDefaultApp(rootPath, rel)),
+    label: t("menu.openDefaultPdfApp"),
+    run: guarded("menu.openDefaultPdfApp", () => openWithDefaultApp(rootPath, rel)),
   };
   const runScript: HandoffEntry = {
     id: "run-script",
-    label: "Run Script",
+    label: t("menu.runScript"),
     run: () => runWithTrust(rootPath, rel, () => runProjectScript(rootPath, rel)),
   };
   const runExe: HandoffEntry = {
     id: "run",
-    label: "Run",
+    label: t("menu.run"),
     run: () => runWithTrust(rootPath, rel, () => runProjectExecutable(rootPath, rel)),
   };
   const reveal: HandoffEntry = {
     id: "reveal",
-    label: "Show in File Explorer",
-    run: guarded("Explorer", () => revealInExplorer(rootPath, rel)),
+    label: t("menu.showExplorer"),
+    run: guarded("menu.showExplorer", () => revealInExplorer(rootPath, rel)),
   };
   const copyAbs: HandoffEntry = {
     id: "copy-abs",
-    label: "Copy Absolute Path",
-    run: () => copyText(quotedPath(abs), "absolute path"),
+    label: t("menu.copyAbs"),
+    run: () => copyText(quotedPath(abs), "what.absolutePath"),
   };
   const copyRel: HandoffEntry = {
     id: "copy-rel",
-    label: "Copy Relative Path",
-    run: () => copyText(quotedPath(rel), "relative path"),
+    label: t("menu.copyRel"),
+    run: () => copyText(quotedPath(rel), "what.relativePath"),
   };
   // Properties dialog (owner 2026-10-17): own trailing group on every
   // surface — the dialog fetches everything on demand and holds nothing.
   const properties: HandoffEntry = {
     id: "properties",
-    label: "Properties",
+    label: t("menu.properties"),
     run: async () => {
       openProperties({ rootPath, rel, name, isDir });
     },
@@ -297,18 +304,18 @@ export function projectHandoffGroups(rootPath: string): HandoffGroup[] {
     [
       {
         id: "project-explorer",
-        label: "Open in File Explorer",
-        run: guarded("Explorer", () => revealInExplorer(rootPath, null)),
+        label: t("menu.openExplorer"),
+        run: guarded("menu.openExplorer", () => revealInExplorer(rootPath, null)),
       },
       {
         id: "copy-project-path",
-        label: "Copy Project Path",
-        run: () => copyText(quotedPath(rootPath), "project path"),
+        label: t("menu.copyProject"),
+        run: () => copyText(quotedPath(rootPath), "what.projectPath"),
       },
       {
         id: "project-vscode",
-        label: "Open Project in VS Code",
-        run: guarded("VS Code", () =>
+        label: t("menu.openProjectVscode"),
+        run: guarded("menu.openProjectVscode", () =>
           openInCodeEditor(rootPath, null, settings.external.vsCodeNewWindow),
         ),
       },
@@ -316,7 +323,7 @@ export function projectHandoffGroups(rootPath: string): HandoffGroup[] {
     [
       {
         id: "project-properties",
-        label: "Properties",
+        label: t("menu.properties"),
         run: async () => {
           const name =
             rootPath.split(/[\\/]/).filter(Boolean).pop() ?? rootPath;

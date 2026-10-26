@@ -8,6 +8,7 @@
     cachedContent,
     ensureContentLoaded,
   } from "$lib/stores/tabsStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import MarkdownViewer from "./MarkdownViewer.svelte";
   import CodeViewer from "./CodeViewer.svelte";
   import JsonViewer from "./JsonViewer.svelte";
@@ -90,7 +91,7 @@
       <CodeViewer {rootPath} {tab} text={text} language={extOf(tab.relativePath)} />
     </div>
   {:else}
-    <div class="loading">Loading…</div>
+    <div class="loading">{t("common.loading")}</div>
   {/if}
   {/key}
   </div>

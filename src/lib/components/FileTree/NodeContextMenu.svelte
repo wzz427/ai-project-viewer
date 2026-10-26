@@ -1,6 +1,7 @@
 <script lang="ts">
   import { pin, unpin, treeState, joinRel, contextMenuTarget } from "$lib/stores/fileTreeStore.svelte";
   import { fileHandoffGroups } from "$lib/services/handoffMenu";
+  import { t } from "$lib/i18n/t.svelte";
 
   let {
     rootPath,
@@ -85,7 +86,7 @@
 
 <div class="menu" bind:this={el} style="left: {left}px; top: {top}px">
   <div class="menu-path mono muted">
-    {isDir ? "folder" : "file"} · {name}
+    {isDir ? t("menu.kindFolder") : t("menu.kindFile")} · {name}
   </div>
   {#each groups as group, gi}
     {#if gi > 0}
@@ -105,7 +106,7 @@
   {/each}
   <div class="sep"></div>
   <button class="menu-item" onclick={togglePin}>
-    {pinned ? "Unpin" : "Pin to Top"}
+    {pinned ? t("menu.unpin") : t("menu.pinTop")}
   </button>
 </div>
 

@@ -7,6 +7,7 @@
   import { recentState } from "$lib/stores/recentStore.svelte";
   import { pathsExist } from "$lib/services/tauri";
   import { recentName, recentParent } from "$lib/services/recentList";
+  import { t } from "$lib/i18n/t.svelte";
 
   // Same one-shot staleness check as the + menu's Open Recent list
   // (V1.5 §198-b): a dead folder grays out but stays clickable into the
@@ -28,11 +29,11 @@
 <!-- Copy per V1.5 §151; recent list per §198-b. -->
 <div class="empty-state">
   <h1>AI Project Viewer</h1>
-  <p class="muted">Open your first project</p>
-  <button class="open-folder" onclick={() => addProjectViaPicker()}>Open Folder</button>
+  <p class="muted">{t("empty.openFirst")}</p>
+  <button class="open-folder" onclick={() => addProjectViaPicker()}>{t("empty.openFolder")}</button>
   {#if recentState.folders.length > 0}
     <div class="recent" data-menu-id="empty-recent">
-      <div class="recent-title">Recent</div>
+      <div class="recent-title">{t("empty.recent")}</div>
       {#each recentState.folders as path (path)}
         <button
           class="recent-item"
@@ -47,7 +48,7 @@
       {/each}
     </div>
   {/if}
-  <p class="tagline">Read. Review. Run. Hand off.</p>
+  <p class="tagline">{t("empty.tagline")}</p>
 </div>
 
 <style>

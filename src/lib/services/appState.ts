@@ -16,8 +16,14 @@
 import type { Theme } from "$lib/stores/settingsStore.svelte";
 import type { SidebarMode } from "$lib/stores/projectStore.svelte";
 import { RECENT_CAP } from "$lib/services/recentList";
+import type { Locale } from "$lib/i18n/dict";
 
 export const STATE_VERSION = 1;
+
+/** UI language (spec-016, owner 2026-10-26): English by default; invalid
+ * persisted values heal to English here — same pattern as THEMES. */
+export const LOCALES: Locale[] = ["en", "zh"];
+export const DEFAULT_LOCALE: Locale = "en";
 
 /** Viewer font knob range (§22; max raised 20→32, owner 2026-10-11
  *  "字体怎么最大加到20px就到头了"). The parse-side clamp doubles as the
@@ -74,8 +80,9 @@ export interface PersistedSettings {
   theme: Theme;
   viewer: { fontSize: number };
   fileTree: { showSystemGeneratedFolders: boolean };
-  /** Optional since spec-006 (§134); absent in older state files = true. */
+  /** Optional since spec-016; absent in older state files = English. */
   external?: { vsCodeNewWindow: boolean };
+  locale?: Locale;
 }
 
 export interface AppStateV1 {
@@ -299,6 +306,7 @@ function parseSettings(v: unknown): PersistedSettings {
       ? (s.external as Record<string, unknown>)
       : {};
   const themeRaw = asString(s.theme, DEFAULT_THEME);
+  const localeRaw = asString(s.locale, DEFAULT_LOCALE) as Locale;
   return {
     theme: THEMES.includes(themeRaw as Theme) ? (themeRaw as Theme) : DEFAULT_THEME,
     viewer: {
@@ -310,6 +318,7 @@ function parseSettings(v: unknown): PersistedSettings {
     external: {
       vsCodeNewWindow: asBool(external.vsCodeNewWindow, true),
     },
+    locale: LOCALES.includes(localeRaw) ? localeRaw : DEFAULT_LOCALE,
   };
 }
 

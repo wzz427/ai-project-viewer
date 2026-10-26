@@ -7,6 +7,7 @@
   } from "$lib/services/tauri";
   import { fileNameOf } from "$lib/services/viewerType";
   import Icon from "$lib/components/Icon.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import {
     diffPathOf,
     parseUnifiedDiff,
@@ -45,8 +46,8 @@
     view?.commitHash
       ? `(${view.commitHash.slice(0, 7)})`
       : view?.staged
-        ? "(Staged)"
-        : "(Working Tree)",
+        ? t("git.kindStaged")
+        : t("git.kindWorktree"),
   );
 
   // Which sides carry change paint: del rows paint the old cell, add rows
@@ -80,22 +81,22 @@
       <span class="kind">{kindLabel}</span>
     </span>
     <span class="path mono">{view?.rel}</span>
-    <button class="close" onclick={closeGitView} title="Close diff" aria-label="Close diff"><Icon name="x" size={14} /></button>
+    <button class="close" onclick={closeGitView} title={t("viewer.closeDiff")} aria-label={t("viewer.closeDiff")}><Icon name="x" size={14} /></button>
   </div>
   <div class="diff-body">
     {#if error}
       <p class="muted pad">{error}</p>
     {:else if !result}
-      <p class="muted pad">Loading…</p>
+      <p class="muted pad">{t("common.loading")}</p>
     {:else if result.truncated}
       <!-- §72: the backend stopped at 2 MB / 20k lines. -->
       <div class="too-large">
-        <p>Diff is too large to display.</p>
-        <button onclick={handOffToVSCode}>Open in VS Code</button>
+        <p>{t("viewer.diffTooLarge")}</p>
+        <button onclick={handOffToVSCode}>{t("viewer.openInVscodeBtn")}</button>
       </div>
     {:else if segments.length === 0}
       <p class="muted pad">
-        No textual changes{result.text.includes("Binary files") ? " (binary file)." : "."}
+        {result.text.includes("Binary files") ? t("viewer.noTextChangesBinary") : t("viewer.noTextChanges")}
       </p>
     {:else}
       <div class="table" role="table">
