@@ -20,6 +20,8 @@ src-tauri/gen/schemas/
 # 构建产物(可由构建命令重新生成)
 dist/
 build/
+# 正式安装包交付目录(210MB 二进制,`pnpm tauri build` 可重生成,不进 git/备份)
+离线安装包/
 
 # 日志与临时文件
 *.log

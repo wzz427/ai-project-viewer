@@ -331,7 +331,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 档 | 结果 |
 |---|---|
 | 实现 | ①正式版 CDP 端口门禁:lib.rs 提前 `generate_context()`,按渠道标识判 `cdp_allowed`(=.exp 标识[体验版] 或 debug 构建[tauri dev]);合并逻辑抽纯函数 `merge_webview_args(current, cdp_allowed)`——正式版(默认标识+release)**永不设端口**(继承到浏览器参数也不加),`--disable-direct-composition` 全渠道保留,L48 幂等补丁语义不变(e2e 自设端口查前缀不重)。②tauri.conf.json `bundle.windows.webviewInstallMode=offlineInstaller`(对方电脑缺 WebView2 离线可装) |
-| 打包 | `pnpm tauri build`(owner 点头红线闸已过)→ `target\release\bundle\nsis\AI Project Viewer_0.8.13_x64-setup.exe` **209.99 MiB**;VERSIONINFO FileVersion=0.8.13;正式 exe UTF-16 核 0.8.13 FOUND/0.8.12 absent;安装包拷 owner 桌面 |
+| 打包 | `pnpm tauri build`(owner 点头红线闸已过)→ `target\release\bundle\nsis\AI Project Viewer_0.8.13_x64-setup.exe` **209.99 MiB**;VERSIONINFO FileVersion=0.8.13;正式 exe UTF-16 核 0.8.13 FOUND/0.8.12 absent;安装包交仓库 `离线安装包/`(owner 指定,gitignore) |
 | 行为实证 | 正式版启动探针(PID 限定+AIV_HIDDEN+临时状态文件+**不设任何浏览器参数 env**,7s):主进程+6 WebView2 子进程**全树零 LISTEN**——9322 关死实证;二进制残留 1 处端口常量串=运行时门禁的死数据(行为已证不可达),留档不计过 |
 | 全档 | check 0/0+vitest 100/100+cargo **131/131**(+6:formal 首写无端口/formal 继承参也不加/dev+exp 首写带端口/缺旗补齐[DCOMP→+PORT]/二遍幂等/e2e 外端口不复重)+phase3 **VERDICT PASS**(受测=正式版同款 release 二进制);freeze-guard 免跑(watcher 链零改动) |
 | 版本 | **0.8.13 三处已核**;updates=exp 0.8.13(2026-10-26 16:27,UTF-16 核:0.8.13 FOUND/0.8.12 absent;拒发闸干净 staged 0.8.12→publishing 0.8.13;新 json 无 BOM 已核;**exp 二进制端口字串 FOUND+标识 .exp FOUND**——live-inspect 能力保留);体验版无用户可见变化,Update 即可 |
