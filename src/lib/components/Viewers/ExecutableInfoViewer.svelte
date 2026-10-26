@@ -4,9 +4,18 @@
    * (name / Windows Executable / Size / Modified / Path / "This file
    * cannot be previewed."). Nothing of the file is ever read — the fields
    * ride the inspect stat call, so there is no content buffer to release.
+   *
+   * Launch buttons (owner 2026-10-26, reversing the 0.8.11 exception):
+   * Run goes through the SAME gated path as the right-click verb
+   * (runWithTrust → trust dialog on first run per project → Rust
+   * runProjectExecutable) — a button adds discoverability, not a bypass.
+   * Reveal matches every other stat card.
    */
   import type { RuntimeTab } from "$lib/stores/tabsStore.svelte";
-  import { t } from "$lib/i18n/t.svelte";
+  import { runWithTrust } from "$lib/services/handoffMenu";
+  import { revealInExplorer, runProjectExecutable } from "$lib/services/tauri";
+  import { toast } from "$lib/stores/toastStore.svelte";
+  import { t, tf, rt } from "$lib/i18n/t.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
 
@@ -21,6 +30,30 @@
   const modifiedText = $derived(
     tab.modifiedMs ? new Date(tab.modifiedMs).toLocaleString() : null,
   );
+
+  let running = $state(false);
+
+  async function run() {
+    if (running) return;
+    running = true;
+    try {
+      // Success = the visible window itself (§119: no toast); failures
+      // surface as the centered dialog from runWithTrust.
+      await runWithTrust(rootPath, tab.relativePath, () =>
+        runProjectExecutable(rootPath, tab.relativePath),
+      );
+    } finally {
+      running = false;
+    }
+  }
+
+  async function reveal() {
+    try {
+      await revealInExplorer(rootPath, tab.relativePath);
+    } catch (err) {
+      toast(tf("toast.explorerFailed", { err: rt(err) }), { kind: "error" });
+    }
+  }
 </script>
 
 <div class="exe-info">
@@ -36,7 +69,13 @@
       {/if}
       <div class="row path"><dt>{t("viewer.pathLabel")}</dt><dd>{rootPath}\{tab.relativePath.replaceAll("/", "\\")}</dd></div>
     </dl>
-    <p class="muted">{t("viewer.cannotPreviewPlain")} {t("viewer.runHint")}</p>
+    <p class="muted">{t("viewer.cannotPreviewPlain")}</p>
+    <div class="actions">
+      <button class="primary" onclick={run} disabled={running}>
+        {running ? t("viewer.runningBtn") : t("menu.run")}
+      </button>
+      <button onclick={reveal}>{t("viewer.showExplorerBtn")}</button>
+    </div>
   </div>
 </div>
 
@@ -110,5 +149,15 @@
     margin: 6px 0 0;
     color: var(--text-muted);
     font-size: var(--text-sm);
+  }
+
+  button.primary {
+    font-weight: 600;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
   }
 </style>

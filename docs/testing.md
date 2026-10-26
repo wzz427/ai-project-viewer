@@ -122,6 +122,14 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 测试基建 | **两枚顺手雷**:①git-suite 实例 C(非 Git 态)用的夹具 2026-10-24 迁入仓库后,git 视角被 ProjectViewer 父仓罩住(scope=fixture 子目录),"非 Git"守卫失效两天无人踩(0.8.10 起没跑过 git-suite)——修=%TEMP% 现造最小非 Git 目录(aiv-p7-nongit);②acceptance-r3.py 仍指 target/debug 旧路径(FileNotFound)——切 release,0.8.9 pdf-suite 同款病 |
 | 版本 | **0.8.14 三处已核**;updates=exp 0.8.14(2026-10-26 17:46,UTF-16 核:0.8.14 FOUND/0.8.13 absent;exp 标识+中文字典探针 FOUND;新 json 无 BOM);**安装包重打**:离线大包 0.8.14 入仓库 `离线安装包/`(210MB,两语言一包,0.8.13 旧包已替);owner 路径=Update→重启→Settings→Language→简体中文:①全界面变中文;②右键文件菜单中文;③重启仍中文;④切回 English 立即回;术语不满意随时报(改词分钟级) |
 
+#### 0.8.15 exe 信息卡补齐按钮(2026-10-26,owner 问"为什么 exe 卡没按钮"后拍板补齐;0.8.11 工程默认翻案;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | ExecutableInfoViewer 加 [Run](主钮,busy 态防连点)+[Show in File Explorer];**Run 与右键动词同一条信任门**(runWithTrust:未信任项目首次弹 Trust Project 确认→runProjectExecutable)——按钮只加可见性不加旁路;指引句"Use Run (right-click) to execute it."退役(键 viewer.runHint 中英双删,新键 viewer.runningBtn);0.8.11 的排除理由(裸启动=执行任意程序)对"带门按钮"不成立,owner 拍板翻案记 V1.5 §197 |
+| 全档 | check 0/0+vitest 106/106+cargo 免跑(Rust 零改动)+phase3 **PASS**(p8_exe_info_viewer 加码:cards 字段全在+`.actions button`==2);freeze-guard 免跑 |
+| 版本 | **0.8.15 三处已核**;updates=exp 0.8.15(2026-10-26 18:19,UTF-16 核:0.8.15 FOUND/0.8.14 absent;拒发闸干净 staged 0.8.14→publishing 0.8.15);**离线安装包未动**(现役 0.8.14 双语包;这改动要不要进对外包=owner 喊再打,红线);owner 路径=Update→重启→点任一 .exe(如 离线安装包 里的 setup.exe)→两按钮在;未信任项目首点 Run 仍弹信任确认 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

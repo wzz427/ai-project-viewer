@@ -1173,12 +1173,17 @@ with sync_playwright() as p:
     page.wait_for_selector(".exe-info .kind", timeout=4000)
     info_txt = page.locator(".exe-info").inner_text()
     low = info_txt.lower()
+    # 0.8.15 (owner 2026-10-26, reversing the 0.8.11 exception): the exe
+    # card carries Run + Show in File Explorer, same as every other stat
+    # card — Run rides the SAME trust gate as the right-click verb.
+    exe_buttons = page.locator(".exe-info .actions button").count()
     check("p8_exe_info_viewer",
           "windows executable" in low
           and "this file cannot be previewed." in low
           and "size:" in low and "modified:" in low
-          and "path:" in low,
-          repr(info_txt[:200]))
+          and "path:" in low
+          and exe_buttons == 2,
+          repr(info_txt[:200]) + f" buttons={exe_buttons}")
 
     # §128 untrusted + test mode: Run Script auto-cancels — nothing launches
     tree_row("hello.bat").click(button="right")
