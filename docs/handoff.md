@@ -31,6 +31,7 @@
 - 仓库整体从旧机迁来,体检结论:**完好**——git 历史/main@0.8.17 完整,Rust 1.98.1 与记录一致,conda pywork、SSH 备份钥匙(github_wzz 认证通过)、备份线(count=0)全部就位;pnpm 9.12(记录 11.1)装依赖 409ms 未改锁文件,Node 26.13(记录 24.14)与 @types/node@26 相符,check 0/0 复现。
 - 唯一翻车:`pnpm tauri dev` 首启即崩——vite 文件监视器扫进 `src-tauri/target/`(4.7G 构建产物随仓迁来),撞上 cargo 编译锁住 build 脚本 exe,Node 26 下 fs.watch EBUSY 致命(旧机 Node 24 侥幸没炸)。修复=vite.config.ts 补 `server.watch.ignored=["**/src-tauri/**"]`(Tauri 官方模板标准配置,commit 54c3931);重启后全通:cargo 16.9s、exe 活、CDP 9322 live-inspect 读到 boot。
 - **工作树仍有迁移前另一会话的未提交改动**(docs/AI-Project-Guide/ 16 文件+advanced/+reference/),按备份规则 §1 不入备份,等该会话收口自入账——本段未动它。
+- 迁移暂存清理(owner 2026-10-29 指令):`VibeCoding/ProjectViewer.staging-20261029/`(239M:传输包+密钥包+校验脚本)已删——删前三核:密钥归档已落 `Desktop\Secrets\ProjectViewer\`、备份远端同步、暂存内无隐藏残留。**未动**:`.migration-staging/`(33G,另五项目暂存)、`.migration-staging-TinkerWorld-20261029/` 与 `.migration-translation/`(时间戳=当晚进行中,且 Translation 收尾操作单 ③ 明写其暂存清理等该项目收尾门过完)。
 
 ### 2026-10-26 · 0.8.17 信息卡统一改版:按钮等宽+卡片放大,已发体验渠道,等 owner 验收
 
