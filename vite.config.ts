@@ -24,6 +24,11 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    // Never watch Rust build output: cargo locks files under target/ while
+    // compiling, and fs.watch on a locked exe throws EBUSY (fatal on Node 26).
+    watch: {
+      ignored: ["**/src-tauri/**"],
+    },
   },
   build: {
     outDir: "dist",
