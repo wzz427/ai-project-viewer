@@ -26,6 +26,12 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-10-29 · 迁移新机体检:仓库完好跑通,一处 Node 26 触发修复(vite 监视 src-tauri 崩)
+
+- 仓库整体从旧机迁来,体检结论:**完好**——git 历史/main@0.8.17 完整,Rust 1.98.1 与记录一致,conda pywork、SSH 备份钥匙(github_wzz 认证通过)、备份线(count=0)全部就位;pnpm 9.12(记录 11.1)装依赖 409ms 未改锁文件,Node 26.13(记录 24.14)与 @types/node@26 相符,check 0/0 复现。
+- 唯一翻车:`pnpm tauri dev` 首启即崩——vite 文件监视器扫进 `src-tauri/target/`(4.7G 构建产物随仓迁来),撞上 cargo 编译锁住 build 脚本 exe,Node 26 下 fs.watch EBUSY 致命(旧机 Node 24 侥幸没炸)。修复=vite.config.ts 补 `server.watch.ignored=["**/src-tauri/**"]`(Tauri 官方模板标准配置,commit 54c3931);重启后全通:cargo 16.9s、exe 活、CDP 9322 live-inspect 读到 boot。
+- **工作树仍有迁移前另一会话的未提交改动**(docs/AI-Project-Guide/ 16 文件+advanced/+reference/),按备份规则 §1 不入备份,等该会话收口自入账——本段未动它。
+
 ### 2026-10-26 · 0.8.17 信息卡统一改版:按钮等宽+卡片放大,已发体验渠道,等 owner 验收
 
 - owner 三指示(0.8.15 验截图后):①exe 卡 Run/Show in File Explorer 两钮不等宽("看看 MP4 的,起码等宽")②媒体卡整体太小太丑,放大③全应用按钮样式盘一遍。MP4 那对等宽只是文字长度碰巧,根子是按钮底盘样式三处各抄一份——**五张信息卡+diff 截断卡的卡体与按钮收成 app.css 一份共享定义**(.stat-card/.card-actions,0.8.15 病根拔除);成对按钮 flex:1 强制等宽;卡片放大(标题 17px/min-width 420/padding 36/48);媒体卡层级颠倒一并修正;对话框钮高度对齐。
