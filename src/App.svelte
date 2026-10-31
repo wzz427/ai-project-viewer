@@ -25,6 +25,8 @@
   import FileTabs from "$lib/components/ProjectTabs/FileTabs.svelte";
   import ErrorDialog from "$lib/components/ErrorDialog.svelte";
   import PropertiesDialog from "$lib/components/PropertiesDialog.svelte";
+  import LocateDialog from "$lib/components/LocateDialog.svelte";
+  import { toggleLocate } from "$lib/stores/locateStore.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
     activeTab,
@@ -194,6 +196,11 @@
         // one coherent state.
         void refreshGit(project.rootPath);
       }),
+      // Locate by path (spec-017): Ctrl+L toggles the dialog — works in
+      // every sidebar mode; a hit switches the panel back to Files.
+      onShortcut("ctrl+l", () => {
+        toggleLocate();
+      }),
     ];
     return () => unsubs.forEach((u) => u());
   }
@@ -278,6 +285,7 @@
         mode={sidebarMode}
         onModeChange={(m) => project && setSidebarMode(project.rootPath, m)}
         onRefresh={project ? () => refreshAll(project.rootPath) : undefined}
+        onLocate={project ? () => toggleLocate() : undefined}
         gitBadge={project ? badgeText(gitSnapshotOf(project.rootPath)?.uniqueCount ?? 0) : null}
       />
       <div class="sidebar-panel">
@@ -369,6 +377,7 @@
   <ToastHost />
   <ErrorDialog />
   <PropertiesDialog />
+  <LocateDialog />
 </div>
 
 <svelte:window onmousedown={closeCopyMenu} />

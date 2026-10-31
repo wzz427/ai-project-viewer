@@ -6,6 +6,7 @@
     mode,
     onModeChange,
     onRefresh,
+    onLocate,
     gitBadge,
   }: {
     mode: "files" | "git" | "settings";
@@ -13,6 +14,9 @@
     /** Active-project tree reload; undefined = no project (button hidden).
      *  Returns the in-flight promise so the button can spin until done. */
     onRefresh?: () => Promise<void>;
+    /** Locate-by-path dialog (spec-017); undefined = no project (hidden).
+     *  The dialog itself lands wherever the target project lives. */
+    onLocate?: () => void;
     /** §9 badge text for the Git tab ("7" / "99+"); null = no badge. */
     gitBadge?: string | null;
   } = $props();
@@ -61,6 +65,17 @@
     <Icon name="git-branch" size={14} /><span>{t("header.git")}</span>{#if gitBadge}<span class="git-badge">{gitBadge}</span>{/if}
   </button>
   <div class="spacer"></div>
+  {#if onLocate}
+    <button
+      class="header-icon locate"
+      onclick={onLocate}
+      title="{t("header.locate")} (Ctrl+L)"
+      aria-label={t("header.locate")}
+      data-locate-button
+    >
+      <Icon name="search" size={15} />
+    </button>
+  {/if}
   {#if onRefresh}
     <button
       class="header-icon refresh"
@@ -167,8 +182,13 @@
     color: var(--accent);
   }
 
+  /* inline-FLEX, not inline-block: an inline svg on a text baseline drags
+     a descender gap below it, inflating this button to 26.5px while its
+     neighbours stay 23px — the icon then sits ~1.75px high in the row
+     (owner 2026-10-31 "三个图标的高度根本就没有对齐"; probe-measured,
+     icon-align-probe.py). Flex removes the baseline line box entirely. */
   .refresh .glyph {
-    display: inline-block;
+    display: inline-flex;
   }
 
   .refresh.spinning .glyph {

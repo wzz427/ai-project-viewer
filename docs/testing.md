@@ -75,6 +75,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 4. **合成输入 ≠ 真实输入**(lessons L17)——合成只证 handler 逻辑;交付口径以 owner 亲手复验为准;
 5. **禁止**向"当前前台窗口"盲发按键(SendKeys 落进宿主终端;必须先 GetForegroundWindow 校验,lessons L3);禁止 SetForegroundWindow/AppActivate/SW_RESTORE 抢焦点。
 6. **视觉改动必过「截图亲验」**(0.8.15 教训,lessons L50):凡改动会改变屏幕上任何东西的外观(样式/布局/新增可见控件),发版前必须二选一——① 截图给人眼或视觉模型看过再放行(先例:`visual-check-014.py` 的出图终审流程);② 在 e2e 守卫里加 **computed-style 断言**(如边框宽/背景色/内边距,先例:phase3 `p8_exe_info_viewer` 的 chrome 断言)。**"元素存在"的结构断言不算视觉验证**——0.8.15 就是按钮个数断言全绿、按钮实为裸文字出的门。
+   **2026-10-31 owner 收紧:每一次做视觉验证,必须调用视觉模型出图终审**——人眼自看/只跑样式断言都不算完;验证轮里修了视觉再验,同样要再过一次模型(原话:「你每一次在验证的时候,必须调用这个视觉模型做视觉验证」)。像素级几何问题(对齐/偏移几 px)目测与模型口供都不可靠,**先上几何量测**(CDP 在页量测,先例:`icon-align-probe.py` 墨迹中心量测定凶,lessons L45 同族),量测定位→修→模型出图终审。
 
 ## 3. 脚本清单(scripts/e2e/,2026-10-10 全量入库)
 
@@ -97,6 +98,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `freeze-probe.py` | 冻结**解剖器**:循环配方直至冻结,活体解剖(JS 直发点击/项目往返 store 真值读回/控制台全收);`FREEZE_PROBE_EXE`+`FREEZE_PROBE_FAST=1` 支持 A/B 与放大 | 冻结命中后的分层定位 |
 | `live-inspect.py` | **活体直连**(owner 2026-10-12 指令):只读附身正在运行的实例(常开端口 9322),调 `window.__aiv.snapshot()` 吐项目/页签/DOM 三对照/日志环;**绝不 launch/kill/focus** | owner 客户端任何异常现场的第一动作;0.7.12 起有效 |
 | `visual-check-014.py` | spec-014 视觉自检:双主题 7 张截图(offscreen 显示窗口 CDP 出图,L42 口径);截图供人眼/视觉模型终审+像素抽样核染色层 | 凡动主题 tokens/图标体系/两级标签样式 |
+| `icon-align-probe.py` | 图标几何量测(0.8.18,L51):连活体把 svg 在页栅格化算墨迹 bbox 中心+按钮盒高——像素级对齐问题**先量测再修**,目测与视觉模型的方向判读都不可信 | 凡动图标/头部按钮布局;新增图标时顺手量左邻右舍 |
 | `make-fixtures.py` | 重建 PDF 夹具(见 §1.2)+ handoff 夹具(example.url/demo.exe,缺时才创建) | 夹具丢失/损坏时 |
 | `oracle/` | 官方查看器对照基准(搭建见 README) | 疑上游问题 |
 
@@ -148,6 +150,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 106/106+cargo 132/132(仅版本号)+phase3 **PASS**(+守卫 media_card_equal_buttons_enlarged;p8_exe_info_viewer 加码等宽+放大断言:卡宽≥400/标题≥15px/两钮宽差<1px);**截图亲验双卡双主题 4/4 全过**(等宽 1:1/真按钮/卡片舒展——铁律 §2.3-6 首个完整流程版);freeze-guard 免跑 |
 | 踩坑 | **text-transform:uppercase 会改 innerText**——card-kind 全大写后 body_contains("Media file") 稳红;守卫改语义节点断言(.stat-card .card-kind,Playwright hasText 大小写不敏感)。watcher_deleted_tab_state 旧选择器 .unsupported→.stat-card(换类清扫,非功能回归) |
 | 版本 | **0.8.17 三处已核**;updates=exp 0.8.17(2026-10-26 20:48,UTF-16 核 0.8.17 FOUND/0.8.16 无残留;json 无 BOM);离线安装包未动(0.8.14 现役);owner 路径=Update→重启→①点 .exe:两按钮等宽;②点 mp4:卡片明显变大、按钮等宽;③右键 Properties:对话框按钮同高 |
+
+#### 0.8.18 按路径定位(2026-10-31,owner 增量需求,spec-017/V1.5 §200;方案呈报认可+两条修改[图标换放大镜/三图标对齐修复]后开工;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | Ctrl+L/侧栏🔍按钮弹「按路径定位」对话框;粘贴绝对/相对路径→跳到包含它的已打开项目,树展开滚到目标(文件=右侧打开,文件夹=高亮+展开,纯根=只切项目);容错引号/正反斜杠/大小写/尾斜杠;不在项目内/不存在/藏于隐藏系统文件夹=toast 报错不动界面;零新增驻留。配套:↻ 钮 .glyph inline-flex 化修三图标对齐(L51);install-experience.ps1 取包路径修为 target-exp(新机首装暴露);icon-align-probe.py 入库(图标几何量测先例) |
+| 全档 | check 0/0+vitest **121/121**(+15 locatePath 纯函数:归一矩阵/嵌套项目最长根/走查真名回填/systemGenerated 标记)+cargo **132/132**(仅版本号)+phase3 **PASS×2 连跑**(+11 守卫:ctrl_l 开框聚焦/Esc 关/对话框计算样式/**header_icons_aligned 几何守卫**[三钮高差+svg 中心差<1px]/乱大小写相对路径开文件[树行高亮+折叠后重展开]/带引号正斜杠绝对路径跨项目/文件夹折叠后展开高亮/不存在报错不加页签/node_modules 指路/纯根只切项目);freeze-guard 免跑(watcher 链零改动) |
+| 视觉 | **视觉模型三轮亲验全过**(铁律 §2.3-6 升级版:每次视觉验证必调模型,owner 2026-10-31 立规):①修复后头部截图=三图标同线/大小笔画一致;②对话框 paper/glacier 双主题=真输入框/真按钮/两钮等宽/间距舒适/无缺陷;③整窗=对话框居中+遮罩。**定位真凶靠几何量测**(icon-align-probe:墨迹中心三者仅差 0.12px,真凶=刷新钮 inline-block 基线空隙撑高按钮 3.5px;视觉模型方向判读是错的,L51) |
+| 踩坑 | ①既有 copy 路径守卫的**陈旧 toast 竞态**(wait_for_selector 抓到上一条未消失的 toast)在我轮时间线扰动下连爆两处→dismiss_toast() 辅助点掉残留再等新 toast;**dismiss 必须在开右键菜单之前**,否则它的点击把菜单关了(等 menu item 超时);②e2e 前必须清掉占用开发标识域的常驻 dev 实例(0.7.19 同族;本机 tauri dev 残留自 10-29,版本号 bump 还会触发它自动重编重启) |
+| 版本 | **0.8.18 三处已核**;updates=exp 0.8.18(2026-10-31 20:36,exe VERSIONINFO ProductVersion=0.8.18/json 无 BOM);**新机首次安装体验版客户端**(install-experience:app 装好+dev 态迁移+桌面快捷方式指向,开机即 0.8.18 无需 Update);离线安装包未动(0.8.14 现役,进不进对外包等 owner 喊);owner 路径=双击桌面快捷方式→①Ctrl+L 粘贴任意文件完整路径→跳项目+树定位+右侧打开;②粘贴文件夹路径→高亮展开;③粘贴不在项目里的路径→红色提示;④中文界面对话框中文;⑤看三图标齐不齐 |
 
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 

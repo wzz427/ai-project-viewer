@@ -35,6 +35,14 @@ export const en = {
   "header.git": "Git",
   "header.refresh": "Refresh",
   "header.settings": "Settings",
+  "header.locate": "Locate by Path",
+
+  // --- locate dialog (spec-017) ---
+  "locate.title": "Locate by Path",
+  "locate.placeholder": "C:\\path\\to\\file-or-folder (or a relative path)",
+  "locate.hint":
+    "Opens the project containing this path and reveals it in the tree. A relative path resolves against the active project.",
+  "locate.go": "Locate",
 
   // --- handoff / context menus (handoffMenu.ts + menu components) ---
   "menu.open": "Open",
@@ -238,6 +246,10 @@ export const en = {
   "toast.alreadyOpen": '"{name}" is already open — switched to its tab.',
   "toast.cannotOpenFolder": "Cannot open folder: {err}",
   "toast.cannotOpenPicker": "Cannot open folder picker: {err}",
+  "toast.locateNotInProject": "Not inside any open project: {path}",
+  "toast.locateNotFound": "Path not found: {path}",
+  "toast.locateHidden":
+    '"{name}" is inside a hidden system folder — turn on "Show system folders" in Settings first',
   "toast.cannotOpenFile": "Cannot open file: {err}",
   "toast.cannotOpenPdf": "Cannot open PDF: {err}",
   "toast.cannotOpenImage": "Cannot open image: {err}",
@@ -277,6 +289,14 @@ export const zh: Record<I18nKey, string> = {
   "header.git": "Git",
   "header.refresh": "刷新",
   "header.settings": "设置",
+  "header.locate": "按路径定位",
+
+  // --- locate dialog (spec-017) ---
+  "locate.title": "按路径定位",
+  "locate.placeholder": "C:\\路径\\到\\文件或文件夹(或相对路径)",
+  "locate.hint":
+    "打开包含该路径的项目,并在文件树中定位到它;相对路径按当前项目解析。",
+  "locate.go": "定位",
 
   // --- handoff / context menus ---
   "menu.open": "打开",
@@ -476,6 +496,9 @@ export const zh: Record<I18nKey, string> = {
   "toast.alreadyOpen": "“{name}”已打开——已切换到它的页签。",
   "toast.cannotOpenFolder": "无法打开文件夹:{err}",
   "toast.cannotOpenPicker": "无法打开文件夹选择框:{err}",
+  "toast.locateNotInProject": "不在任何已打开的项目内:{path}",
+  "toast.locateNotFound": "路径不存在:{path}",
+  "toast.locateHidden": "「{name}」在隐藏的系统文件夹内——请先在设置中打开「显示系统文件夹」",
   "toast.cannotOpenFile": "无法打开文件:{err}",
   "toast.cannotOpenPdf": "无法打开 PDF:{err}",
   "toast.cannotOpenImage": "无法打开图片:{err}",

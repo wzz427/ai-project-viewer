@@ -28,6 +28,10 @@ CDP = 9257
 AWAY_B = os.path.join(os.environ["TEMP"], "aiv-p3-away")
 shutil.rmtree(AWAY_B, ignore_errors=True)
 os.makedirs(os.path.join(AWAY_B, "sub"))
+# spec-017: a system-generated folder in the away fixture — locating into
+# it while "show system folders" is off must toast a pointer to Settings
+# instead of silently failing to scroll.
+os.makedirs(os.path.join(AWAY_B, "node_modules"))
 with open(os.path.join(AWAY_B, "sub", "seed.txt"), "w", encoding="utf-8") as f:
     f.write("seed\n")
 # 0.8.7: the away fixture doubles as a REAL git repo so the Properties
@@ -132,6 +136,16 @@ with sync_playwright() as p:
 
     def tab_count():
         return page.locator(".file-tab").count()
+
+    # Toasts auto-dismiss on a timer; a wait_for_selector(".toast") after an
+    # action can catch a PREDECESSOR's still-visible toast and read the wrong
+    # text (caught live 2026-10-31, copy_rel/copy_abs rounds). Click any
+    # lingering one away BEFORE the toasting action — toasts dismiss on
+    # click — so the next one that appears is provably fresh.
+    def dismiss_toast():
+        if page.locator(".toast").count():
+            page.locator(".toast").first.click()
+            time.sleep(0.2)
 
     # --- #3 regression: text -> text switch must show the NEW content ---
     expand("edge-cases")
@@ -515,6 +529,186 @@ with sync_playwright() as p:
     check("language_switch_back_to_en", "Files" in header_en, header_en)
     page.click(".header-icon.settings")
 
+    # --- spec-017: locate by path (owner 2026-10-31). Ctrl+L dialog;
+    # relative + absolute inputs; file/folder/root targets; error paths.
+    # English steady state restored above, so toast wording is en. ---
+    press("l")
+    time.sleep(0.4)
+    focus_ok = page.evaluate(
+        "() => document.activeElement === document.querySelector('[data-locate-input]')")
+    check("locate_dialog_ctrl_l_opens",
+          page.locator(".locate-dialog").count() == 1 and focus_ok,
+          f"dialog={page.locator('.locate-dialog').count()} focus={focus_ok}")
+    # 铁律 §2.3-6: computed-style assertions — the field must be a real
+    # input surface, not a bare text node (0.8.15 lesson).
+    locate_chrome = page.evaluate("""() => {
+        const el = document.querySelector('[data-locate-input]');
+        const cs = getComputedStyle(el);
+        const btn = document.querySelector('.locate-dialog .card-actions button.primary');
+        const bs = btn ? getComputedStyle(btn) : null;
+        return { border: cs.borderTopWidth, bg: cs.backgroundColor,
+                 pad: cs.paddingTop,
+                 btnBorder: bs ? bs.borderTopWidth : 'none',
+                 btnBg: bs ? bs.backgroundColor : 'none' };
+    }""")
+    check("locate_dialog_chrome",
+          locate_chrome["border"] not in ("", "0px")
+          and locate_chrome["bg"] not in ("rgba(0, 0, 0, 0)", "transparent")
+          and locate_chrome["btnBorder"] not in ("", "0px", "none"),
+          str(locate_chrome))
+    # 0.8.18 icon alignment (owner 2026-10-31 "三个图标的高度根本就没有对齐"):
+    # header icon BUTTONS must be one height and their svgs one center —
+    # the inline-block descender gap on .refresh .glyph used to inflate its
+    # button 3.5px and lift the icon (geometry truth, lessons L45 family).
+    icon_geo = page.evaluate("""() => {
+        const rows = [...document.querySelectorAll('.sidebar-header .header-icon')].map(b => {
+            const br = b.getBoundingClientRect();
+            const s = b.querySelector('svg');
+            const sr = s ? s.getBoundingClientRect() : null;
+            return { h: br.height, c: sr ? sr.top + sr.height / 2 : null };
+        });
+        const hs = rows.map(r => r.h), cs = rows.filter(r => r.c !== null).map(r => r.c);
+        return { hs, cs, hSpread: Math.max(...hs) - Math.min(...hs),
+                 cSpread: cs.length ? Math.max(...cs) - Math.min(...cs) : -1 };
+    }""")
+    check("header_icons_aligned",
+          icon_geo["hSpread"] < 1 and icon_geo["cSpread"] < 1 and len(icon_geo["hs"]) == 3,
+          str(icon_geo))
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    check("locate_dialog_esc_closes",
+          page.locator(".locate-dialog").count() == 0,
+          "dialog still open after Esc")
+
+    # relative path with WRONG CASE against the active project → file
+    # opens (single-click semantics), tree row revealed + selected.
+    # Collapse src first: earlier suites left it expanded, and a pre-
+    # expanded parent would make the "locate expanded it" half vacuous.
+    if page.locator('.row[title="src"]').first.get_attribute("aria-expanded") == "true":
+        page.locator('.row[title="src"]').first.click()
+        time.sleep(0.4)
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("SRC/Main.Py")
+    page.keyboard.press("Enter")
+    located_file = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".file-tab.active .name").count() and \
+           page.locator(".file-tab.active .name").inner_text() == "main.py":
+            located_file = True
+            break
+    time.sleep(0.4)
+    row_file = page.locator('.row[title="src/main.py"]')
+    row_src = page.locator('.row[title="src"]')
+    check("locate_relative_file_opens",
+          located_file and row_file.count() == 1
+          and "selected" in (row_file.first.get_attribute("class") or "")
+          and row_src.first.get_attribute("aria-expanded") == "true",
+          f"tab={located_file} row={row_file.count()}")
+
+    # absolute path, QUOTED (our own Copy Absolute Path format) with
+    # forward slashes, into the OTHER project → switches + opens.
+    away_file = f'"{AWAY_B.replace(os.sep, "/")}/sub/seed.txt"'
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill(away_file)
+    page.keyboard.press("Enter")
+    switched = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".project-tabs .tab.active .tab-name").count() and \
+           page.locator(".project-tabs .tab.active .tab-name").inner_text() == "aiv-p3-away":
+            switched = True
+            break
+    time.sleep(0.5)
+    away_tab = page.locator(".file-tab.active .name").count() and \
+        page.locator(".file-tab.active .name").inner_text()
+    check("locate_absolute_crosses_project",
+          switched and away_tab == "seed.txt",
+          f"switched={switched} tab={away_tab}")
+
+    # folder target (absolute, wrong case) → row highlighted + expanded.
+    # Switch HOME first (the previous guard left the away project active,
+    # whose tree has no src/), then collapse src so the locate's expansion
+    # is provably its own work.
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.6)
+    if page.locator('.row[title="src"]').first.get_attribute("aria-expanded") == "true":
+        page.locator('.row[title="src"]').first.click()
+        time.sleep(0.4)
+    src_dir = os.path.join(os.path.abspath(PROJECT), "SRC")
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill(src_dir)
+    page.keyboard.press("Enter")
+    back_home = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".project-tabs .tab.active .tab-name").count() and \
+           page.locator(".project-tabs .tab.active .tab-name").inner_text() == "AIV-TestProject":
+            back_home = True
+            break
+    time.sleep(0.6)
+    src_row = page.locator('.row[title="src"]')
+    check("locate_folder_reveals_highlighted_expanded",
+          back_home and src_row.count() == 1
+          and src_row.first.get_attribute("aria-expanded") == "true"
+          and "selected" in (src_row.first.get_attribute("class") or ""),
+          f"back={back_home} expanded={src_row.first.get_attribute('aria-expanded')}")
+
+    # nonexistent path → error toast, no tab added, no dialog left open.
+    tabs_before_locate = tab_count()
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill(os.path.join(AWAY_B, "sub", "nope.md"))
+    page.keyboard.press("Enter")
+    toast_text = ""
+    for _ in range(30):
+        time.sleep(0.15)
+        if page.locator(".toast").count():
+            toast_text = page.locator(".toast").inner_text()
+            break
+    check("locate_not_found_toasts",
+          "Path not found" in toast_text and tab_count() == tabs_before_locate
+          and page.locator(".locate-dialog").count() == 0,
+          f"toast={toast_text!r} tabs={tab_count()}>{tabs_before_locate}")
+
+    # hidden system folder → pointer toast (never a silent no-scroll).
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill(os.path.join(AWAY_B, "node_modules"))
+    page.keyboard.press("Enter")
+    hidden_toast = ""
+    for _ in range(30):
+        time.sleep(0.15)
+        if page.locator(".toast").count():
+            hidden_toast = page.locator(".toast").inner_text()
+            break
+    check("locate_hidden_system_toasts",
+          "system folder" in hidden_toast, f"toast={hidden_toast!r}")
+
+    # project ROOT itself (quoted, trailing separator) → just switches.
+    tabs_at_root = tab_count()
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill(f'"{AWAY_B}\\')
+    page.keyboard.press("Enter")
+    root_switch = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".project-tabs .tab.active .tab-name").count() and \
+           page.locator(".project-tabs .tab.active .tab-name").inner_text() == "aiv-p3-away":
+            root_switch = True
+            break
+    check("locate_root_only_switches",
+          root_switch and tab_count() == tabs_at_root,
+          f"switched={root_switch} tabs={tab_count()}>{tabs_at_root}")
+    # leave the world as the next section expects it (away section writes
+    # into AWAY_B and switches there itself)
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.5)
+
     # --- #2: active tab has accent styling ---
     open_file("README.md")
     styled = page.evaluate("""() => {
@@ -845,6 +1039,10 @@ with sync_playwright() as p:
     #  prompt that blocks the evaluate call — the toast IS the oracle.)
     # 0.8.4: copied paths are quote-wrapped (owner 2026-10-15) so pastes
     # with spaces survive terminals — the quotes are part of the contract.
+    # dismiss_toast BEFORE the right-click: its click would close an open
+    # menu (outside-mousedown), so it may never sit between menu-open and
+    # item-click.
+    dismiss_toast()
     tree_row("chinese-gb18030.txt").click(button="right")
     # dispatch_event, not click(): this suite earlier used CDP viewport
     # emulation (resize test) and Playwright's cached viewport then
@@ -856,16 +1054,16 @@ with sync_playwright() as p:
     check("copy_rel_feedback",
           rel_toast.count('"') == 2 and rel_toast.endswith('"')
           and "edge-cases/chinese-gb18030.txt" in rel_toast, repr(rel_toast))
-    time.sleep(1.0)  # let the toast clear
     # A top row: the menu opens AT the click point, so a bottom row would
     # place its items below the viewport (unclickable).
+    dismiss_toast()
     tree_row("README.md").click(button="right")
     page.locator(".menu [data-menu-id='copy-abs']").dispatch_event("click")
     abs_toast = page.wait_for_selector(".toast").inner_text().strip()
     check("copy_abs_feedback",
           abs_toast.count('"') == 2 and abs_toast.endswith('"')
           and "AIV-TestProject\\README.md" in abs_toast, abs_toast)
-    time.sleep(1.0)  # let the toast clear
+    dismiss_toast()
     page.locator(".project-tabs .tab.active").click(button="right")
     page.locator(".menu [data-menu-id='copy-project-path']").dispatch_event(
         "click")

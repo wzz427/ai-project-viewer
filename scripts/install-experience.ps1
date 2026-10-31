@@ -10,7 +10,12 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot   # repo root (scripts/ lives in it)
-$built = Join-Path $root "src-tauri\target\release\ai-project-viewer.exe"
+# The exp-identifier build lives in the ISOLATED cargo dir (the 2026-10-10
+# owner-isolation change in publish-experience.ps1): src-tauri\target\release
+# is the dev/e2e binary — installing THAT would put the owner's client in
+# the dev identifier domain (state file, updater, single-instance all wrong
+# channel). First fresh-machine use since the split caught the stale path.
+$built = Join-Path $root "src-tauri\target-exp\release\ai-project-viewer.exe"
 if (-not (Test-Path $built)) { throw "Build the experience exe first (see header)." }
 
 $base = Join-Path $env:LOCALAPPDATA "AIProjectViewer"

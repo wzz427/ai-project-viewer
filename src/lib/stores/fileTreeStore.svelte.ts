@@ -216,6 +216,14 @@ export async function toggleExpand(rootPath: string, relDir: string) {
   }
 }
 
+/** Fill one level into the shared cache if missing (no force, no
+ *  expansion) — spec-017 locate walks through this so the levels it
+ *  touches land in the SAME cache the tree reads; revealInTree right
+ *  after then costs no extra IPC. */
+export async function ensureDirLoaded(rootPath: string, relDir: string) {
+  await loadDir(rootPath, relDir, false);
+}
+
 /**
  * Refresh: re-list the project root AND every previously loaded level
  * (anything cached, expanded or not), reconciling pins per directory

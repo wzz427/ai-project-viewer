@@ -15,7 +15,8 @@ export type Combo =
   | "ctrl+f"
   | "ctrl+tab"
   | "ctrl+shift+tab"
-  | "ctrl+r";
+  | "ctrl+r"
+  | "ctrl+l";
 
 const COMBOS: readonly Combo[] = [
   "ctrl+w",
@@ -23,6 +24,7 @@ const COMBOS: readonly Combo[] = [
   "ctrl+tab",
   "ctrl+shift+tab",
   "ctrl+r",
+  "ctrl+l",
 ];
 
 type Handler = () => void;
@@ -49,6 +51,10 @@ function comboOf(e: KeyboardEvent): Combo | null {
       return e.shiftKey ? null : "ctrl+f";
     case "r":
       return e.shiftKey ? null : "ctrl+r";
+    case "l":
+      // Locate by path (spec-017 D9): the address-bar muscle memory —
+      // type an address, jump there.
+      return e.shiftKey ? null : "ctrl+l";
     case "tab":
       return e.shiftKey ? "ctrl+shift+tab" : "ctrl+tab";
     default:

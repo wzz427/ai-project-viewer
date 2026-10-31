@@ -104,13 +104,14 @@ ProjectViewer/(仓库根)
 │   └── history/INDEX.md —— 历史归档入口
 ├── .zcode/commands/wrap.md —— /wrap 斜杠命令(压缩前收尾,方法全文)
 ├── index.html / vite.config.ts / tsconfig.json / svelte.config.js / package.json / .npmrc —— 前端工程(纯 Vite+Svelte5,无 SvelteKit)
-├── scripts/install-experience.ps1(体验版一次性装机:独立目录+state 迁移+快捷方式)
+├── scripts/install-experience.ps1(体验版一次性装机:独立目录+state 迁移+快捷方式;0.8.18 修取包路径=target-exp 隔离目录——原指向 target\release 的 dev 二进制,target-exp 拆分时漏改,新机首装暴露)
 ├── scripts/publish-experience.ps1(每轮交付:构建 .exp 配置+放 updates+写 update.json——交付流程见 testing.md §2f)
 ├── scripts/e2e/ —— e2e/工装脚本集群(档位与跑法唯一真值=docs/testing.md §1/§3;⚠️ 零打扰红线:aivlaunch.py PID 限定启动,绝不按进程名杀/按标题找窗)
 │   ├── 回归五套:phase3-suite / git-suite / recent-suite / acceptance-r3 / pdf-suite(夹具自建,make-fixtures/oracle 供)
 │   ├── benchmark-suite.py —— T3 全量性能档(A–I+Baseline;🔴 owner 批准才跑,结果落 %TEMP%\aiv-bench)
 │   ├── freeze-repro.py / freeze-probe.py —— 内容冻结复现器/探针(0.7.12 大案工装;probe 支持 FREEZE_PROBE_EXE/FAST)
 │   ├── live-inspect.py —— 活体直连(CDP 9322 只读快照;不启不杀不聚焦;现场报障第一动作,D13)
+│   ├── icon-align-probe.py —— 图标几何量测(0.8.18:连活体把 svg 栅格化算墨迹中心/按钮盒高,像素级对齐问题先量测后修,铁律 §2.3-6 先例)
 │   └── visual-check-014.py —— spec-014 视觉自检(双主题 7 张截图,offscreen 显示窗口 CDP 出图;截图供人眼/视觉模型终审)
 ├── src-tauri/experience.conf.json(体验版构建片段:identifier .exp,数据/单实例与开发版全隔离)
 ├── public/favicon.png
@@ -119,14 +120,16 @@ ProjectViewer/(仓库根)
 │   └── lib/
 │       ├── components/ProjectTabs/(顶栏项目标签:增/删/切/active;**AddProjectMenu=0.7.3 + 号两段式菜单,V1.5 §198**:Browse 永第一项+Open Recent 列表悬停✕+Clear,空表时 + 仍直开选框)
 │       ├── components/ContextMenu/(ProjectContextMenu:项目右键菜单,顶栏标签与 Files 面板路径共用)
-│       ├── components/SidebarHeader/(Files/Git[徽标 §9]/⚙/↻)
+│       ├── components/SidebarHeader/(Files/Git[徽标 §9]/🔍**spec-017 按路径定位入口,Ctrl+L 同**/⚙/↻;0.8.18:↻ 钮 .glyph 改 inline-flex——inline-block 下行内 svg 吃文字基线降部空隙,按钮被撑高 3.5px 致三图标错位[owner 报障,icon-align-probe 几何量测定凶])
 │       ├── components/FileTree/(FileTree 宿主 / TreeItem 递归行 / NodeContextMenu Pin 右键)
 │       ├── components/ProjectTabs/FileTabs.svelte(主区文件标签条)
+│       ├── components/LocateDialog.svelte(**spec-017 按路径定位对话框**:App 根单槽渲染同 ErrorDialog 模式,打开即聚焦+全选;编排住 locateStore,纯逻辑住 services/locatePath.ts)
 │       ├── components/Viewers/(ActiveViewer 路由(**Phase 9:{#key}=rel+contentRev——外部重读后 CodeMirror/PDF 重挂载换内容,§160.5 保滚动**) / MarkdownViewer / **CodeViewer+codeLanguages+codeSearchRegistry(0.7.4:字号一变即重建编辑器实例——CSS 变量改字号 CM 看不见,缓存行高过期致行号列逐行漂移(owner 截图报障);行号随正文同字号)** / JsonViewer / ImageViewer / **PdfViewer(Phase 5:pdfjs legacy+工具栏+虚拟化+切离释放)** / **DiffViewer(Phase 7:side-by-side 并排 diff 单槽视图,0.6.8 返修:双栏行号+路径列头+红绿对置+空侧斜纹+折叠计数条,parseUnifiedDiff 纯解析(D16);§72 超限 Open in VS Code,Esc/× 关)** / **CommitDetailView(0.6.8 返修:提交详情单槽——Message/作者/日期/Hash/文件列表,文件点入提交视角 diff)** / UnsupportedViewer / **ViewerToolbar+activeFind(0.6:文本类统一操作栏=全局字号+Find;Ctrl+F 注册表)** / **ExecutableInfoViewer(Phase 8:§122 exe 信息卡=stat 纯字段,无内容缓冲)** / **ErrorDialog(0.6.13:窗口正中单槽错误弹窗=Run 失败醒目反馈,§119 修订;Esc/OK/背板关)**)
 │       ├── components/SidebarPanels/(Files=路径框+FileTree / **Git=Phase 7 面板(§50 分支行↑↓/子目录 Repository+Scope 盒/CHANGES+STAGED+RECENT COMMITS/§152/§153 三空态)** / Settings)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案;0.7.3 §198-b:最近列表非空时 Open Folder 下方渲染只读 Recent 列表,点击即开,失效置灰)
 │       ├── components/Toast/(单槽 toast)
 │       ├── stores/projectStore.svelte.ts(项目列表+去重+增删+每项目 sidebarMode/Width;会话字段,持久化走 appState;addProjectFromPath 成功两分支(新加/切换)记 Open Recent,spec-010 D1:会话恢复不记)
+│       ├── stores/locateStore.svelte.ts(**spec-017 按路径定位**:单布尔开合槽+submitLocate 编排——归一/项目匹配/逐层走查(ensureDirLoaded 共享树缓存)→切项目+侧栏 Files→revealInTree+openFile/展开高亮;错误走 toast;零驻留)
 │       ├── i18n/(**spec-016 语言切换**:dict.ts=en/zh 双字典~210 键+translate/relativeTimeDict 纯函数;t.svelte.ts=t/tf/rt/relTime 响应层(读 settings.locale);rustErrors.ts=后端报错 30 条前缀映射+源锚点防漂移)
 │       ├── stores/settingsStore.svelte.ts(AppSettings:theme/fontSize/全局 showSystemFolders;Phase 4 起持久化)
 │       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据;0.6.12 增 600 条运行日志环——全局 error/rejection+boot/tab/viewer/project/git-view 事件,Settings Export Diagnostics 经 Rust write_diagnostics 落盘 app_config_dir/diagnostics;0.6.13 §164 增量:面板只留导出按钮,读数进报告)
@@ -142,7 +145,8 @@ ProjectViewer/(仓库根)
 │       ├── services/avatarColor.ts(0.7.14:rootPath FNV-1a hash→8 色板稳定徽标色+首字母,spec-014 D3)
 │       ├── components/Icon.svelte(0.7.14:全应用唯一图标表——16 枚内联 SVG/2px 描边/currentColor,替换全部 Unicode/emoji 字形;FILE_ICONS 类型族映射消费 viewerType 路由,spec-014 D1/D4)+ services/viewerType.ts iconFamilyOf(类型图标族=查看器路由同源)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
-│       └── services/shortcuts.ts(P0 快捷键中央 dispatcher)/ tauri.ts(invoke 封装)/
+│       └── services/shortcuts.ts(P0 快捷键中央 dispatcher,0.8.18 增 ctrl+l 定位)/ tauri.ts(invoke 封装)/
+│           locatePath.ts(**spec-017 纯函数**:normalizeInput 引号/斜杠/大小写/盘符归一+matchProject 最长根前缀+resolveRel 逐段 ci 走查回真名,vitest 直测)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家;**Phase 9 起为 Rust watcher.rs 同款清单的 TS 侧镜像(注释互指,D8)**)/
 │           watcherApply.ts(Phase 9 纯函数:needsReload 精确路径/isGone 含目录前缀/renamedRel 改名映射+vitest)/
 │           recentList.ts(0.7.3 Open Recent 纯函数,§198:insertRecent MRU 去重截断+recentName/recentParent 行拆分,vitest 直测)/
@@ -170,6 +174,7 @@ ProjectViewer/(仓库根)
 | 顶栏标签 UI / 右键菜单 | src/lib/components/ProjectTabs/ProjectTabs.svelte |
 | 右键移交条目(树/页签/项目,§135–141 分型唯一真源) | src/lib/services/handoffMenu.ts(菜单构建+剪贴板)+ src-tauri/src/handoff.rs(命令) |
 | 侧栏 Files/Git/Settings(含头部 ↻ Refresh 图标,0.6.5/0.6.6) | src/lib/components/SidebarHeader + SidebarPanels |
+| 按路径定位(0.8.18,spec-017/V1.5 §200) | services/locatePath.ts(归一/匹配/走查纯函数)+ stores/locateStore.svelte.ts(编排)+ components/LocateDialog.svelte + SidebarHeader 🔍 按钮 + shortcuts.ts ctrl+l;复用 fileTreeStore.ensureDirLoaded/revealInTree + tabsStore.openFile |
 | 运行脚本/程序+项目信任(Phase 8) | src-tauri/src/run.rs(运行层) + projectStore.trustedForExecution(§129 门,前端 UX 门+Rust 扩展名/路径围栏) + handoffMenu.runWithTrust(§128 确认框+§119:成功静默/失败居中弹窗) + ExecutableInfoViewer + ErrorDialog |
 | Git 只读检视(徽标/页签 ✓●/树标记/Git 面板/并排 diff/提交详情/刷新触发,Phase 7+0.6.8 返修) | src-tauri/src/git.rs(命令+解析) + src/lib/stores/gitStore.svelte.ts(态+防抖) + gitFormat.ts/diffSideBySide.ts(纯函数) + GitPanel(0.6.8 照 VS Code 重排:分段文件名/计数徽章/提交图形列)/DiffViewer/CommitDetailView 组件 |
 | 文件变化实时监听(Phase 9:树/查看器/Git 自动刷新+删除改名同步) | src-tauri/src/watcher.rs(监听+防抖+忽略+配对) + stores/watcherStore.svelte.ts(批次编排) + services/watcherApply.ts(纯匹配) + tabsStore.reloadFile/applyTabRenames + fileTreeStore.applyTreeRenames/pruneRemovedDirs + App.svelte(激活项目 start/stop effect+initWatcher) |
