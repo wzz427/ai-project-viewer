@@ -8,6 +8,7 @@
    */
   import { ask } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
   import { applyUpdate, checkUpdate, relaunch } from "$lib/services/tauri";
   import { toast } from "$lib/stores/toastStore.svelte";
   import Icon from "$lib/components/Icon.svelte";
@@ -38,6 +39,21 @@
     if (started) return;
     started = true;
     void refresh();
+  });
+
+  // spec-019: the backend watches the updates folder and pings on every
+  // change, so a publish lights this button while the app is OPEN (no
+  // restart, no manual recheck). Dev builds never emit it (no folder,
+  // no watcher) — this subscription simply stays silent there.
+  // Own effect, NOT inside the one above: refresh()'s synchronous guard
+  // reads `status` ($state), which would make the mount effect re-run on
+  // every status change — the started flag would then swallow the
+  // re-subscription after cleanup and silently drop this listener.
+  $effect(() => {
+    const unlistenP = listen("update-staged", () => void refresh());
+    return () => {
+      void unlistenP.then((un) => un());
+    };
   });
 
   async function onClick() {

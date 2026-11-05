@@ -53,10 +53,31 @@ if ($stagedV) { Write-Host "staged version: $stagedV -> publishing $version" }
 
 $expExe = Join-Path $root "src-tauri\target-exp\release\ai-project-viewer.exe"
 if (-not (Test-Path $expExe)) { throw "experience exe not found at $expExe" }
-Copy-Item $expExe (Join-Path $updates "ai-project-viewer.exe") -Force
+# Atomic staging (spec-019 D3): the client now WATCHES this folder and may
+# light its Update button (or answer a click) the instant files change.
+# Copying straight to the final name would expose a half-written exe for
+# the seconds the copy takes — write a temp name, then rename over. A
+# mid-rename gap hits the client's exists-gate and reads as "nothing
+# staged", never as a partial file. Order: exe first, note last (note =
+# "publish complete" marker).
+# Retry the rename: the client's md5 stream briefly holds the target open
+# WITHOUT FILE_SHARE_DELETE, so a rename landing in that window is denied
+# (caught live by the spec-019 suite). The read lasts milliseconds.
+function Move-Atomic([string]$from, [string]$to) {
+    for ($i = 0; $i -lt 20; $i++) {
+        try { Move-Item $from $to -Force; return }
+        catch { Start-Sleep -Milliseconds 250 }
+    }
+    throw "rename kept being denied: $from -> $to (target locked >5s)"
+}
+$stagedExe = Join-Path $updates "ai-project-viewer.exe.staging"
+Copy-Item $expExe $stagedExe -Force
+Move-Atomic $stagedExe (Join-Path $updates "ai-project-viewer.exe")
 
 $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
 $json = @{ note = "[$version | $stamp] $Note" } | ConvertTo-Json
 # UTF-8 WITHOUT BOM: the client's JSON parser chokes on a BOM (lessons L2).
-[System.IO.File]::WriteAllText((Join-Path $updates "update.json"), $json, (New-Object System.Text.UTF8Encoding($false)))
-Write-Host "PUBLISHED. Tell the owner: click the Update button in the client."
+$stagedJson = Join-Path $updates "update.json.staging"
+[System.IO.File]::WriteAllText($stagedJson, $json, (New-Object System.Text.UTF8Encoding($false)))
+Move-Atomic $stagedJson (Join-Path $updates "update.json")
+Write-Host "PUBLISHED. Running clients light up on their own now (spec-019)."

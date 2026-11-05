@@ -28,6 +28,13 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-05 · 0.8.21 发布即点亮已发(spec-019),等 owner 升一次后进入"自动点亮"时代
+
+- owner 指令「你让我更新的时候,你自己去点亮 update」→ updater 加 `watch_updates`(notify 监听 updates 目录→emit 哑事件→前端 refresh;事件驱动非轮询,dev 零路径,体验版常驻一个 debouncer handle)+发布脚本原子落盘与锁重试(**live 抓获**:客户端 md5 读 exe 的毫秒级锁会拒 rename,std fs::File 无 FILE_SHARE_DELETE)。新专套件 update-watch **3/3**(伪体验布局全链真实跑);全档绿;**0.8.21 已发**。
+- **衔接**:自动点亮只对 0.8.21+ 客户端生效——owner 手上 0.8.20(已 live-inspect 核实按钮灰)需老办法(点灰按钮重查)升一次;**此后每轮发布即点亮,下轮发布为实战首验**。
+- **L29 五度重演**(改 Rust 顺手裸 cargo→白屏;mtime 防闸被刷新的 mtime 骗过,明文扫描不可行):lessons L29 五度行+**doc-routes.md 首建**(AGENTS 路由行同步)。
+- 账:spec-019(InTest,§五实施记录)/INDEX/testing 0.8.21 行+套件表/V1.5 §202 审计行/architecture updater 行。**下一动作=owner 升 0.8.21 验收**。
+
 ### 2026-11-05 · 0.8.20 定位居中已发(spec-018 返工轮),等 owner 再验
 
 - owner 验收 0.8.19 反馈(截图):目标行不在树显示区时,定位把高亮行停在**边缘**,"最好大致居中"。修=reveal 滚动 nearest→center(链接跳转+Ctrl+L 共用一处);**守卫首跑照出潜伏 bug**:树根从不进 expandedFolders→**根级文件**定位滚动从未生效过,一并修(TREE_ROOT bypass)。

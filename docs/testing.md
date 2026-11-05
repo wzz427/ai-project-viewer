@@ -90,6 +90,7 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | `git-suite.py` | Phase 7 Git 检视 33 项:三实例(BigRepo 根=正常/apps\viewer=子目录 §174/AIV-TestProject=非 Git)——徽标计数/页签 ●✓/树标记字母/面板分组/点击开 diff(wt+staged)/同文件双组单计/超限守卫/手动刷新 + 0.6.8 返修:并排 diff 双侧断言/Git 视图期间隐藏文件页签/name+dir+letter 分段排版/提交时间单位/提交详情钻取→提交视角 diff→返回与关闭 + **Phase 9:外部写/删探针→徽标自动 [8]/[7](零手势,V5;窗口 park offscreen——L34)**;夹具每次在 %TEMP%\aiv-p7-gitscope 重建 | 凡动 git.rs/GitPanel/gitStore/徽标/树标记/DiffViewer/CommitDetailView/diffSideBySide/App 模式切换/watcher→git 链 |
 | `recent-suite.py` | Open Recent **15 项**(0.7.3,spec-010):预置状态文件+AIV_TEST_PROJECT 自动加两路驱动(原生选框绝不驱动,D4)——记录+MRU+cap 挤旧/菜单结构(Browse 首项+Clear 底部)/失效置灰+报错/打开新项目与切换已开/Esc 关闭/重启持久化/行内✕与 Clear 落盘/空白欢迎页列表;夹具 %TEMP%iv-p10-recent 每次重建;**Clear 之后严禁再点 +(空表会弹原生选框)** | 凡动 recentStore/AddProjectMenu/EmptyState/appState recentFolders 字段 |
 | `acceptance-r3.py` | 验收轮 8 项:更新按钮位置/MD 任务清单/右键 Copy/文本层 | UI 通用改动 |
+| `update-watch-suite.py` | **发布即点亮 3 项**(0.8.21,spec-019):伪体验布局(dev exe 复制 `%TEMP%\aiv-upd-watch\app\`+旁置 updates\,updater 只认目录布局不挑 identifier)——同版 staged 开机不亮/运行中原子发布异版≤8s 按钮亮+悬停含新 note/放回同版回灰;stage() 与 publish 脚本同款 staging+rename+锁重试(客户端 md5 读锁,live 抓获) | **凡动 updater.rs/publish-experience.ps1/UpdateButton 必跑** |
 | `real-input-battery.py` | 真实鼠标 8 手势电池(app+官方 oracle 双模式,前台守卫) | **仅 owner 明确许可占用鼠标时** |
 | `run-live-check.py` | **手动专用**(会开真控制台窗):Phase 8 运行真机检——信任菜单翻转→Run Script→WindowsTerminal 控制台出现+脚本体执行+结束后驻留;系统级窗口差集归因(Win11 默认终端宿主不在 app 子树) | 动 run.rs/信任门时手跑一次;**绝不入例行轮** |
 | `watcher-freeze-guard.py` | 监听抗冻守卫(0.7.0 启动卡死教训,L35):%TEMP% 夹具(300 文件/30 提交 git 仓)+持续写盘锤击(改写+增删 ~33 周期/秒)25s,`SendMessageTimeout(WM_NULL)` 测**原生窗口线程**(渲染进程健康≠窗口没冻);PASS=无响应采样≤2 | **凡动 watcher 链/git_snapshot/事件刷新路径,发版前必跑** |
@@ -179,6 +180,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 149/149+cargo 免跑(Rust 零改动)+phase3 **PASS×3**(130 守卫,+1 md_link_reveal_centers_row:压缩树视口 300px 造确定性滚动,断言行中心与视口中心偏差≤20px 且 scrolled>0);freeze-guard 免跑 |
 | 视觉 | **几何+视觉双亲验**:一次性探针 midOffset=0(精确居中,含诊断字段 scrolled/scrollH/rowAbsTop 排障三轮——前两轮撞 clamp 才明白"守卫目标必须上下都有余量");视觉模型判读截图过(居中区带/选中态/src 自动展开/无异常);探针断完即删 |
 | 版本 | 0.8.20 三处 bump;updates=exp 0.8.20(publish);离线安装包未动;owner 路径=Update 重启→点一个目标在树显示区外的链接→高亮行应落树中部而非贴边 |
+
+#### 0.8.21 发布即点亮(2026-11-05,owner 增量需求「你让我更新的时候,你自己去点亮 update」,spec-019;已发体验渠道待衔接)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | updater.rs `watch_updates`(setup 处启动;updates 目录存在才建 notify 监听[600ms 防抖 NoCache],事件→emit `update-staged` 哑事件;OnceLock 单例;失败静默,按钮有挂载检查+手点兜底;**内存账:体验版常驻一个 debouncer handle,KB 级,dev 零路径**)+UpdateButton 独立 effect 订阅→refresh(单独 effect 防 started 旗标吞订阅:refresh 同步段读 status 会让挂载 effect 重跑)+publish-experience.ps1 原子落盘(staging+Move-Item -Force,exe 先 json 后)与 Move-Atomic 锁重试(**live 抓获**:客户端流式 md5 读 exe 毫秒级锁,std fs::File 无 FILE_SHARE_DELETE,无重试时 rename 被拒) |
+| 全档 | check 0/0+vitest 149/149+cargo **132/132**+**update-watch-suite 3/3 新专套件**(伪体验布局,watch→event→refresh 全链真实跑)+phase3 PASS;freeze-guard 免跑(项目 watcher 链零改动) |
+| 踩坑 | **L29 五度重演**(改 Rust 后顺手 cargo build --release→专套件白屏;mtime 防闸拦不住「exe 新但缺 custom-protocol」,资产压缩嵌入明文扫描实测不可行)→lessons L29 五度行+**doc-routes.md 首建**(「跑 GUI e2e 前→pnpm tauri build --no-bundle」到点送达) |
+| 版本 | 0.8.21 三处 bump;updates=exp 0.8.21(publish,Move-Atomic 首战);离线安装包未动;**衔接说明:自动点亮仅对运行 0.8.21+ 的客户端生效——owner 手上的 0.8.20 需老办法(点灰按钮重查)升一次,此后每轮发布即点亮**;owner 路径=点灰按钮→亮→Update→重启→此后坐着等按钮亮即可 |
 
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 

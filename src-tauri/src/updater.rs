@@ -18,10 +18,20 @@
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use std::time::Duration;
 
+use notify_debouncer_full::notify::RecursiveMode;
+use notify_debouncer_full::{new_debouncer_opt, notify, Debouncer, NoCache};
 use serde::Serialize;
+use tauri::Emitter;
 
 const UPDATE_NOTE: &str = "update.json";
+
+/// spec-019: event name for "the updates folder changed on disk". Dumb on
+/// purpose (D2) — the frontend re-runs check_update, the only place that
+/// decides availability; no IO happens on the watcher thread.
+pub const UPDATE_STAGED_EVENT: &str = "update-staged";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -161,6 +171,59 @@ pub fn clean_stale_swap_files() {
         let _ = fs::remove_file(exe.with_extension("exe.old"));
         let _ = fs::remove_file(exe.with_extension("exe.new"));
     }
+}
+
+/// The running update watcher, if one was started (spec-019). Held for its
+/// Drop side effect only — dropping the debouncer stops the watch and joins
+/// its thread; since the slot is process-lifetime, that happens at exit.
+static UPDATE_WATCH: OnceLock<Option<Debouncer<notify::RecommendedWatcher, NoCache>>> =
+    OnceLock::new();
+
+/// Light the owner's Update button the moment a new build LANDS in the
+/// updates folder (spec-019, owner 2026-11-05: "你让我更新的时候,你自己
+/// 去点亮 update" — the app being open must not hide a publish).
+///
+/// Event-driven, NOT polling (SPEC-INFRA-001 keeps polls out; D1): one
+/// non-recursive notify watch on the updates dir with a 600 ms debounce
+/// absorbs the publish script's copy/delete churn, then one dumb event —
+/// the frontend's check_update (exists-gated, md5-comparing) is the single
+/// decider of "available", so a mid-rename gap reads as "nothing staged"
+/// instead of a false light, and the atomic publish (D3) means the file
+/// the button offers is always complete. Dev builds have no updates\
+/// -> no watcher, zero cost (R4). Failures are quiet by design: the button
+/// keeps its mount-time check and click-to-recheck as fallbacks.
+pub fn watch_updates(app: tauri::AppHandle) {
+    let Some((_app_dir, updates)) = layout() else { return };
+    if !updates.is_dir() {
+        return;
+    }
+    let app_for_events = app.clone();
+    let debounced = move |result: notify_debouncer_full::DebounceEventResult| {
+        // Only real events matter; watcher errors just go quiet (fallbacks
+        // above cover the owner).
+        if let Ok(events) = result {
+            if !events.is_empty() {
+                let _ = app_for_events.emit(UPDATE_STAGED_EVENT, ());
+            }
+        }
+    };
+    // Timeout is required by the debouncer but irrelevant here: there is no
+    // second tick to merge — the events themselves are edge-triggered.
+    // NoCache per watcher.rs (L33): the file-ID cache only pays off for
+    // rename pairing, useless for a two-file flat directory.
+    let Ok(mut debouncer) = new_debouncer_opt(
+        Duration::from_millis(600),
+        None,
+        debounced,
+        NoCache::new(),
+        notify::Config::default(),
+    ) else {
+        return;
+    };
+    if debouncer.watch(&updates, RecursiveMode::NonRecursive).is_err() {
+        return; // unreadable dir: stay on mount-check + manual recheck
+    }
+    let _ = UPDATE_WATCH.set(Some(debouncer)); // loser of the race drops = stops
 }
 
 /// Restart into the (just-updated) binary. `std::process::exit` bypasses

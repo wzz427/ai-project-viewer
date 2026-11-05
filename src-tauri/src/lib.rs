@@ -207,6 +207,10 @@ pub fn run() {
             // Experience channel (SPEC-INFRA-001): remove leftovers from
             // a previous self-update swap.
             updater::clean_stale_swap_files();
+            // spec-019: light the Update button the moment a new build
+            // lands in updates\ while the app is running (dev builds have
+            // no such folder and skip this entirely).
+            updater::watch_updates(app.handle().clone());
 
             // System tray (owner 2026-10-09): single-click restores the
             // window; right-click menu carries Show + the only real Exit.

@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "ai-project-viewer"
-version = "0.8.20"
+version = "0.8.21"
 dependencies = [
  "base64 0.22.1",
  "dunce",
