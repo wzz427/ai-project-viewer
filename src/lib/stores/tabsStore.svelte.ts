@@ -122,6 +122,13 @@ export function activeRelOf(rootPath: string): string | null {
   return tabsState.byRoot[rootPath]?.activeFileRelativePath ?? null;
 }
 
+/** Rels of the project's OPEN files (spec-018 B): the file tree derives
+ * its temp-display chain from this — reading tabsState inside a $derived
+ * keeps that derivation live. */
+export function openRelsOf(rootPath: string): string[] {
+  return tabsState.byRoot[rootPath]?.openFiles.map((t) => t.relativePath) ?? [];
+}
+
 export function activeTab(rootPath: string): RuntimeTab | undefined {
   const st = tabsState.byRoot[rootPath];
   if (!st?.activeFileRelativePath) return undefined;

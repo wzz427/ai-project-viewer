@@ -241,7 +241,7 @@
 - **症状**(Phase 8 e2e 首跑):`cargo build --release` 出的 exe 起得来、CDP 连得上,但页面停在 about:blank,内容是 Edge 错误页"localhost 拒绝连接"(devUrl localhost:1420 没人听);25s 等不到 .file-tree。之前轮次一直绿,是因为当时用了正法构建。
 - **机理**:Tauri 2 的 `custom-protocol` 特性由 `tauri build`(CLI)注入——启用后走内嵌 frontendDist 资产;plain cargo build 不带该特性,运行时回退 devUrl,而 vite dev server 没在跑 → 连接拒绝。
 - **判据**:exe 能起但页面空白/拒绝连接 + URL 落在 localhost:1420 → 先问"这个 exe 是怎么构建的",再看代码。architecture §0/testing §0 已有明文,别凭记忆敲 cargo。
-- **出处**:Phase 8 phase3 首跑三连挂,2026-10-10。
+- **出处**:Phase 8 phase3 首跑三连挂,2026-10-10。**重演账**:二/三度 2026-10-14(testing.md 记档);**四度 2026-11-05**(spec-018 全档回归,cargo test 顺手 `cargo build --release` 后 phase3 25s 白屏)——文档明文两处+三度记档都拦不住"顺手敲 cargo",已上结构性防闸:`aivlaunch._assert_fresh_build`(launch 时无条件比对 exe mtime 与 src 树最新 mtime,exe 旧于源码即拒发,双向实测过)。
 
 ### L30:Windows 11 默认控制台宿主是 WindowsTerminal.exe——控制台窗口不在 spawn 者的进程树里;无控制台时 cmd /K 会被 stdin EOF 打死
 

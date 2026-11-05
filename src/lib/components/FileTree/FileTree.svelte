@@ -1,6 +1,8 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { visibleSorted } from "$lib/services/treeSort";
+  import { keepNamesUnder, openChainDirs } from "$lib/constants/treeVisibility";
+  import { openRelsOf } from "$lib/stores/tabsStore.svelte";
   import {
     refreshProject,
     treeState,
@@ -56,11 +58,16 @@
   });
 
   const rootEntries = $derived(st?.children[TREE_ROOT] ?? []);
+  // spec-018 B: system-generated dirs holding an OPEN file stay visible
+  // (derived from the tab list every render — closing the last such tab
+  // hides the row immediately, no stored state to go stale).
+  const chain = $derived(openChainDirs(openRelsOf(rootPath)));
   const sorted = $derived(
     visibleSorted(rootEntries, {
       foldersFirst: st?.foldersFirst ?? true,
       showSystemFolders: settings.fileTree.showSystemGeneratedFolders,
       pinned: st?.pinnedItems[TREE_ROOT],
+      keepNames: keepNamesUnder(chain, TREE_ROOT),
     }),
   );
   const hiddenCount = $derived(st?.hiddenCounts[TREE_ROOT] ?? 0);

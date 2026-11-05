@@ -144,9 +144,10 @@ ProjectViewer/(仓库根)
 │       ├── services/debugHook.ts(0.7.11:window.__aiv.snapshot() 只读探查钩子——projects/tabs 每根态/DOM 查看器身份(data-rel 对照)/日志环摘要;live-inspect.py 经 CDP 9322 直取,pre-0.7.12 客户端自动回退 DOM 比对)
 │       ├── services/avatarColor.ts(0.7.14:rootPath FNV-1a hash→8 色板稳定徽标色+首字母,spec-014 D3)
 │       ├── components/Icon.svelte(0.7.14:全应用唯一图标表——16 枚内联 SVG/2px 描边/currentColor,替换全部 Unicode/emoji 字形;FILE_ICONS 类型族映射消费 viewerType 路由,spec-014 D1/D4)+ services/viewerType.ts iconFamilyOf(类型图标族=查看器路由同源)
-│       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs)
+│       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs;**spec-018 B 增派生临时显示**:openChainDirs/keepNamesUnder 由打开页签现算隐藏祖先链,visibleEntries 加 keepNames 豁免——零驻留,关页签即隐)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher,0.8.18 增 ctrl+l 定位)/ tauri.ts(invoke 封装)/
 │           locatePath.ts(**spec-017 纯函数**:normalizeInput 引号/斜杠/大小写/盘符归一+matchProject 最长根前缀+resolveRel 逐段 ci 走查回真名,vitest 直测)/
+│           mdLinks.ts(**spec-018 纯函数**:resolveDocLink 把 markdown 内链/图片 href 归一为树同构规范 rel——剥锚点查询/percent 解码/`\` 分隔/`.` `..` 消解/`/` 根相对/逃逸根 null,MarkdownViewer 唯一消费点,vitest 直测)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家;**Phase 9 起为 Rust watcher.rs 同款清单的 TS 侧镜像(注释互指,D8)**)/
 │           watcherApply.ts(Phase 9 纯函数:needsReload 精确路径/isGone 含目录前缀/renamedRel 改名映射+vitest)/
 │           recentList.ts(0.7.3 Open Recent 纯函数,§198:insertRecent MRU 去重截断+recentName/recentParent 行拆分,vitest 直测)/
@@ -175,6 +176,7 @@ ProjectViewer/(仓库根)
 | 右键移交条目(树/页签/项目,§135–141 分型唯一真源) | src/lib/services/handoffMenu.ts(菜单构建+剪贴板)+ src-tauri/src/handoff.rs(命令) |
 | 侧栏 Files/Git/Settings(含头部 ↻ Refresh 图标,0.6.5/0.6.6) | src/lib/components/SidebarHeader + SidebarPanels |
 | 按路径定位(0.8.18,spec-017/V1.5 §200) | services/locatePath.ts(归一/匹配/走查纯函数)+ stores/locateStore.svelte.ts(编排)+ components/LocateDialog.svelte + SidebarHeader 🔍 按钮 + shortcuts.ts ctrl+l;复用 fileTreeStore.ensureDirLoaded/revealInTree + tabsStore.openFile |
+| 文档内链规范化定位+隐藏链临时显示(0.8.19,spec-018/V1.5 §201) | services/mdLinks.ts(链接归一纯函数)+ MarkdownViewer(链接/图片两处消费)+ treeVisibility(openChainDirs/keepNamesUnder/keepNames)+ FileTree/TreeItem($derived 派生链)+ tabsStore.openRelsOf;复用 openFile/revealInTree/absolutePathOf 全链路自动受益 |
 | 运行脚本/程序+项目信任(Phase 8) | src-tauri/src/run.rs(运行层) + projectStore.trustedForExecution(§129 门,前端 UX 门+Rust 扩展名/路径围栏) + handoffMenu.runWithTrust(§128 确认框+§119:成功静默/失败居中弹窗) + ExecutableInfoViewer + ErrorDialog |
 | Git 只读检视(徽标/页签 ✓●/树标记/Git 面板/并排 diff/提交详情/刷新触发,Phase 7+0.6.8 返修) | src-tauri/src/git.rs(命令+解析) + src/lib/stores/gitStore.svelte.ts(态+防抖) + gitFormat.ts/diffSideBySide.ts(纯函数) + GitPanel(0.6.8 照 VS Code 重排:分段文件名/计数徽章/提交图形列)/DiffViewer/CommitDetailView 组件 |
 | 文件变化实时监听(Phase 9:树/查看器/Git 自动刷新+删除改名同步) | src-tauri/src/watcher.rs(监听+防抖+忽略+配对) + stores/watcherStore.svelte.ts(批次编排) + services/watcherApply.ts(纯匹配) + tabsStore.reloadFile/applyTabRenames + fileTreeStore.applyTreeRenames/pruneRemovedDirs + App.svelte(激活项目 start/stop effect+initWatcher) |

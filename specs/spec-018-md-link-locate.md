@@ -1,7 +1,8 @@
 # SPEC-018-链接跳转定位(标题用 owner 会问的那句话:点了文档里的链接,树里怎么找不到它?复制的绝对路径怎么带着 `docs\..`?)
 
-> 状态:Ready —— **方案落纸面,停工等 owner 确认后开工**(workflow §四硬门,2026-10-31 立规)
-> 创建:2026-11-05;owner 报障两条(带双截图,QuantTrading 项目实案),本页 §一/§二 全部据此归纳
+> 状态唯一真值 = INDEX.md;实施记录见 §五。创建:2026-11-05;owner 报障两条(带双截图,
+> QuantTrading 项目实案)。**2026-11-05 owner 三点全确认**(主修复/B 部分随做/`/` 根相对,
+> 原话「三个点都同意,开始做吧」)后开工——D2 由"默认待确认"转正。
 
 ## 〇、值不值得做(两栏三出口,一行各一句)
 
@@ -65,6 +66,14 @@
 
 **同一条依据已同步写进它管的那段代码的头注释**(依据和它管的东西不许分家)——开工时随代码落。
 
-## 五、Ready(停工线)
+## 五、Ready(停工线)→ 已过
 
-方案落纸面完毕。**等 owner 确认**(尤其:D2 的 `/` 根相对解读、B 部分是否随 A 一并做、版本号 0.8.19)后方可 InDev。确认前不动一行产线代码。
+方案落纸面完毕后停工等确认;2026-11-05 owner 原话「三个点都同意,开始做吧」——D2 转正,B 部分随做,版本 0.8.19。**验收路径**(owner 复现报障即可):在 QuantTrading 里打开 docs/ 下那篇文档,点指向 `.agents/skills/agent-team-workflow/SKILL.md` 的链接——右侧打开、左侧树展开定位到该文件行;右键该页签「复制绝对路径」= 干净路径;再点一个指向 node_modules 内文件的链接(若项目里有),树里临时亮出整条隐藏链,关掉该页签链即消失。
+
+## 六、实施记录(2026-11-05,0.8.19)
+
+- **代码**:新 `src/lib/services/mdLinks.ts`(纯函数 resolveDocLink:剥锚点/查询、percent 解码、`/`与`\`双分隔、`.`/`..` 消解、`/` 根相对、逃逸根→null);MarkdownViewer 链接/图片两处换用;`treeVisibility.ts` 加 keepNames/openChainDirs/keepNamesUnder,`treeSort.ts` 透传;FileTree/TreeItem 各一条 $derived 由 tabsStore.openRelsOf 派生隐藏祖先链;i18n 新键 toast.linkOutsideProject(en/zh);Rust 零改动;**零新增驻留**(链集合为每渲染派生、不持久)。
+- **测试**:vitest +28(mdLinks 23 全形态/treeVisibility 5)→149/149;cargo 132/132;phase3 **PASS×2 连跑**(129 守卫,+7 spec-018:md_link_reveals_in_tree/tab_dedup/copy_abs_clean/percent20_opens/anchor_stripped/hidden_chain_shows/hidden_chain_hides_on_close);夹具 +docs/guide.md+docs/my file.md(主)+ away 侧 node_modules/dep 种子。
+- **视觉亲验**(铁律 §2.3-6):一次性探针三截图(临时显示链 paper/glacier 双主题+关闭后消失),视觉模型逐张判读全过——链可见且展开、目标行选中态、无截断重叠;「+1 system folder hidden」计数提示保留(D5 预期,描述开关状态不减一);muted 置灰为原有温和样式非回归。探针断完即删。
+- **顺手**:L29 四度重演(裸 cargo build 白屏)——aivlaunch 加 `_assert_fresh_build` 结构防闸(launch 时比对 exe mtime 与 src 树最新 mtime,旧于源码即拒发;双向实测),lessons L29 记档。
+- **发布**:0.8.19 已发体验渠道(staged 0.8.18→0.8.19,防同版本闸过);离线安装包未动(0.8.14 现役)。

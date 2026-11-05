@@ -161,6 +161,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | ①既有 copy 路径守卫的**陈旧 toast 竞态**(wait_for_selector 抓到上一条未消失的 toast)在我轮时间线扰动下连爆两处→dismiss_toast() 辅助点掉残留再等新 toast;**dismiss 必须在开右键菜单之前**,否则它的点击把菜单关了(等 menu item 超时);②e2e 前必须清掉占用开发标识域的常驻 dev 实例(0.7.19 同族;本机 tauri dev 残留自 10-29,版本号 bump 还会触发它自动重编重启) |
 | 版本 | **0.8.18 三处已核**;updates=exp 0.8.18(2026-10-31 20:36,exe VERSIONINFO ProductVersion=0.8.18/json 无 BOM);**新机首次安装体验版客户端**(install-experience:app 装好+dev 态迁移+桌面快捷方式指向,开机即 0.8.18 无需 Update);离线安装包未动(0.8.14 现役,进不进对外包等 owner 喊);owner 路径=双击桌面快捷方式→①Ctrl+L 粘贴任意文件完整路径→跳项目+树定位+右侧打开;②粘贴文件夹路径→高亮展开;③粘贴不在项目里的路径→红色提示;④中文界面对话框中文;⑤看三图标齐不齐 |
 
+#### 0.8.19 链接跳转定位(2026-11-05,owner 报障×2,spec-018/V1.5 §201;方案三点全确认后开工;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | Markdown 内链统一规范化解析(services/mdLinks.ts 纯函数:剥 `#锚点`/`?查询`、percent 解码、`/`与`\`双分隔、`.`/`..` 消解、`/`开头按项目根、逃逸根→toast 不开):点链接=右侧打开+左侧树展开滚动定位(报障①修复,开关两态皆可);复制绝对路径不再带 `docs\..` 脏段(报障②修复);同文件链接/树互开=单页签(脏键双开一并除);图片 src 同规范。**真隐藏目录链临时显示**(spec-018 B,owner 原话原则):打开 node_modules 等八名单内文件期间,该文件+隐藏祖先行临时显示(派生自 openFiles,零驻留不动开关),最后页签关闭即消失;FileTree/TreeItem 各一条 $derived,treeVisibility 加 keepNames/openChainDirs/keepNamesUnder |
+| 全档 | check 0/0+vitest **149/149**(+28:mdLinks 23 全形态矩阵[owner 实案 ../.agents/%25 round-trip/反斜杠/根相对双例/逃逸 null 组]+treeVisibility 5[ancestorDirs/chain 去重/keepNamesUnder 三层/keepNames 开关交互])+cargo **132/132**(仅版本号)+phase3 **PASS×2 连跑**(129 守卫,+7 spec-018:md_link_reveals_in_tree[链接点击→src 折叠态下树展开+行选中]/tab_dedup[链接+树互开单页签]/copy_abs_clean[页签菜单复制绝对路径无 .. 且=规范拼接]/percent20_opens/anchor_stripped/hidden_chain_shows[开关关,node_modules→dep→文件链现+展开]/hidden_chain_hides_on_close[关页签链即隐]);freeze-guard 免跑(watcher 链零改动) |
+| 视觉 | **视觉模型三截图亲验全过**(铁律 §2.3-6):临时链 paper/glacier 双主题(链可见展开/目标行选中态/无截断重叠)+关闭后消失;「+1 system folder hidden」计数保留(方案 D5:计数描述开关状态,不随临时显示减一);muted 置灰为原有温和样式,非回归 |
+| 踩坑 | **L29 四度重演**(cargo test 后顺手 `cargo build --release` → phase3 25s 白屏):文档明文两处+三度记档都拦不住,已上结构防闸 `aivlaunch._assert_fresh_build`(launch 无条件比对 exe mtime 与 src 树最新 mtime,旧于源码即 RuntimeError 拒发;fresh 静默/stale 拒绝双向实测;scripts/ 夹具不扫描故套件自身改动不误杀) |
+| 版本 | 0.8.19 三处已 bump(package/tauri.conf/Cargo);updates=exp 0.8.19(publish-experience staged 0.8.18→0.8.19,防同版本闸过);离线安装包未动(0.8.14 现役);owner 路径=客户端点 Update 重启→①QuantTrading 打开 docs 下文档点 `.agents` 链接:右侧打开+左侧树定位;②右键该页签复制绝对路径:无 `..`;③(若有)点指向 node_modules 内文件的链接:树临时亮隐藏链,关页签即隐 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

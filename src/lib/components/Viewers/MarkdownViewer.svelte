@@ -16,7 +16,9 @@
     type RuntimeTab,
   } from "$lib/stores/tabsStore.svelte";
   import { readMediaFile } from "$lib/services/tauri";
-  import { joinRel, TREE_ROOT } from "$lib/stores/fileTreeStore.svelte";
+  import { resolveDocLink } from "$lib/services/mdLinks";
+  import { toast } from "$lib/stores/toastStore.svelte";
+  import { t } from "$lib/i18n/t.svelte";
   import { extOf } from "$lib/services/viewerType";
   import { createMarkdownRenderer } from "$lib/services/markdownRender";
   import ViewerToolbar from "./ViewerToolbar.svelte";
@@ -34,6 +36,8 @@
 
   // After render: resolve local <img> to data URLs (D3) — the src attribute
   // written by markdown-it is a project-relative path that would 404.
+  // resolveDocLink canonicalizes it (spec-018): ../, %20 and root-relative
+  // /paths all used to miss the cache/disk lookup.
   $effect(() => {
     rendered; // re-run whenever the source changes
     const el = container;
@@ -45,11 +49,10 @@
     let live = true;
     for (const img of [...el.querySelectorAll<HTMLImageElement>("img")]) {
       const src = img.getAttribute("src");
-      if (!src || /^[a-z]+:/i.test(src) || src.startsWith("/")) continue;
-      const dir = tab.relativePath.includes("/")
-        ? tab.relativePath.slice(0, tab.relativePath.lastIndexOf("/"))
-        : TREE_ROOT;
-      void readMediaFile(rootPath, joinRel(dir, src))
+      if (!src || /^[a-z]+:/i.test(src)) continue;
+      const target = resolveDocLink(tab.relativePath, src);
+      if (!target) continue; // anchor-only/unresolvable: leave as written
+      void readMediaFile(rootPath, target)
         .then((m) => {
           if (live) img.setAttribute("src", m.dataUrl);
         })
@@ -73,12 +76,16 @@
     }
     if (href && !href.startsWith("#") && !/^[a-z]+:/i.test(href)) {
       e.preventDefault();
-      // Internal link: resolve relative to the markdown file's folder,
-      // keeping the extension routing (md → rendered, others → their viewer).
-      const dir = tab.relativePath.includes("/")
-        ? tab.relativePath.slice(0, tab.relativePath.lastIndexOf("/"))
-        : TREE_ROOT;
-      void openFile(rootPath, joinRel(dir, href));
+      // Internal link: canonicalized against the document's folder
+      // (spec-018 — ../, ./, %20 and root-relative / all resolve to the
+      // same rel the tree produces), keeping the extension routing
+      // (md → rendered, others → their viewer).
+      const target = resolveDocLink(tab.relativePath, href);
+      if (!target) {
+        toast(t("toast.linkOutsideProject"), { kind: "error" });
+        return;
+      }
+      void openFile(rootPath, target);
     }
   }
 

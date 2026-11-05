@@ -3,6 +3,7 @@
   import { t } from "$lib/i18n/t.svelte";
   
   import { visibleSorted } from "$lib/services/treeSort";
+  import { keepNamesUnder, openChainDirs } from "$lib/constants/treeVisibility";
   import {
     contextMenuTarget,
     dragState,
@@ -13,7 +14,7 @@
     treeState,
     TREE_ROOT,
   } from "$lib/stores/fileTreeStore.svelte";
-  import { activeRelOf, openFile } from "$lib/stores/tabsStore.svelte";
+  import { activeRelOf, openFile, openRelsOf } from "$lib/stores/tabsStore.svelte";
   import { settings } from "$lib/stores/settingsStore.svelte";
   import { gitMarkOf } from "$lib/stores/gitStore.svelte";
   import { letterClass } from "$lib/services/gitFormat";
@@ -46,11 +47,15 @@
   const emptyDir = $derived(st.emptyDirs.includes(rel));
   const error = $derived(st.loadErrors[rel]);
   const children = $derived(st.children[rel] ?? []);
+  // spec-018 B: same derived temp-display chain as FileTree's root level —
+  // system-generated dirs holding an OPEN file stay visible here too.
+  const chain = $derived(openChainDirs(openRelsOf(rootPath)));
   const sortedChildren = $derived(
     visibleSorted(children, {
       foldersFirst: st.foldersFirst,
       showSystemFolders: settings.fileTree.showSystemGeneratedFolders,
       pinned: st.pinnedItems[rel],
+      keepNames: keepNamesUnder(chain, rel),
     }),
   );
   const hiddenCount = $derived(st.hiddenCounts[rel] ?? 0);

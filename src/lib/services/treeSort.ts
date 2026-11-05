@@ -20,6 +20,9 @@ export interface TreeSortPrefs {
   showSystemFolders: boolean;
   /** Pinned child names in the user's manual order for this parent (§19). */
   pinned: string[] | undefined;
+  /** System-generated names at THIS level to keep visible because an open
+   * file lives under them (spec-018 B temp display; derived per render). */
+  keepNames?: ReadonlySet<string>;
 }
 
 export function naturalCompare(a: string, b: string): number {
@@ -40,7 +43,7 @@ export function visibleSorted(
   entries: readonly TreeEntry[],
   prefs: TreeSortPrefs,
 ): TreeEntry[] {
-  const visible = visibleEntries(entries, prefs.showSystemFolders);
+  const visible = visibleEntries(entries, prefs.showSystemFolders, prefs.keepNames);
 
   const pinnedOrder = prefs.pinned ?? [];
   const pinnedSet = new Set(pinnedOrder);

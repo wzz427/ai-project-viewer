@@ -102,6 +102,35 @@ def _assert_dev_binary(exe):
             "publishing now outputs to src-tauri/target-exp.")
 
 
+def _assert_fresh_build(exe):
+    """L29 guard (4th recurrence 2026-11-05): a plain `cargo build
+    --release` exe passes the exp scan above but lacks custom-protocol and
+    serves a dead devUrl — every suite then burns its full timeout on a
+    blank page. Any source file newer than the exe means the binary
+    predates the code under test; refuse instead of timing out."""
+    exe_mt = os.path.getmtime(exe)
+    repo = os.path.abspath(os.path.join(os.path.dirname(exe), "..", ".."))
+    newest = 0.0
+    tops = ["src", "public", "src-tauri/src", "src-tauri/tauri.conf.json",
+            "src-tauri/Cargo.toml", "package.json", "index.html",
+            "vite.config.ts", "svelte.config.js"]
+    for rel in tops:
+        p = os.path.join(repo, rel)
+        if os.path.isfile(p):
+            newest = max(newest, os.path.getmtime(p))
+        elif os.path.isdir(p):
+            for root, _dirs, files in os.walk(p):
+                if "target" in root or "node_modules" in root:
+                    _dirs[:] = []
+                    continue
+                for fn in files:
+                    newest = max(newest, os.path.getmtime(os.path.join(root, fn)))
+    if newest > exe_mt + 2:  # 2s clock/fs skew allowance
+        raise RuntimeError(
+            f"stale binary: {exe} predates the repo sources (L29) — run "
+            "`pnpm tauri build --no-bundle` before launching e2e")
+
+
 def launch(exe, project, state, cdp, hidden=True, stdout=None,
            keep_state=False):
     """Standard test launch: straggler sweep (repo tree only), fresh state
@@ -109,6 +138,7 @@ def launch(exe, project, state, cdp, hidden=True, stdout=None,
     keep_state=True preserves a pre-existing state file (restart-restore
     scenarios); the fresh-file deletion stays the default."""
     _assert_dev_binary(exe)
+    _assert_fresh_build(exe)
     kill_strays()
     if os.path.exists(state) and not keep_state:
         os.remove(state)

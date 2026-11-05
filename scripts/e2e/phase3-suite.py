@@ -32,6 +32,15 @@ os.makedirs(os.path.join(AWAY_B, "sub"))
 # it while "show system folders" is off must toast a pointer to Settings
 # instead of silently failing to scroll.
 os.makedirs(os.path.join(AWAY_B, "node_modules"))
+# spec-018: a README one level INSIDE the hidden folder + a root doc whose
+# link points into it — the temp-display guards prove the chain shows while
+# the file is open and hides again when its tab closes.
+os.makedirs(os.path.join(AWAY_B, "node_modules", "dep"))
+with open(os.path.join(AWAY_B, "node_modules", "dep", "README.md"), "w",
+          encoding="utf-8") as f:
+    f.write("# Dep readme\n")
+with open(os.path.join(AWAY_B, "linking.md"), "w", encoding="utf-8") as f:
+    f.write("[dep readme](node_modules/dep/README.md)\n")
 with open(os.path.join(AWAY_B, "sub", "seed.txt"), "w", encoding="utf-8") as f:
     f.write("seed\n")
 # 0.8.7: the away fixture doubles as a REAL git repo so the Properties
@@ -1664,6 +1673,115 @@ with sync_playwright() as p:
           f"rows={rows} subj={subj!r} authors={author_n}")
     page.locator(".props-dialog button", has_text="Close").click()
     # Back to the main fixture: leave the suite's world as it found it.
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.5)
+
+    # --- spec-018 (owner 2026-11-05 report): markdown link jumps must land
+    # CANONICAL — ../ links used to break the tree reveal AND leak
+    # `docs\..\` into Copy Absolute Path (one dirty-join root cause). A
+    # pinned tab exists from the earlier recycle guards, so link-opens
+    # RECYCLE the active unpinned slot; every round re-opens guide.md from
+    # the tree instead of trusting its tab to survive. ---
+    if page.locator('.row[title="src"]').first.get_attribute("aria-expanded") == "true":
+        page.locator('.row[title="src"]').first.click()
+        time.sleep(0.4)
+    expand("docs")
+    open_file("guide.md")
+    page.locator(".markdown-viewer .rendered a", has_text="deep main").click()
+    link_opened = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".file-tab.active .name").count() and \
+           page.locator(".file-tab.active .name").inner_text() == "main.py":
+            link_opened = True
+            break
+    time.sleep(0.5)
+    deep_row = page.locator('.row[title="src/main.py"]')
+    src_row = page.locator('.row[title="src"]')
+    check("md_link_reveals_in_tree",
+          link_opened and deep_row.count() == 1
+          and "selected" in (deep_row.first.get_attribute("class") or "")
+          and src_row.first.get_attribute("aria-expanded") == "true",
+          f"tab={link_opened} row={deep_row.count()}")
+
+    # Same file via link AND via tree click → ONE tab (dirty rels used to
+    # open a second one under a different key).
+    n_before = tab_count()
+    tree_row("main.py").click()
+    time.sleep(0.6)
+    check("md_link_tab_dedup", tab_count() == n_before,
+          f"{n_before} -> {tab_count()}")
+
+    # Copy Absolute Path off the LINK-OPENED file's tab menu — the very
+    # surface that used to carry `docs\..\` into the clipboard.
+    dismiss_toast()
+    page.locator(".file-tab.active").click(button="right")
+    page.locator(".menu [data-menu-id='copy-abs']").dispatch_event("click")
+    link_abs_toast = page.wait_for_selector(".toast").inner_text().strip()
+    check("md_link_copy_abs_clean",
+          ".." not in link_abs_toast
+          and link_abs_toast.count('"') == 2
+          and "src\\main.py" in link_abs_toast,
+          repr(link_abs_toast))
+    dismiss_toast()
+
+    # %20-decoded href opens the spaced file; fragment strips.
+    open_file("guide.md")
+    page.locator(".markdown-viewer .rendered a", has_text="spaced").click()
+    spaced_ok = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".file-tab.active .name").count() and \
+           page.locator(".file-tab.active .name").inner_text() == "my file.md":
+            spaced_ok = True
+            break
+    check("md_link_percent20_opens", spaced_ok, f"tab={spaced_ok}")
+    open_file("guide.md")
+    page.locator(".markdown-viewer .rendered a", has_text="anchored").click()
+    anchor_ok = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".file-tab.active .name").count() and \
+           page.locator(".file-tab.active .name").inner_text() == "README.md":
+            anchor_ok = True
+            break
+    check("md_link_anchor_stripped", anchor_ok, f"tab={anchor_ok}")
+
+    # spec-018 B: link into a system-generated folder with the toggle OFF —
+    # the chain (node_modules → dep → file) shows while the file is open,
+    # hides again once its tab closes (owner: 查看期间临时显示,关闭即消失).
+    page.locator(".project-tabs .tab", has_text="aiv-p3-away").first.click()
+    time.sleep(0.8)
+    open_file("linking.md")
+    page.locator(".markdown-viewer .rendered a", has_text="dep readme").click()
+    dep_opened = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".file-tab.active .name").count() and \
+           page.locator(".file-tab.active .name").inner_text() == "README.md":
+            dep_opened = True
+            break
+    time.sleep(0.5)
+    nm_row = page.locator('.row[title="node_modules"]')
+    dep_file_row = page.locator('.row[title="node_modules/dep/README.md"]')
+    check("md_link_hidden_chain_shows",
+          dep_opened and nm_row.count() == 1
+          and nm_row.first.get_attribute("aria-expanded") == "true"
+          and dep_file_row.count() == 1,
+          f"tab={dep_opened} nm={nm_row.count()} dep={dep_file_row.count()}")
+
+    # Closing that tab (its own Close item — first "Close" in DOM order)
+    # removes the whole temp-display chain from the tree.
+    page.locator(".file-tab.active").click(button="right")
+    page.locator(".menu button", has_text="Close").first.click()
+    time.sleep(0.6)
+    check("md_link_hidden_chain_hides_on_close",
+          page.locator('.row[title="node_modules"]').count() == 0,
+          "node_modules row still visible after close")
+    # Tidy: close linking.md too, back to the main fixture.
+    page.locator(".file-tab", has_text="linking.md").first.click(button="right")
+    page.locator(".menu button", has_text="Close").first.click()
+    time.sleep(0.4)
     page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
     time.sleep(0.5)
 

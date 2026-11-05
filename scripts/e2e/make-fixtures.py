@@ -199,6 +199,21 @@ def rebuild_project(root):
     # expanded (src's children precede root files in DOM) — it must carry
     # the "Entry point" string phase3 asserts.
     _w(root, "src/main.py", '# Entry point (src copy)\nfrom utils import add\n')
+    # spec-018 link-jump guards: one doc in a subfolder whose links cover
+    # every dirty href form (../, %20, #fragment) + the spaced target it
+    # names (written separately so the space survives any tooling).
+    _w(root, "docs/guide.md", "\n".join([
+        "# Link Guide (spec-018 fixture)",
+        "",
+        "Links in every dirty form the resolver must canonicalize:",
+        "",
+        "- [deep main](../src/main.py) — up-and-out of docs/",
+        "- [spaced](my%20file.md) — percent-encoded space",
+        "- [anchored](../README.md#tasks) — fragment must strip",
+        "",
+    ]) + "\n")
+    _w(root, "docs/my file.md",
+       "# My File\n\nA name with a space, reached through a `%20` href.\n")
     _w(root, "src/deep/migrations/001_init.sql",
        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);\n")
 
