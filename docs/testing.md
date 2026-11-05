@@ -171,6 +171,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | **L29 四度重演**(cargo test 后顺手 `cargo build --release` → phase3 25s 白屏):文档明文两处+三度记档都拦不住,已上结构防闸 `aivlaunch._assert_fresh_build`(launch 无条件比对 exe mtime 与 src 树最新 mtime,旧于源码即 RuntimeError 拒发;fresh 静默/stale 拒绝双向实测;scripts/ 夹具不扫描故套件自身改动不误杀) |
 | 版本 | 0.8.19 三处已 bump(package/tauri.conf/Cargo);updates=exp 0.8.19(publish-experience staged 0.8.18→0.8.19,防同版本闸过);离线安装包未动(0.8.14 现役);owner 路径=客户端点 Update 重启→①QuantTrading 打开 docs 下文档点 `.agents` 链接:右侧打开+左侧树定位;②右键该页签复制绝对路径:无 `..`;③(若有)点指向 node_modules 内文件的链接:树临时亮隐藏链,关页签即隐 |
 
+#### 0.8.20 定位居中(2026-11-05,spec-018 返工轮;owner 验收 0.8.19 反馈"高亮行落在树边缘,最好大致居中";已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | FileTree reveal 消费处 scrollIntoView `block:"nearest"→"center"`(链接跳转+Ctrl+L 按路径定位两条路径共用;列表首尾行按滚动边界 clamp,VS Code 同款);**守卫首跑照出潜伏 bug 一并修**:reveal 消费条件要求父目录在 expandedFolders,树根从不进该列表→根级文件定位滚动从未生效,修=TREE_ROOT bypass |
+| 全档 | check 0/0+vitest 149/149+cargo 免跑(Rust 零改动)+phase3 **PASS×3**(130 守卫,+1 md_link_reveal_centers_row:压缩树视口 300px 造确定性滚动,断言行中心与视口中心偏差≤20px 且 scrolled>0);freeze-guard 免跑 |
+| 视觉 | **几何+视觉双亲验**:一次性探针 midOffset=0(精确居中,含诊断字段 scrolled/scrollH/rowAbsTop 排障三轮——前两轮撞 clamp 才明白"守卫目标必须上下都有余量");视觉模型判读截图过(居中区带/选中态/src 自动展开/无异常);探针断完即删 |
+| 版本 | 0.8.20 三处 bump;updates=exp 0.8.20(publish);离线安装包未动;owner 路径=Update 重启→点一个目标在树显示区外的链接→高亮行应落树中部而非贴边 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

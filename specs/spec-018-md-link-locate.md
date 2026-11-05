@@ -77,3 +77,10 @@
 - **视觉亲验**(铁律 §2.3-6):一次性探针三截图(临时显示链 paper/glacier 双主题+关闭后消失),视觉模型逐张判读全过——链可见且展开、目标行选中态、无截断重叠;「+1 system folder hidden」计数提示保留(D5 预期,描述开关状态不减一);muted 置灰为原有温和样式非回归。探针断完即删。
 - **顺手**:L29 四度重演(裸 cargo build 白屏)——aivlaunch 加 `_assert_fresh_build` 结构防闸(launch 时比对 exe mtime 与 src 树最新 mtime,旧于源码即拒发;双向实测),lessons L29 记档。
 - **发布**:0.8.19 已发体验渠道(staged 0.8.18→0.8.19,防同版本闸过);离线安装包未动(0.8.14 现役)。
+
+### 返工轮 0.8.20(2026-11-05,owner 验收 0.8.19 时反馈)
+
+- **owner 反馈**(截图):目标行不在树当前显示区域时,定位滚动把高亮行停在可视区**边缘**,"体验不好,最好让它大致居中"。
+- 修法:FileTree reveal 消费处 `scrollIntoView({block:"nearest"})` → `block:"center"`——链接跳转与 Ctrl+L 按路径定位两条路径共用此处,一并居中;列表首尾行按滚动边界 clamp(VS Code 同款行为,保留)。
+- **守卫首跑照出潜伏 bug**:reveal 消费条件要求父目录在 expandedFolders,而树根从不进该列表——**根级文件**的定位滚动从未生效过(0.8.19 守卫目标全在子目录,没盖住);修=TREE_ROOT bypass 一行。
+- 全档:check 0/0+vitest 149/149+cargo 免跑(Rust 零改动)+phase3 **PASS×3**(130 守卫,+1 md_link_reveal_centers_row:压缩树视口 300px 造确定性滚动场景,断言目标行中心与视口中心偏差≤20px 且确有滚动);**几何+视觉双亲验**:探针 midOffset=0(精确居中)+视觉模型判读截图(居中区带/选中态/无异常),探针断完即删。0.8.20 已发体验渠道。

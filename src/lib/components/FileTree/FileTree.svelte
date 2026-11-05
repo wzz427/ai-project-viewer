@@ -37,6 +37,11 @@
   // VS Code reveal (owner 2026-10-10): scroll the revealed file's row into
   // view. Reads the parent level's listing + expansion so the effect
   // re-runs when revealInTree's async level loads actually land.
+  // Center, not nearest (owner 2026-11-05): "nearest" only guarantees the
+  // row touches the viewport edge — for off-screen targets the highlight
+  // landed on the rim, which reads as "not located". Center keeps it
+  // roughly mid-tree in both reveal paths (md link jump + Ctrl+L locate);
+  // rows near the list ends clamp as scroll bounds allow.
   $effect(() => {
     const stv = st;
     if (!stv || !host) return;
@@ -46,13 +51,18 @@
       ? target.slice(0, target.lastIndexOf("/"))
       : TREE_ROOT;
     const kidsLoaded = !!stv.children[parentRel];
-    const expanded = stv.expandedFolders.includes(parentRel);
+    // Root is always rendered (it is the tree itself, not a toggled row),
+    // so it never enters expandedFolders — without this bypass a reveal
+    // to a ROOT-level file sat unconsumed and never scrolled (caught by
+    // the 0.8.20 center guard; sub-folder targets always worked).
+    const expanded =
+      parentRel === TREE_ROOT || stv.expandedFolders.includes(parentRel);
     if (!kidsLoaded || !expanded) return; // level still loading
     const row = host.querySelector<HTMLElement>(
       `.row[title="${CSS.escape(target)}"]`,
     );
     if (row) {
-      row.scrollIntoView({ block: "nearest" });
+      row.scrollIntoView({ block: "center" });
       stv.revealTarget = null;
     }
   });

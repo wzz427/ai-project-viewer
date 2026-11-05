@@ -1747,6 +1747,45 @@ with sync_playwright() as p:
             break
     check("md_link_anchor_stripped", anchor_ok, f"tab={anchor_ok}")
 
+    # 0.8.20 (owner 2026-11-05): the reveal scroll must CENTER the target
+    # row, not park it on the viewport rim ("nearest" did). Deterministic
+    # setup: clamp the tree viewport to 300px (flex grows past it, so
+    # max-height it). Target = "my file.md" under docs/: deep enough that
+    # 30+ rows follow it, so a centered reveal lands its mid-row at the
+    # viewport mid-line with no scroll clamping (the LIST TAIL would clamp
+    # to the bottom edge no matter what — same as VS Code, accepted).
+    open_file("guide.md")
+    page.evaluate("""() => {
+        const t = document.querySelector('.file-tree');
+        t.style.maxHeight = '300px';
+        t.scrollTop = 0;
+    }""")
+    time.sleep(0.3)
+    page.locator(".markdown-viewer .rendered a", has_text="spaced").click()
+    centered = False
+    for _ in range(40):
+        time.sleep(0.15)
+        if page.locator(".file-tab.active .name").count() and \
+           page.locator(".file-tab.active .name").inner_text() == "my file.md":
+            centered = True
+            break
+    time.sleep(0.6)  # reveal effect + center scroll settle
+    center_geo = page.evaluate("""() => {
+        const t = document.querySelector('.file-tree');
+        const r = t.querySelector('.row[title="docs/my file.md"]');
+        if (!r) return null;
+        const tr = t.getBoundingClientRect(), rr = r.getBoundingClientRect();
+        return { mid: tr.top + tr.height / 2 - (rr.top + rr.height / 2),
+                 h: tr.height, scrolled: t.scrollTop };
+    }""")
+    page.evaluate(
+        "() => { document.querySelector('.file-tree').style.maxHeight = ''; }")
+    check("md_link_reveal_centers_row",
+          centered and center_geo is not None
+          and center_geo["h"] <= 300 and center_geo["scrolled"] > 0
+          and abs(center_geo["mid"]) <= 20,
+          f"tab={centered} geo={center_geo}")
+
     # spec-018 B: link into a system-generated folder with the toggle OFF —
     # the chain (node_modules → dep → file) shows while the file is open,
     # hides again once its tab closes (owner: 查看期间临时显示,关闭即消失).
