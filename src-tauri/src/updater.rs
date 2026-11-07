@@ -229,14 +229,22 @@ pub fn watch_updates(app: tauri::AppHandle) {
 /// Restart into the (just-updated) binary. `std::process::exit` bypasses
 /// RunEvent::Exit — the exit-time state flush would never run, so the last
 /// debounced window (e.g. a just-opened tab) was lost; flush SYNCHRONOUSLY
-/// before spawning (spec-012 L-r4/D8). The single-instance plugin only
-/// guards same-identifier apps; the child starts as this process dies, so
-/// activation races are avoided by the spawn-then-exit ordering.
+/// before spawning (spec-012 L-r4/D8).
+///
+/// The child carries this process's PID in the environment and WAITS for
+/// that handle before the single-instance plugin's lock check (see
+/// `run::wait_for_relaunch_parent`). Spawn-then-exit used to be called
+/// race-free — it is not: the child can reach the single-instance lock
+/// while the dying parent still owns it, and the plugin then quietly
+/// retires the child (owner 2026-11-07: Update closed the app and nothing
+/// came back). The window is tiny (18/18 probe rounds survived) but real,
+/// and the handle wait closes it structurally.
 #[tauri::command]
 pub fn relaunch(app: tauri::AppHandle) -> Result<(), String> {
     crate::state::flush_on_exit(&app);
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     std::process::Command::new(&exe)
+        .env("AIV_RELAUNCH_PARENT", std::process::id().to_string())
         .spawn()
         .map_err(|e| format!("Cannot relaunch: {e}"))?;
     std::process::exit(0);

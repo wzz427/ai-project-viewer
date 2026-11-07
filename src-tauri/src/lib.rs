@@ -140,8 +140,54 @@ fn merge_webview_args(current: Option<&str>, cdp_allowed: bool) -> String {
     }
 }
 
+/// Update-relaunch handoff (owner 2026-11-07: Update closed the app and
+/// nothing came back). `updater::relaunch` spawns the new binary while the
+/// old process is still exiting — spawn-then-exit leaves a real window
+/// where the child reaches the single-instance plugin's lock check before
+/// the dying parent releases it, and the plugin then quietly retires the
+/// child (no crash record, nothing relaunches). The child closes that
+/// window STRUCTURALLY: it carries the parent's PID in the environment
+/// and waits on that process handle BEFORE any plugin initializes.
+/// Windows-native (handle signal, not timing guesses). Fail-open by
+/// design: no flag (every normal launch), unparseable PID, or an already
+/// gone parent just continues; a hard 2s cap means even a zombie parent
+/// can only delay, never wedge, the child.
+#[cfg(target_os = "windows")]
+fn wait_for_relaunch_parent() {
+    const PARENT_PID_ENV: &str = "AIV_RELAUNCH_PARENT";
+    let Some(raw) = std::env::var_os(PARENT_PID_ENV) else { return };
+    // One-shot: consume the flag so a forwarded/odd environment can never
+    // make a later launch wait on a stale PID.
+    let _ = std::env::remove_var(PARENT_PID_ENV);
+    let Some(pid) = raw.to_str().and_then(|s| s.parse::<u32>().ok()) else { return };
+
+    const SYNCHRONIZE: u32 = 0x0010_0000;
+    const WAIT_TIMEOUT_MS: u32 = 2_000;
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn OpenProcess(
+            desired_access: u32,
+            inherit_handle: i32,
+            process_id: u32,
+        ) -> isize;
+        fn WaitForSingleObject(handle: isize, milliseconds: u32) -> u32;
+        fn CloseHandle(handle: isize) -> i32;
+    }
+    unsafe {
+        let handle = OpenProcess(SYNCHRONIZE, 0, pid);
+        if handle == 0 {
+            return; // parent already exited (or not ours) — nothing to wait for
+        }
+        WaitForSingleObject(handle, WAIT_TIMEOUT_MS);
+        let _ = CloseHandle(handle);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "windows")]
+    wait_for_relaunch_parent();
+
     let _ = STARTED_AT.set(Instant::now());
 
     // Channel gate for the CDP port: experience builds run under the .exp

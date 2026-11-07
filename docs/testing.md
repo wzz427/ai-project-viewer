@@ -200,6 +200,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | e2e 想隔离 watcher 别 stub invoke:`__TAURI_INTERNALS__.invoke` 自有属性是**只读 null 占位**(真函数在原型链,赋值静默失败),且**停旧监听是 start 内部动作**——吞 start 反而让旧 watcher 活到最后;正解=真调一次 `stop_project_watch` 且随后不切项目(切换会重跑 start 复活) |
 | 版本 | 0.8.22 三处 bump;updates=exp 0.8.22(publish,exe 版本核过 0.8.22);离线安装包未动;owner 路径=Update→重启→让 AI 改一篇**没停在**上面的项目里的文章→切过去看:内容自动是新的,右下角「✓ 已更新」;顺带:删掉的 design-method.md 页签转"文件已删除" |
 
+#### 0.8.23 更新后必自动重启(2026-11-07,owner 报障「点完 update 没有自动重启,软件自己就关了」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 取证链:swap 成功(app=0.8.22/.old=0.8.21)+WER 零崩溃记录+进程列表两代全灭→子进程"安静退出"。机理坐实(单实例证明实验):**relaunch 的 spawn-then-exit 存在真实竞态窗口——子进程先到单实例锁检查,把"将死未死"的父进程当已有实例,被插件安静劝退,父进程随即退出,两代全灭**;复现探针 18/18 活=窗口极小,owner 那次负载态撑开了它(旧 relaunch 注释"spawn-then-exit 避免竞态"的声称是错的) |
+| 实现 | relaunch 给子进程带 `AIV_RELAUNCH_PARENT`(父 PID env);子进程 run() 最顶部 `wait_for_relaunch_parent`:OpenProcess(SYNCHRONIZE)+WaitForSingleObject(2s 上限)——**操作系统级句柄等待,非估时**;fail-open 设计(无旗标/坏 PID/父已逝=直接继续,2s 上限防父僵尸卡死子);旗标一次性(remove_var 消费)。零新增驻留,纯启动路径 |
+| 验证 | **对照实验 FIX PROVEN**:人工拉宽窗口(父起 2.5s→spawn 子→400ms 后杀父)——对照组(无旗标)子死=owner 死法复现;实验组(带旗标)子活=结构修复。守卫固化 update-watch-suite +1(relaunch_handoff_flag_waits_for_parent,双臂:对照必死+带旗标必活,双条件防永绿;**守卫首跑照出套件自身 bug**:主实例持锁污染场景,修=守卫段挪到主实例收场后) |
+| 全档 | cargo **132/132**+update-watch **4/4**+phase3 PASS+freeze-guard 0/83(3ms)+check 0/0+vitest 149/149(前端零改动) |
+| 踩坑 | **L29 六度重演**:为修复实验合法裸 cargo(只看进程存活),随后跑 GUI 套件忘了 exe 是裸产物→25s 白屏;lessons 六度行+套件 wait_for_selector 超时**报错指路 L29**(本轮顺手落) |
+| 版本 | 0.8.23 三处 bump;updates=exp 0.8.23(publish,updates exe 版本核过 0.8.23,owner 机器 app 仍 0.8.22 等按钮亮);离线安装包未动;owner 路径=按钮亮→Update→**软件应自动重开**(若万分之几再撞旧交接,双击桌面图标即可,0.8.23 起结构免疫);顺带验收 0.8.22 切回重读 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

@@ -15,7 +15,10 @@ returns grey). Atomic writes mimic publish-experience.ps1 (staging name
 import json
 import os
 import shutil
+import subprocess
 import time
+
+import psutil
 
 import aivlaunch
 from playwright.sync_api import sync_playwright
@@ -92,7 +95,16 @@ with sync_playwright() as p:
         except Exception:
             time.sleep(0.5)
     page = browser.contexts[0].pages[0]
-    page.wait_for_selector(".update-btn", timeout=25000)
+    try:
+        page.wait_for_selector(".update-btn", timeout=25000)
+    except Exception:
+        # L29: a bare `cargo build --release` exe has no embedded frontend
+        # (ERR_CONNECTION_REFUSED on about:blank). If that was the last
+        # build step before this suite, rebuild properly and rerun.
+        print("HINT: page never became ready — if the last build was a bare "
+              "`cargo build --release`, run `pnpm tauri build --no-bundle` "
+              "first (lessons L29, sixth sighting 2026-11-07).")
+        raise
 
     def btn_class():
         return page.locator(".update-btn").get_attribute("class") or ""
@@ -124,7 +136,51 @@ with sync_playwright() as p:
     grey = wait_for(lambda: "available" not in btn_class(), timeout_s=8)
     check("same_content_republish_goes_grey", grey, btn_class())
 
+# --- 0.8.23 guard (owner 2026-11-07: "点完 update 没有自动重启,软件自己
+# 关了"): the relaunched child used to race the single-instance lock while
+# the dying parent still held it — the plugin retired the child quietly
+# and both generations were gone. Fix: updater::relaunch stamps the parent
+# PID into the env; the child waits on that PROCESS HANDLE before any
+# plugin initializes. The handoff window is artificially widened (parent
+# killed 400ms after the child spawns). BOTH arms must hold — control
+# (no flag) proves the scenario still kills, treatment (flag) proves the
+# wait structurally rescues the child. ---
+def handoff_arm(with_flag: bool) -> bool:
+    # 9298: the main instance above still owns CDP; the arms never talk CDP
+    # anyway (fate is judged by PID aliveness).
+    parent = aivlaunch.launch(APP_EXE, PROJECT, STATE, 9298, keep_state=True)
+    time.sleep(2.5)  # parent fully owns the single-instance lock
+    child_env = {**os.environ, "AIV_TEST_PROJECT": PROJECT,
+                 "AIV_STATE_FILE": STATE,
+                 "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS":
+                     "--remote-debugging-port=9299",
+                 "AIV_HIDDEN": "1"}
+    if with_flag:
+        child_env["AIV_RELAUNCH_PARENT"] = str(parent.pid)
+    child = subprocess.Popen([APP_EXE], env=child_env,
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+    time.sleep(0.4)   # parent still alive: the widened race window
+    aivlaunch.kill_tree(parent)
+    time.sleep(3.0)   # let the child's fate settle (wait ≤2s + init)
+    alive = psutil.pid_exists(child.pid)
+    aivlaunch.kill_tree(child)
+    time.sleep(0.5)
+    return alive
+
+# The MAIN instance must be gone BEFORE the arms run: it owns the
+# single-instance lock, so every arm parent would be retired by IT (not by
+# the handoff race the guard is pinning).
 aivlaunch.kill_tree(proc)
+time.sleep(1.0)
+
+ctrl_alive = handoff_arm(with_flag=False)
+treat_alive = handoff_arm(with_flag=True)
+check("relaunch_handoff_flag_waits_for_parent",
+      (not ctrl_alive) and treat_alive,
+      f"control_alive={ctrl_alive} treatment_alive={treat_alive}")
+time.sleep(1.0)  # exe handles release before the layout teardown below
+
 shutil.rmtree(ROOT, ignore_errors=True)
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
