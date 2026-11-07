@@ -1657,6 +1657,51 @@ with sync_playwright() as p:
     check("away_write_visible_on_switch_back",
           seed_n == 1 and away_n == 1, f"seed={seed_n} away={away_n}")
 
+    # --- 0.8.22 guards (owner 2026-11-07 report): an article edited while
+    # its project was NOT the active one kept showing the OLD version after
+    # switching back — the watcher covers only the ACTIVE project (§77) and
+    # the switch-in refresh refreshed the TREE (0.8.6) but never the open
+    # tabs' content. Guard 1 pins the switch-in catch-up itself; Guard 2
+    # pins the ↻ button as an independent path (the watcher is stubbed off
+    # so the auto-reload lane cannot mask a button regression). ---
+    open_file("seed.txt")
+    seed_on_disk = os.path.join(AWAY_B, "sub", "seed.txt")
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.8)
+    with open(seed_on_disk, "w", encoding="utf-8") as f:
+        f.write("AWAY-RELOAD-MARK-1\n")
+    time.sleep(0.6)  # no watcher on the away project — nothing to wait FOR
+    page.locator(".project-tabs .tab", has_text="aiv-p3-away").first.click()
+    check("away_content_reloaded_on_switch_back",
+          body_contains("AWAY-RELOAD-MARK-1"),
+          "viewer still shows the pre-edit content after switching back")
+
+    # Guard 2: the ↻ button must re-read open tabs ON ITS OWN. Killing the
+    # watcher via the real stop_project_watch is enough — the watcher only
+    # comes back when a project switch re-runs the start effect, and this
+    # guard does NOT switch (stubbing invoke is a dead end: the property
+    # is a non-writable own-slot placeholder, the real fn lives on the
+    # prototype chain). Edit → the stale content must SURVIVE the wait
+    # (proves the watcher is really off) → one ↻ click brings the new text.
+    page.evaluate(
+        "() => window.__TAURI_INTERNALS__.invoke('stop_project_watch')")
+    time.sleep(0.6)
+    with open(seed_on_disk, "w", encoding="utf-8") as f:
+        f.write("REFRESH-BUTTON-MARK-2\n")
+    time.sleep(1.2)
+    stub_kept_stale = "REFRESH-BUTTON-MARK-2" not in \
+        page.locator(".viewer-body").inner_text()
+    page.locator(".header-icon.refresh").click()
+    check("refresh_button_reloads_open_tab",
+          stub_kept_stale and body_contains("REFRESH-BUTTON-MARK-2"),
+          f"watcher_off_effective={stub_kept_stale}")
+    # Revive the watcher with one project round-trip. Stay on the away
+    # project — the 0.8.7 properties guard below needs its tree.
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.6)
+    page.locator(".project-tabs .tab", has_text="aiv-p3-away").first.click()
+    time.sleep(0.6)
+
     # 0.8.7: same dialog on a REAL git repo → the history section lists
     # the fixture's commit for seed.txt.
     tree_row("seed.txt").click(button="right")

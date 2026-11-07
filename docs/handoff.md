@@ -28,6 +28,12 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-07 · 0.8.22 切回项目自动重读已发(报障修),等 owner Update 验收
+
+- owner 报障「文章改过只剩五十几行,显示的还是改之前的版本」→ live-inspect 直连活体+磁盘对照坐实根因:**watcher 单槽只挂激活项目(§77),切走期间的外部改写没人看见,切回只刷树(0.8.6 修的恰是树那半边)不刷内容**——0.8.6 姊妹洞。修=tabsStore `reloadOpenTabs`(reloadFile 同原语遍历开着的页签,无缓存跳过防启动误 toast,deleted 必跑可复活)+App 三处接线(项目切入/窗口聚焦/↻ 按钮)。**同日 owner 立规:「我从不用快捷键,所有操作必须有按钮」**——已存长期记忆;↻ 按钮原本比 Ctrl+R 少做内容重读,一并收口。
+- 全档:check 0/0+vitest 149/149+cargo 免跑+phase3 **PASS**(+2 守卫:切回重载/watcher 杀停隔离按钮)+freeze-guard PASS(0/83)。e2e 踩坑记 testing 0.8.22 行(想隔离 watcher 别 stub invoke——只读占位+原型链;停旧在 start 内部,吞 start 反留活口;正解=真调 stop 且不切项目)。
+- **0.8.22 已发体验渠道**(exe 版本核过)。账:testing 0.8.22 行/V1.5 §197 审计行。**下一动作=owner Update→重启→让 AI 改一篇没停在的项目文章→切回看新内容**。
+
 ### 2026-11-05 · 0.8.21 发布即点亮已发(spec-019),等 owner 升一次后进入"自动点亮"时代
 
 - owner 指令「你让我更新的时候,你自己去点亮 update」→ updater 加 `watch_updates`(notify 监听 updates 目录→emit 哑事件→前端 refresh;事件驱动非轮询,dev 零路径,体验版常驻一个 debouncer handle)+发布脚本原子落盘与锁重试(**live 抓获**:客户端 md5 读 exe 的毫秒级锁会拒 rename,std fs::File 无 FILE_SHARE_DELETE)。新专套件 update-watch **3/3**(伪体验布局全链真实跑);全档绿;**0.8.21 已发**。

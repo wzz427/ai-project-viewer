@@ -190,6 +190,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | **L29 五度重演**(改 Rust 后顺手 cargo build --release→专套件白屏;mtime 防闸拦不住「exe 新但缺 custom-protocol」,资产压缩嵌入明文扫描实测不可行)→lessons L29 五度行+**doc-routes.md 首建**(「跑 GUI e2e 前→pnpm tauri build --no-bundle」到点送达) |
 | 版本 | 0.8.21 三处 bump;updates=exp 0.8.21(publish,Move-Atomic 首战);离线安装包未动;**衔接说明:自动点亮仅对运行 0.8.21+ 的客户端生效——owner 手上的 0.8.20 需老办法(点灰按钮重查)升一次,此后每轮发布即点亮**;owner 路径=点灰按钮→亮→Update→重启→此后坐着等按钮亮即可 |
 
+#### 0.8.22 切回项目自动重读(2026-11-07,owner 报障「文章改过只剩五十几行,显示的还是改之前的版本」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | live-inspect 直连活体+磁盘对照坐实:WordsStudy 开着 handoff.md → 21:09 切去 AgentZero(**watcher 单槽只挂激活项目,§77**)→ 21:11 外部 AI 把 handoff.md 改短(磁盘 55 行)→ 21:12 切回只见**树**刷新(0.8.6 修的恰是树那半边)——contentCache 旧内容从不失效,UI 渲染 25307 字旧长文。**0.8.6 姊妹洞:当次只修了可见面(树)漏了内容面** |
+| 实现 | tabsStore 新 `reloadOpenTabs(root)`:遍历开着的页签逐个 reloadFile(watcher 同一原语;无缓存页签跳过——否则启动恢复时误报 toast;deleted 页签必跑,文件回来即复活;变化才 contentRev++ 不闪);App 三处接线=项目切入 effect+窗口聚焦(0.8.6 兜底的补全)+**↻ 按钮 refreshAll 补内容重读**(owner 立规「所有操作必须有按钮,我从不用快捷键」——按钮原本比 Ctrl+R 少做重读这步,一并收口);toast 只报激活页签(D4 同款);**内存账:零新增驻留,重载即换引用** |
+| 全档 | check 0/0+vitest 149/149+cargo 免跑(Rust 零改动)+phase3 **PASS**(+2 守卫:away_content_reloaded_on_switch_back=非激活项目改文切回内容必新;refresh_button_reloads_open_tab=**真调 stop_project_watch 杀 watcher 隔离按钮路径**,等待期陈旧必须存活+点 ↻ 后必新)+freeze-guard **PASS**(0/83,3ms;reloadFile 多了新调用方,防御性跑) |
+| 踩坑 | e2e 想隔离 watcher 别 stub invoke:`__TAURI_INTERNALS__.invoke` 自有属性是**只读 null 占位**(真函数在原型链,赋值静默失败),且**停旧监听是 start 内部动作**——吞 start 反而让旧 watcher 活到最后;正解=真调一次 `stop_project_watch` 且随后不切项目(切换会重跑 start 复活) |
+| 版本 | 0.8.22 三处 bump;updates=exp 0.8.22(publish,exe 版本核过 0.8.22);离线安装包未动;owner 路径=Update→重启→让 AI 改一篇**没停在**上面的项目里的文章→切过去看:内容自动是新的,右下角「✓ 已更新」;顺带:删掉的 design-method.md 页签转"文件已删除" |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

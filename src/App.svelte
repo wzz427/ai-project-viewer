@@ -33,6 +33,7 @@
     closeFile,
     cycleTab,
     refreshActiveFile,
+    reloadOpenTabs,
   } from "$lib/stores/tabsStore.svelte";
   import { refreshProject } from "$lib/stores/fileTreeStore.svelte";
   import { tabsState } from "$lib/stores/tabsStore.svelte";
@@ -56,10 +57,16 @@
     return tabsState.byRoot[rootPath]?.openFiles ?? [];
   }
 
-  // ↻ refreshes BOTH the tree and git (spec-007 D13): the 0.6.6 spin
-  // feedback naturally covers the combined work.
+  // ↻ refreshes tree, open-tab CONTENT and git (spec-007 D13 + owner
+  // 2026-11-07: the button used to skip the content re-read that Ctrl+R
+  // had — the button is the owner's only path, it must be the full one).
+  // The 0.6.6 spin feedback naturally covers the combined work.
   async function refreshAll(rootPath: string) {
-    await Promise.all([refreshProject(rootPath), refreshGit(rootPath)]);
+    await Promise.all([
+      refreshProject(rootPath),
+      reloadOpenTabs(rootPath),
+      refreshGit(rootPath),
+    ]);
   }
 
   import { openSearchPanel } from "@codemirror/search";
@@ -237,10 +244,23 @@
     }
   });
 
-  // Window Regain Focus: active project only (§78). Git AND the tree —
-  // a focus return is the user's "look again" moment; belt-and-suspenders
-  // for any watcher event lost in flight (owner 2026-10-17 staleness
-  // report). Same cadence class as the git snapshot beside it.
+  // Project Switch In — content catch-up (owner 2026-11-07 stale-content
+  // report): only the active project is watched (§77), so edits that
+  // landed while ANOTHER project was on top reach nobody; the tree
+  // re-lists on switch-in (0.8.6) and now the open tabs re-read too.
+  // Cache-less tabs are skipped inside reloadOpenTabs (no startup toast
+  // misfire — restored tabs read fresh on mount anyway).
+  $effect(() => {
+    const root = project?.rootPath;
+    if (root) void reloadOpenTabs(root);
+  });
+
+  // Window Regain Focus: active project only (§78). Git, the tree AND the
+  // open tabs' content — a focus return is the user's "look again" moment;
+  // belt-and-suspenders for any watcher event lost in flight (owner
+  // 2026-10-17 staleness report; content re-read added 2026-11-07, same
+  // class as the project-switch catch-up beside it). Same cadence class
+  // as the git snapshot beside it.
   onMount(() => {
     let unlisten: (() => void) | undefined;
     void getCurrentWindow()
@@ -249,6 +269,7 @@
         const root = activeProject()?.rootPath;
         if (root) {
           void refreshProject(root);
+          void reloadOpenTabs(root);
           void refreshGit(root);
         }
       })

@@ -513,6 +513,53 @@ export async function refreshActiveFile(rootPath: string) {
   }
 }
 
+/** Tab types whose content lives in contentCache (the ones
+ * ensureContentLoaded fills). Stat-only cards (exe/media) and verdict
+ * placeholders (binary/huge) have no cache entry by design — seeing no
+ * cache for THEM is normal, not staleness. */
+const hasContentCacheChannel = (t: RuntimeTab) =>
+  t.viewerType !== "binary" &&
+  t.viewerType !== "unsupported" &&
+  t.viewerType !== "executable" &&
+  t.viewerType !== "media";
+
+/**
+ * Project-switch / window-focus catch-up (owner 2026-11-07 stale-content
+ * report: an article edited while its project was NOT active kept showing
+ * the old version after switching back). The watcher only covers the
+ * ACTIVE project (§77 single slot), so edits that landed while another
+ * project — or another app — was on top are invisible to it; this is the
+ * "look again" moment that heals them, one reloadFile per open tab
+ * (unchanged files keep their contentRev: no remount, no flicker).
+ *
+ * Tabs WITHOUT cached content are skipped: a freshly restored tab reads
+ * fresh from disk on mount anyway (ensureContentLoaded), and reloading it
+ * here would misfire the §82 toast on every startup (reloadFile flags a
+ * missing cache as "changed"). Deleted tabs always run: reloadFile revives
+ * them if the file came back. Toast = active tab only (spec-009 D4).
+ */
+export async function reloadOpenTabs(rootPath: string) {
+  const st = tabsState.byRoot[rootPath];
+  if (!st) return;
+  let activeUpdatedName: string | null = null;
+  for (const tab of st.openFiles) {
+    if (
+      !tab.deleted &&
+      hasContentCacheChannel(tab) &&
+      !cachedContent(rootPath, tab.relativePath)
+    ) {
+      continue;
+    }
+    const changed = await reloadFile(rootPath, tab.relativePath);
+    if (changed && tab.relativePath === st.activeFileRelativePath) {
+      activeUpdatedName = fileNameOf(tab.relativePath);
+    }
+  }
+  if (activeUpdatedName) {
+    toast(tf("toast.fileUpdated", { name: activeUpdatedName }));
+  }
+}
+
 /**
  * Reload ONE open tab's content from disk — the watcher's per-file
  * primitive (§82 automatic slice, spec-009); Ctrl+R is the same function
