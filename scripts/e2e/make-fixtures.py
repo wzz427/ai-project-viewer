@@ -145,6 +145,118 @@ def _w(root, rel, text, encoding="utf-8", bom=False):
             f.write(text.encode(encoding))
 
 
+# spec-020 fixtures. Pure-literal module constants on purpose: on machines
+# without reportlab the files are materialized by ast-extracting these
+# literals (no import of this module), so they must stay plain strings.
+# phase3 asserts: >=4 .katex-display, inline .katex present, 3 rendered
+# diagrams, currency/escaped dollars literal, python fence still colored.
+MATH_MERMAID_DEMO = r"""# Math & Diagrams Demo (spec-020)
+
+This file exercises the two rendering capabilities added in 0.8.24:
+LaTeX math (inline and display) and Mermaid diagrams.
+
+## Inline math
+
+The mass–energy relation $E = mc^2$ renders inside the sentence, and so do
+Greek letters like $\alpha + \beta \geq \gamma$ and a fraction $\frac{1}{2}$.
+
+## Display math
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+$$
+
+A matrix and its determinant:
+
+$$
+A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}, \qquad \det(A) = 1 \cdot 4 - 2 \cdot 3 = -2
+$$
+
+Aligned multi-line equations:
+
+$$
+\begin{aligned}
+\nabla \cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0} \\
+\nabla \cdot \mathbf{B} &= 0
+\end{aligned}
+$$
+
+A `math` fence works too:
+
+```math
+\sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}
+```
+
+## Dollars that are NOT math
+
+The license costs \$100 (escaped dollar), and prices like $50 and $70
+written with spaces stay plain currency, never formulas.
+
+## Mermaid diagrams
+
+### Flowchart
+
+```mermaid
+flowchart TD
+    Start([Open a Markdown file]) --> Check{Has math or diagrams?}
+    Check -- math --> Katex[KaTeX typesets formulas]
+    Check -- diagrams --> Lazy[Load Mermaid on demand]
+    Check -- neither --> Plain[Plain rendering]
+    Katex --> Done([Shown])
+    Lazy --> Done
+    Plain --> Done
+```
+
+### Sequence
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant V as AI Project Viewer
+    participant M as Mermaid engine
+    U->>V: Open a document with a diagram
+    V->>M: First diagram triggers the load
+    M-->>V: SVG
+    V-->>U: Diagram on screen
+```
+
+### Gantt (CJK labels)
+
+```mermaid
+gantt
+    title 发版计划
+    dateFormat YYYY-MM-DD
+    section 渲染
+    数学公式 :done, 2026-11-08, 1d
+    流程图 :active, 2026-11-08, 1d
+    section 验证
+    样例与截图 :2026-11-09, 1d
+```
+
+## Normal code fences are untouched
+
+```python
+def area(r: float) -> float:
+    return 3.14159 * r * r
+```
+"""
+
+# One valid + one broken diagram: a syntax error must stay local (flagged
+# block, source kept) and never take the neighbouring diagram down.
+MERMAID_BROKEN = r"""# Mermaid error path (spec-020)
+
+```mermaid
+flowchart LR
+    Good --> Diagram
+```
+
+```mermaid
+flowchart LR
+    this is --> --> not ((( valid
+```
+"""
+
+
 def rebuild_project(root):
     """Recreate the FULL AIV-TestProject fixture IN-REPO (owner 2026-10-24:
     deleted the Desktop copy — "别放桌面,仓库里找个地方放"). Content is
@@ -214,6 +326,10 @@ def rebuild_project(root):
     ]) + "\n")
     _w(root, "docs/my file.md",
        "# My File\n\nA name with a space, reached through a `%20` href.\n")
+    # spec-020 math + mermaid demo (owner 2026-11-08 "写一个带数学公式和
+    # 画图的md样例"); content is the MATH_MERMAID_DEMO constant below.
+    _w(root, "docs/math-mermaid-demo.md", MATH_MERMAID_DEMO)
+    _w(root, "edge-cases/mermaid-broken.md", MERMAID_BROKEN)
     _w(root, "src/deep/migrations/001_init.sql",
        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);\n")
 

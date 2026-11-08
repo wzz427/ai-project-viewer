@@ -28,6 +28,12 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-08 · 0.8.24 Markdown 数学公式+Mermaid 图渲染已发(spec-020),等 owner Update 验收
+
+- owner 问「支持数学公式和 mermaid 渲染吗」→答均不支持→拍板「都加。写个样例验证」。实现:**KaTeX**(VS Code 同款插件;$行内$/$$块$$/```math 围栏;\$ 转义与货币不误判)+**Mermaid 12**(```mermaid 围栏→流程/时序/甘特等 SVG;坏图虚线框警示+源码保留,不串染同文档好图)。**两引擎均懒加载**(内存第一原则):纯文文档零加载;katex 首个含公式文档才拉(装上 ~2.7MB 常驻,实测);mermaid 首个含图文档才拉(之后 ~2-3MB 级,ESM 缓存不可卸载,与 PDF worker 归零机理不同)——守卫固化。
+- 全档:check 0/0+vitest **159/159**(+10)+phase3 **PASS**(+4 守卫:纯文零加载/渲染齐/按需加载/错误局部化)+freeze-guard 0/83+cargo 免跑。**视觉验证铁律:截图×7 视觉模型亲验全过**(公式排版/货币字面/三类图/CJK 甘特/错误路径)。守卫首跑照出两个实现与套件坑:①attach 时机(懒插件只接新建渲染器,在用实例永远等不到→ensureMath 补装);②performance 资源计数恒 0 双因(250 条缓冲区溢出丢条目→套件开机扩容;evaluate 带参函数忘传参→includes(undefined) 恒 false 且"未加载"守卫空真)——记 lessons。
+- **0.8.24 已发**(staged 0.8.23→0.8.24;owner 机器 app 仍 0.8.22,按钮应已亮)。账:spec-020/INDEX/testing 0.8.24 行/V1.5 §197/lessons/handoff(本条)。**下一动作=owner Update→打开含公式或图的 md 亲验**(样例=仓库 `scripts/e2e/fixtures/AIV-TestProject/docs/math-mermaid-demo.md`,把 fixtures/AIV-TestProject 文件夹当项目加进软件即可点开);顺带验收 0.8.23 自动重启+0.8.22 切回重读。
+
 ### 2026-11-07 · 0.8.23 更新后必自动重启已发(报障修二连),等 owner Update 验收
 
 - owner 报障二连「点完 update 没有自动重启,软件自己就关了」→取证链(swap 成功/零崩溃记录/两代全灭)+单实例机理实验坐实:**relaunch 的 spawn-then-exit 有真实竞态窗口,子进程把将死未死的父进程当已有实例被安静劝退,两代全灭**;复现探针 18/18 活=窗口极小,owner 负载态踩中。修=父 PID env 旗标+子进程启动最顶 **OpenProcess 句柄等待**(OS 级,非估时,fail-open);**对照实验 FIX PROVEN**(对照死/带旗标活)+守卫固化 update-watch-suite(双臂防永绿;守卫首跑照出"主实例持锁污染场景"套件自身 bug 一并修)。

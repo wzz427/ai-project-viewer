@@ -1,3 +1,9 @@
+<script module lang="ts">
+  // mermaid.render ids must be unique document-wide (several markdown
+  // viewers can render at once) — one counter per app, not per instance.
+  let diagramSeq = 0;
+</script>
+
 <script lang="ts">
   /**
    * Markdown viewer (V1.5 §86–§89): default Rendered, Source toggle
@@ -20,7 +26,7 @@
   import { toast } from "$lib/stores/toastStore.svelte";
   import { t } from "$lib/i18n/t.svelte";
   import { extOf } from "$lib/services/viewerType";
-  import { createMarkdownRenderer } from "$lib/services/markdownRender";
+  import { createMarkdownRenderer, ensureMath, mayContainMath } from "$lib/services/markdownRender";
   import ViewerToolbar from "./ViewerToolbar.svelte";
 
   let { rootPath, tab }: { rootPath: string; tab: RuntimeTab } = $props();
@@ -28,11 +34,33 @@
   const md = createMarkdownRenderer();
 
   const content = $derived(cachedContent(rootPath, tab.relativePath));
-  const rendered = $derived(
-    content?.kind === "text" ? md.render(content.text) : "",
-  );
 
   let container = $state<HTMLElement | null>(null);
+
+  // Math engine is lazy (spec-020, memory rule): a document that may
+  // contain math ($ / ```math) triggers the one-time load; bumping mathRev
+  // re-renders through it. Effects created before the load resolve render
+  // raw delimiters first — they re-run once `rendered` flips below.
+  // Loading failures log to console only: the document stays readable
+  // with literal $…$ / source.
+  let mathRev = $state(0);
+  $effect(() => {
+    if (content?.kind !== "text" || !mayContainMath(content.text)) return;
+    let live = true;
+    void ensureMath(md)
+      .then(() => {
+        if (live) mathRev++;
+      })
+      .catch((e) => console.error("math engine failed to load", e));
+    return () => {
+      live = false;
+    };
+  });
+
+  const rendered = $derived.by(() => {
+    mathRev; // dependency: re-render after the engine lands
+    return content?.kind === "text" ? md.render(content.text) : "";
+  });
 
   // After render: resolve local <img> to data URLs (D3) — the src attribute
   // written by markdown-it is a project-relative path that would 404.
@@ -64,6 +92,45 @@
       live = false;
     };
   });
+
+  // Mermaid diagrams (spec-020): the renderer leaves escaped-source
+  // placeholders; the engine (MB-scale) is dynamically imported ONLY when
+  // this document actually has one (memory rule, V1.5 §6) — plain docs
+  // never pay for it. Same `live` cancel semantics as the image pass: a
+  // reload mid-render must not write SVG into detached old blocks.
+  $effect(() => {
+    rendered; // re-run whenever the source changes
+    const el = container;
+    if (!el) return;
+    const blocks = [...el.querySelectorAll<HTMLElement>(".mermaid-block")];
+    if (blocks.length === 0) return;
+    let live = true;
+    void renderDiagrams(blocks, () => live);
+    return () => {
+      live = false;
+    };
+  });
+
+  async function renderDiagrams(blocks: HTMLElement[], isLive: () => boolean) {
+    const mermaid = (await import("mermaid")).default;
+    // Both app themes are light (paper/glacier): one stock theme fits.
+    // strict = mermaid's own sanitizer on labels, no click/script hooks.
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "default" });
+    for (const block of blocks) {
+      if (!isLive()) return;
+      const source = block.textContent ?? "";
+      const id = `aiv-mermaid-${++diagramSeq}`;
+      try {
+        const { svg } = await mermaid.render(id, source);
+        if (isLive() && block.isConnected) block.innerHTML = svg;
+      } catch {
+        // Syntax error: keep the source readable, flag the block, and drop
+        // the scratch node mermaid may leave in <body> for a failed render.
+        document.getElementById(`d${id}`)?.remove();
+        if (isLive() && block.isConnected) block.classList.add("mermaid-error");
+      }
+    }
+  }
 
   function onLinkClick(e: MouseEvent) {
     const a = (e.target as HTMLElement).closest("a");
@@ -344,6 +411,53 @@
   }
 
   .rendered :global(img) { max-width: 100%; }
+
+  /* ---- Math + diagrams (spec-020, owner 2026-11-08 "都加") ---- */
+  /* KaTeX display blocks: katex.min.css centers them; this adds the
+     document's vertical rhythm and keeps wide equations scrollable
+     instead of overflowing the paper. */
+  .rendered :global(.katex-display) {
+    margin: 1.1em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0;
+  }
+
+  /* Mermaid figures: framed like tables (a figure, not code) until the
+     engine swaps in the SVG; until then the <pre> shows the source so
+     the block is never blank while the MB-scale engine loads. */
+  .rendered :global(.mermaid-block) {
+    margin: 1.1em 0;
+    padding: 14px 12px;
+    border: 1px solid var(--md-border);
+    border-radius: 6px;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .rendered :global(.mermaid-block pre) {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+  }
+  .rendered :global(.mermaid-block svg) {
+    max-width: 100%;
+    height: auto;
+  }
+  .rendered :global(.mermaid-error) {
+    border-style: dashed;
+    text-align: left;
+  }
+  .rendered :global(.mermaid-error::before) {
+    content: "⚠ diagram syntax error — source kept below";
+    display: block;
+    color: var(--md-muted);
+    font-size: 0.86em;
+    margin-bottom: 8px;
+  }
 
   /* Task lists (owner 2026-10-02 behavior: label cursor text, checkbox
      pointer-events none — kept verbatim below); drawn checkboxes replace

@@ -211,6 +211,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | **L29 六度重演**:为修复实验合法裸 cargo(只看进程存活),随后跑 GUI 套件忘了 exe 是裸产物→25s 白屏;lessons 六度行+套件 wait_for_selector 超时**报错指路 L29**(本轮顺手落) |
 | 版本 | 0.8.23 三处 bump;updates=exp 0.8.23(publish,updates exe 版本核过 0.8.23,owner 机器 app 仍 0.8.22 等按钮亮);离线安装包未动;owner 路径=按钮亮→Update→**软件应自动重开**(若万分之几再撞旧交接,双击桌面图标即可,0.8.23 起结构免疫);顺带验收 0.8.22 切回重读 |
 
+#### 0.8.24 Markdown 数学公式+Mermaid 图渲染(2026-11-08,spec-020,owner 指令「都加。你写一个带数学公式和画图的md样例,做一下验证」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | **KaTeX 懒加载**:markdownRender 工厂链外置 `ensureMath(md)`(WeakSet 幂等防插件双装)+`mayContainMath` 廉价前置筛(含 `$` 或 ```math 围栏才触发);$行内$/$$块$$/```math 围栏→VS Code 同款插件排版;\$ 转义与货币两 \$ 相邻不误判(插件开 \$ 后禁空格/闭 \$ 前禁空格规则,单测+e2e 双守卫);katex 与插件对齐 0.16.47 单份(mermaid 自带 0.18 嵌套只进其懒 chunk 互不可见)。**Mermaid 懒加载**:fence 渲染规则先拦 info==mermaid→`div.mermaid-block` 转义源码占位(不进 hljs/自动探测);MarkdownViewer 后处理 pass 仅当文档真有占位才 `import("mermaid")`(12.x),strict 安全级+default 主题(两套浅色主题适用),逐块 render→SVG 替换;**解析失败局部化**:坏块虚线框警示+源码保留+清 mermaid 遗留 `#d<id>` 调试节点,同文档好块不受牵连;live 旗标防换文档后写废弃 DOM |
+| 内存账 | 主包 +2.7KB(raw,基线 1048→1051KB;仅动态 import 管线);**katex chunk(js 77.7KB gz+css 7.9KB gz)首个含公式文档才加载**,装上后 ~2.7MB V8 常驻(node --expose-gc 实测:模块初始化 2.67MB/首次渲染后 2.95MB);**mermaid 星系(mermaid.core 29KB gz+按图型再拉 sequence/gantt 等)首个含图文档才加载**,之后常驻 ~2-3MB 级(ESM 模块缓存不可卸载,与 PDF worker 归零机理不同);字体 woff2 浏览器按需取;守卫固化「纯文文档零加载」 |
+| 全档 | check 0/0+vitest **159/159**(+10:行内/块级/math 围栏/货币不误判/\$ 转义/mermaid 占位转义/恶意标记转义/python 围栏回归/**懒加载语义三连**[未装时 \$ 字面+mayContainMath 超集+装后真渲染])+cargo 免跑(Rust 零改动)+phase3 **PASS**(+4:spec020_engines_not_loaded_for_plain_docs=纯文首档 katex/mermaid 资源计数必 0/…demo_renders=4 块级+≥4 行内公式+3 SVG+货币字面+python 围栏仍着色/…loaded_on_demand=打开样例后两 chunk 必现/…error_stays_local=坏块标错好块出图)+freeze-guard 0/83 |
+| 视觉 | 截图×7 视觉模型亲验全过:行内公式真排版(斜体/上标/分数线);块级(积分上下限/矩阵大括号/aligned 对齐/∑ 上下限);货币 $50/$70/\$100 全保持字面;flowchart(圆角起止/菱形判定/边标签);sequence(小人 actor/生命线/实线请求虚线返回);gantt(时间轴+今日红线/渲染/验证两 section/done-active-未来三色/**CJK 无豆腐块**);错误路径(好图照渲染+坏块虚线框+源码可读可复制) |
+| 踩坑 | ①**attach 时机 bug(守卫首跑照出)**:`installMath` 只接进新建渲染器,首开公式文档的查看器 md 实例建于加载前永远等不到插件——chunk 拉了(资源计数 1)但公式不渲染;修=ensureMath 对**在用实例**补装(WeakSet 幂等)。②**performance resource timing 默认 250 条缓冲区溢出静默丢条目**:整套跑完 928 条,末尾的引擎 chunk 条目被丢,守卫数 0 而图明明渲染了;修=套件开机 `setResourceTimingBufferSize(10000)`。③**playwright evaluate 带参函数忘传第二参不报错**:`page.evaluate("s => e.name.includes(s)")` 的 s=undefined,`includes(undefined)` 恒 false,**计数恒 0 且"未加载"守卫空真**;②③合并记 lessons |
+| 版本 | 0.8.24 三处 bump;updates=exp 0.8.24(publish,staged 0.8.23→0.8.24);离线安装包未动;owner 验收路径=按钮亮→Update→打开任一含公式或 mermaid 的 md(样例=仓库 `scripts/e2e/fixtures/AIV-TestProject/docs/math-mermaid-demo.md`,可直接把这个文件夹当项目加进软件点开);顺带验收 0.8.23(自动重启)+0.8.22(切回重读) |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

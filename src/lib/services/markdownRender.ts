@@ -13,6 +13,19 @@
  * Syntax coloring (owner 2026-10-13): curated language subset, registered
  * on the shared core instance. Unregistered fences render as plain
  * (escaped) code — same as before the feature.
+ *
+ * Math + diagrams (spec-020, owner 2026-11-08 "都加"):
+ * - KaTeX via VS Code's markdown-it plugin: $inline$, $$block$$ and
+ *   ```math fences. LAZY: KaTeX evaluates to ~2.7 MB resident V8 heap
+ *   (measured 2026-11-08, node --expose-gc: module init 2.67 MB, 2.95 MB
+ *   after a first render) — unlike the hljs grammars, which nearly every
+ *   document uses, it is imported only for documents that may contain
+ *   math (memory rule, V1.5 §6). Its renderer emits katex markup directly
+ *   (trust off by default: no \href injection surface), so html:false
+ *   still holds.
+ * - ```mermaid fences become escaped-source placeholders here; the
+ *   MarkdownViewer lazily imports the engine ONLY for documents that
+ *   actually contain one.
  */
 import MarkdownIt from "markdown-it";
 import taskLists from "markdown-it-task-lists";
@@ -98,8 +111,73 @@ const AUTO_MAX_CHARS = 2000;
 /** Fence info strings that mean "no language" — auto-detect these. */
 const PLAIN_FENCE = new Set(["", "text", "plain", "plaintext"]);
 
+type Md = InstanceType<typeof MarkdownIt>;
+type KatexPlugin = typeof import("@vscode/markdown-it-katex").default;
+
+/** Installer for the lazily-loaded math plugin; null until first need. */
+let installMath: ((md: Md) => void) | null = null;
+let mathLoad: Promise<void> | null = null;
+const MATH_FENCE = /^[ \t]*(?:`{3,}|~{3,})[ \t]*math\b/im;
+
+/** Could this document contain math? Any `$`, or a ```math fence. A cheap
+ * superset check: a currency-only document loads the engine for nothing
+ * (output still correct — the plugin's own delimiter rules decide). */
+export function mayContainMath(text: string): boolean {
+  return text.includes("$") || MATH_FENCE.test(text);
+}
+
+export function mathEngineReady(): boolean {
+  return installMath !== null;
+}
+
+/** Idempotent per-renderer attach (markdown-it must not get the math
+ * plugin twice — rules would stack). Used by BOTH the factory (renderers
+ * created after the engine landed) and ensureMath (renderers already in
+ * service when it lands). */
+const mathAttached = new WeakSet<Md>();
+function attachMath(md: Md) {
+  if (!installMath || mathAttached.has(md)) return;
+  mathAttached.add(md);
+  installMath(md);
+}
+
+/** Load the math engine on first need and attach it to a renderer that
+ * may predate the load (first viewer of a math document does exactly
+ * that). Resolving is not enough for its output — the caller re-renders
+ * once attached (MarkdownViewer.mathRev). */
+export function ensureMath(md: Md): Promise<void> {
+  if (mathAttached.has(md)) return Promise.resolve();
+  return loadMathEngine().then(() => attachMath(md));
+}
+
+/** Import KaTeX + plugin + stylesheet on first need. One shared promise:
+ * several viewers asking at once trigger a single load; renderers created
+ * after it resolves get math. A failed load may be retried later. */
+export function loadMathEngine(): Promise<void> {
+  if (!mathLoad) {
+    mathLoad = Promise.all([
+      import("@vscode/markdown-it-katex"),
+      import("katex/dist/katex.min.css"),
+    ]).then(([mod]) => {
+      // CJS interop: the bundler hands over the function as `default`,
+      // Node's ESM loader the whole exports object — accept both shapes.
+      const d = (mod as unknown as { default: unknown }).default;
+      const plugin = (typeof d === "function"
+        ? d
+        : (d as { default: unknown }).default) as KatexPlugin;
+      installMath = (md) => {
+        md.use(plugin, { enableFencedBlocks: true });
+      };
+    });
+    mathLoad.catch(() => {
+      mathLoad = null;
+    });
+  }
+  return mathLoad;
+}
+
 export function createMarkdownRenderer(): InstanceType<typeof MarkdownIt> {
-  return new MarkdownIt({
+  const md: Md = new MarkdownIt({
     html: false, // §88: raw HTML disabled — output is escaped
     linkify: true,
     typographer: true,
@@ -123,5 +201,23 @@ export function createMarkdownRenderer(): InstanceType<typeof MarkdownIt> {
       }
       return ""; // markdown-it HTML-escapes and wraps in <pre><code>
     },
-  }).use(taskLists, { enabled: false, label: true });
+  })
+    .use(taskLists, { enabled: false, label: true });
+  attachMath(md); // no-op until the engine is loaded (spec-020)
+
+  // ```mermaid → placeholder carrying the ESCAPED source (spec-020). Checked
+  // before the katex/hljs fence path so diagram source is never colored or
+  // auto-detected; the viewer swaps in the SVG once the engine is loaded.
+  const baseFence = md.renderer.rules.fence;
+  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const info = token?.info.trim().toLowerCase() ?? "";
+    if (token && (info === "mermaid" || info.startsWith("mermaid "))) {
+      return `<div class="mermaid-block"><pre>${md.utils.escapeHtml(token.content)}</pre></div>\n`;
+    }
+    return baseFence
+      ? baseFence(tokens, idx, options, env, self)
+      : self.renderToken(tokens, idx, options);
+  };
+  return md;
 }

@@ -109,6 +109,12 @@ with sync_playwright() as p:
             time.sleep(0.5)
     page = browser.contexts[0].pages[0]
     page.wait_for_selector(".file-tree", timeout=25000)
+    # spec-020 lazy-load guards read performance resource timing near the
+    # END of the suite; the default 250-entry buffer would have overflowed
+    # and silently DROPPED the late engine-chunk entries (first run:
+    # mermaid rendered yet res_count('mermaid')==0). Raise it at boot so
+    # the whole session's fetches stay visible.
+    page.evaluate("() => performance.setResourceTimingBufferSize(10000)")
 
     def tree_row(name):
         return page.locator(".file-tree .row", has=page.locator(".name", has_text=name)).first
@@ -1868,6 +1874,65 @@ with sync_playwright() as p:
     time.sleep(0.4)
     page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
     time.sleep(0.5)
+
+    # ---- spec-020 (owner 2026-11-08 "都加"): math + mermaid rendering ----
+    # The engines are LAZY (memory rule, V1.5 §6): a session that has only
+    # seen math-free documents must have fetched NEITHER the katex chunk
+    # nor any mermaid chunk; the demo document then lights formulas and
+    # diagrams together, and the broken-diagram file proves a syntax error
+    # stays local (good block renders, broken block flagged, source kept).
+    def res_count(substr):
+        return page.evaluate(
+            "s => performance.getEntriesByType('resource')"
+            ".filter(e => e.name.includes(s)).length", substr)
+
+    def wait_count(sel, want, timeout_s):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if page.locator(sel).count() >= want:
+                return True
+            time.sleep(0.25)
+        return False
+
+    open_file("README.md")
+    time.sleep(0.8)
+    check("spec020_engines_not_loaded_for_plain_docs",
+          res_count("katex") == 0 and res_count("mermaid") == 0,
+          f"katex={res_count('katex')} mermaid={res_count('mermaid')}")
+
+    expand("docs")
+    open_file("math-mermaid-demo.md")
+    ok_math = wait_count(".rendered .katex-display", 4, 20)
+    inline = page.locator(".rendered .katex").count()
+    ok_diag = wait_count(".rendered .mermaid-block svg", 3, 25)
+    body_text = page.locator(".rendered").inner_text()
+    currency_literal = "$50" in body_text and "$70" in body_text
+    py_still_colored = page.locator(
+        ".rendered pre code .hljs-keyword").count() >= 1
+    check("spec020_demo_renders_math_and_diagrams",
+          ok_math and inline >= 4 and ok_diag
+          and currency_literal and py_still_colored,
+          f"math={ok_math} inline={inline} diag={ok_diag} "
+          f"curr={currency_literal} py={py_still_colored}")
+    res_diag = page.evaluate("""() => {
+        const rs = performance.getEntriesByType('resource');
+        return { total: rs.length,
+                 last: rs.slice(-6).map(e => e.name.split('/').pop()) };
+    }""")
+    check("spec020_engines_loaded_on_demand",
+          res_count("katex") >= 1 and res_count("mermaid") >= 1,
+          f"katex={res_count('katex')} mermaid={res_count('mermaid')} "
+          f"diag={res_diag}")
+
+    expand("edge-cases")
+    open_file("mermaid-broken.md")
+    err_flagged = wait_count(".rendered .mermaid-block.mermaid-error", 1, 15)
+    good_svg = wait_count(".rendered .mermaid-block svg", 1, 10)
+    check("spec020_mermaid_error_stays_local",
+          err_flagged and good_svg
+          and page.locator(".rendered .mermaid-block").count() == 2,
+          f"err={err_flagged} good={good_svg}")
+    open_file("README.md")
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

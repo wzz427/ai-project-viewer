@@ -402,3 +402,10 @@
 - **机理**:inline-block 容器里的 inline svg 按**行内文字**排版(基线+降部),不是按盒子排;图标包一层 span 想做动画锚点时,span 必须 flex 化,否则每个包过的图标都比不包的高一截。
 - **判据**:①对齐/偏移几个 px 的问题,**先量测后动手**(CDP 在页把 svg raster 到 canvas 算墨迹 bbox,或 getBoundingClientRect 比盒),别拿目测或模型口供定方向——视觉模型对 2-3px 偏移的方向判读会错(L45"4px 细条全翻车"同族,这次连方向都反);②修完必须回归量测确认(三钮同高),再走视觉模型出图终审;③潜伏缺陷常在被"第三者"打破对称时暴露:两枚图标错位 1.75px 挂了数周没人报,加第三枚立刻显眼——加东西时顺手量一下**左邻右舍**的几何,别只验新加的。
 - **出处**:owner 2026-10-31 对话报障(截图);修复随 0.8.18(.glyph inline-flex);phase3 加 header_icons_aligned 几何守卫(按钮高差+svg 中心差 <1px)封回归。
+
+### L31:e2e 里用 performance 资源计数当证据,两个静默陷阱——缓冲区 250 条上限溢出丢条目;playwright evaluate 带参函数忘传参恒 falsy 且不报错
+
+- **症状一**(spec-020 懒加载守卫首跑):图明明渲染了,`performance.getEntriesByType('resource')` 里数 `mermaid`/`katex` 条目=0;单独探针同断言却是 1。**机理**:resource timing 缓冲区默认 250 条,整套 phase3 跑完实际 928 条,后加载的引擎 chunk 条目被静默丢弃。**修法**:套件开机 `performance.setResourceTimingBufferSize(10000)`(晚了没用,溢出的条目不补回)。
+- **症状二**(同一守卫):`page.evaluate("s => rs.filter(e => e.name.includes(s)).length")` 忘传第二参——不报错,s=undefined,`includes(undefined)` 恒 false,**计数恒 0**;更险的是「必须为 0」的守卫(纯文文档零加载)因此**空真**。**修法**:带参必传参;「必须为 0」类守卫要配一条「必须非 0」的姊妹断言(本轮=打开样例后必现两 chunk),单边 0 断言永远防不住自己坏。
+- **判据**:e2e 拿资源/网络计数当证据时:①长会话先扩缓冲区;②任何恒 0 结论先在已知非 0 的场景对拍一次。
+- **出处**:spec-020 phase3 守卫首跑 FAIL 两连,2026-11-08(0.8.24,testing 0.8.24 行踩坑档同步)。
