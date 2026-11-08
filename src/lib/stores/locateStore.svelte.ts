@@ -24,6 +24,7 @@ import {
 } from "$lib/stores/fileTreeStore.svelte";
 import { openFile } from "$lib/stores/tabsStore.svelte";
 import { settings } from "$lib/stores/settingsStore.svelte";
+import { pathsExist } from "$lib/services/tauri";
 import {
   matchProject,
   normalizeInput,
@@ -66,9 +67,35 @@ export async function submitLocate(raw: string) {
       projectState.activeId,
     );
     if (!match) {
-      toast(tf("toast.locateNotInProject", { path: rawPath }), {
-        kind: "error",
-      });
+      // Split the failure so the toast names the missing step (owner
+      // 2026-11-08: "the message must say the folder isn't open yet and
+      // has to be opened first"): a path that EXISTS on disk outside all
+      // open projects gets the "open its folder first" instruction, a
+      // path that doesn't exist anywhere gets plain not-found — sending
+      // the user to open a folder for a typo'd path would be a wrong
+      // errand. Relative inputs only reach here with NO project open at
+      // all, where the same "open a folder first" wording is the truth.
+      let onDisk = true;
+      if (input.kind === "abs") {
+        // Probe the CONTAINING FOLDER, not the file itself: paths_exist is
+        // a directory check (Open Recent semantics — files read false),
+        // and the message is about the folder anyway. Folder on disk but
+        // no open project owns it → "open it first"; folder itself gone
+        // → plain not-found. A bare drive root ("C:\") has no parent —
+        // treat as on-disk (the actionable wording stays truthful).
+        const parent = input.segments.slice(0, -1).join("\\");
+        try {
+          onDisk = parent === "" || (await pathsExist([parent]))[0] === true;
+        } catch {
+          onDisk = true; // check itself failed: keep the actionable wording
+        }
+      }
+      toast(
+        tf(onDisk ? "toast.locateNotInProject" : "toast.locateNotFound", {
+          path: rawPath,
+        }),
+        { kind: "error" },
+      );
       return;
     }
     const { project, relSegments } = match;

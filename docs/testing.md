@@ -222,6 +222,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | ①**attach 时机 bug(守卫首跑照出)**:`installMath` 只接进新建渲染器,首开公式文档的查看器 md 实例建于加载前永远等不到插件——chunk 拉了(资源计数 1)但公式不渲染;修=ensureMath 对**在用实例**补装(WeakSet 幂等)。②**performance resource timing 默认 250 条缓冲区溢出静默丢条目**:整套跑完 928 条,末尾的引擎 chunk 条目被丢,守卫数 0 而图明明渲染了;修=套件开机 `setResourceTimingBufferSize(10000)`。③**playwright evaluate 带参函数忘传第二参不报错**:`page.evaluate("s => e.name.includes(s)")` 的 s=undefined,`includes(undefined)` 恒 false,**计数恒 0 且"未加载"守卫空真**;②③合并记 lessons |
 | 版本 | 0.8.24 三处 bump;updates=exp 0.8.24(publish,staged 0.8.23→0.8.24);离线安装包未动;owner 验收路径=按钮亮→Update→打开任一含公式或 mermaid 的 md(样例=仓库 `scripts/e2e/fixtures/AIV-TestProject/docs/math-mermaid-demo.md`,可直接把这个文件夹当项目加进软件点开);顺带验收 0.8.23(自动重启)+0.8.22(切回重读) |
 
+#### 0.8.25 定位报错说清下一步(2026-11-08,spec-017 增量,owner 要求「错误信息一定要很明确,说明该文件夹还没被打开、需要先打开」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 原报错「不在任何已打开的项目内:{路径}」只说事实不说**该怎么办**;且路径打错根本不存在时混用同一条(会误导用户去打开一个不存在的文件夹) |
+| 实现 | locateStore 匹配失败分支按**父目录存在性**分流(paths_exist 是目录级检查,Open Recent 语义——探测父目录而非文件本身):父目录在盘上但没有任何项目含它→「这个文件夹还没有在软件里打开——先用左上角「＋(添加项目)」按钮打开它所在的文件夹,再重新定位」(EN 同义);父目录不存在→「路径不存在」;消息永远指向**第一个真正缺的步骤**(文件名打错但文件夹确实没开→仍报先开文件夹,开完重试才见精确的文件级报错,两步各真);相对路径仅在零项目时走到此分支,同用「先打开」文案;paths_exist 调用失败 fail-open 到可行动文案 |
+| 全档 | check 0/0+vitest 159/159+cargo 免跑(Rust 零改动)+phase3 **PASS**(+2 守卫:locate_outside_existing_names_the_step=盘上存在但未打开必报「先打开文件夹+按钮名+路径」/locate_outside_missing_folder_is_plain_not_found=父目录不存在必报纯「路径不存在」);freeze-guard 免跑(未触树/watcher 域) |
+| 踩坑 | 守卫首跑照出:paths_exist 对**文件**返回 false(它是 Open Recent 的目录新鲜度检查)——首版探测文件本身,存在的 marker.txt 被判「路径不存在」;修=探测父目录(消息本来就说的是文件夹,语义反而更对) |
+| 版本 | 0.8.25 三处 bump;updates=exp 0.8.25(publish,staged 0.8.24→0.8.25);owner 验收路径=定位框粘贴一个**未打开文件夹里的真实文件**路径(样例即此场景)→报错含「先打开它所在的文件夹」;粘贴不存在路径→「路径不存在」 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

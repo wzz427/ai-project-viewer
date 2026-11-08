@@ -246,7 +246,8 @@ export const en = {
   "toast.alreadyOpen": '"{name}" is already open — switched to its tab.',
   "toast.cannotOpenFolder": "Cannot open folder: {err}",
   "toast.cannotOpenPicker": "Cannot open folder picker: {err}",
-  "toast.locateNotInProject": "Not inside any open project: {path}",
+  "toast.locateNotInProject":
+    'This folder is not open in the app yet — open it first with the "Add project" button (＋, top-left), then locate again: {path}',
   "toast.locateNotFound": "Path not found: {path}",
   "toast.locateHidden":
     '"{name}" is inside a hidden system folder — turn on "Show system folders" in Settings first',
@@ -497,7 +498,8 @@ export const zh: Record<I18nKey, string> = {
   "toast.alreadyOpen": "“{name}”已打开——已切换到它的页签。",
   "toast.cannotOpenFolder": "无法打开文件夹:{err}",
   "toast.cannotOpenPicker": "无法打开文件夹选择框:{err}",
-  "toast.locateNotInProject": "不在任何已打开的项目内:{path}",
+  "toast.locateNotInProject":
+    "这个文件夹还没有在软件里打开——请先用左上角「＋(添加项目)」按钮打开它所在的文件夹,再重新定位:{path}",
   "toast.locateNotFound": "路径不存在:{path}",
   "toast.locateHidden": "「{name}」在隐藏的系统文件夹内——请先在设置中打开「显示系统文件夹」",
   "toast.cannotOpenFile": "无法打开文件:{err}",

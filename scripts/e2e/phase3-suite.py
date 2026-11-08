@@ -689,6 +689,55 @@ with sync_playwright() as p:
           and page.locator(".locate-dialog").count() == 0,
           f"toast={toast_text!r} tabs={tab_count()}>{tabs_before_locate}")
 
+    # 0.8.25 (owner 2026-11-08): a path that EXISTS on disk but whose folder
+    # is NOT among the open projects must toast the missing step by name
+    # ("open its folder first" + the button), not a bare "not inside any
+    # project"; a path that exists NOWHERE stays plain not-found (pointing
+    # the user to open a folder for a typo would be a wrong errand).
+    out_dir = os.path.join(os.environ["TEMP"], "aiv-locate-out")
+    os.makedirs(out_dir, exist_ok=True)
+    outside_file = os.path.join(out_dir, "marker.txt")
+    with open(outside_file, "w", encoding="utf-8") as f:
+        f.write("x")
+    dismiss_toast()
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill(outside_file)
+    page.keyboard.press("Enter")
+    outside_toast = ""
+    for _ in range(30):
+        time.sleep(0.15)
+        if page.locator(".toast").count():
+            outside_toast = page.locator(".toast").first.inner_text()
+            break
+    check("locate_outside_existing_names_the_step",
+          "not open in the app yet" in outside_toast
+          and "Add project" in outside_toast and "marker.txt" in outside_toast,
+          f"toast={outside_toast!r}")
+    dismiss_toast()
+    press("l")
+    time.sleep(0.3)
+    # Missing FOLDER (parent doesn't exist either) → plain not-found: the
+    # actionable "open its folder" wording would send the user to open a
+    # folder that isn't there. A typo'd FILENAME inside an EXISTING but
+    # unopened folder keeps the actionable wording by design — the folder
+    # being unopened is the first true obstacle; the exact file check
+    # reports after it's opened.
+    page.locator("[data-locate-input]").fill(
+        os.path.join(out_dir, "ghost-dir", "nope.md"))
+    page.keyboard.press("Enter")
+    nowhere_toast = ""
+    for _ in range(30):
+        time.sleep(0.15)
+        if page.locator(".toast").count():
+            nowhere_toast = page.locator(".toast").first.inner_text()
+            break
+    check("locate_outside_missing_folder_is_plain_not_found",
+          "Path not found" in nowhere_toast
+          and "not open in the app yet" not in nowhere_toast,
+          f"toast={nowhere_toast!r}")
+    dismiss_toast()
+
     # hidden system folder → pointer toast (never a silent no-scroll).
     press("l")
     time.sleep(0.3)
