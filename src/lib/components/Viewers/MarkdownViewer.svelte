@@ -368,11 +368,28 @@
   .rendered :global(.hljs-title.class_) { color: var(--sy-type); }
 
   /* Editorial tables: strong horizontal rules, no vertical cages, quiet
-     zebra — books, not spreadsheets. */
+     zebra — books, not spreadsheets.
+     Width discipline (owner 2026-11-10 报障, table "完全有问题"): a table's
+     min-content is the sum of its longest UNBREAKABLE cell content — inline
+     code chips (a 50-char path ≈ 250px) pinned his doc's table at 882px no
+     matter the window, crushing the text columns into a 73px sliver with
+     1100px-tall rows, and the auto-width table stuck out past the 88ch
+     measure. Two rules fix the mechanism: chips inside cells may wrap
+     (overflow-wrap:anywhere — unlike break-word it collapses min-content
+     sizing), and the table box itself becomes a self-contained scroll
+     container capped at the measure, so a genuinely wider table scrolls
+     in place instead of pushing the whole reading pane. */
   .rendered :global(table) {
     border-collapse: collapse;
     margin: 1.1em 0;
     width: auto;
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .rendered :global(th code),
+  .rendered :global(td code) {
+    overflow-wrap: anywhere;
   }
   .rendered :global(th),
   .rendered :global(td) {

@@ -242,6 +242,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 159/159+cargo 免跑(Rust 零改动)+phase3 **PASS**(+1 守卫 mono_stack_carries_cjk_font=.cm-scroller 计算字体栈必含雅黑且序在 Consolas 后,token 被删即红);freeze-guard 免跑(未触树/watcher 域) |
 | 版本 | 0.8.26 三处 bump;updates=exp 0.8.26(publish,VersionInfo 核过);owner 验收路径=按钮亮→Update→自动重启→重开报障那个 TXT(或任意中文 txt/log/md 源码态):中文与英文深浅一致、清晰饱满 |
 
+#### 0.8.27 Markdown 表格渲染修复(2026-11-10,owner 报障「表格的渲染完全是有问题的」+截图[WordsStudy docs/testing.md];已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 解析层清白先行证伪(markdown-it 同配置渲染:3 表结构完整零裸管道),病在布局:表格 `width:auto` 自动布局的 min-content=各列最长**不可断**内容之和——单元格里的长路径行内代码段(单片 251px 不可断)把大表钉死在 882px(与窗宽无关,800~1700px 扫描实测恒定),第三列整段中文被压进 **73px**(一行 4 字)、行高最高 **1188px**;表还向右戳出 88ch 正文列 170px。owner 截图像素分析+复现页探针双对照坐实 |
+| 实现 | MarkdownViewer CSS 两条:①`th/td code` 允许 `overflow-wrap:anywhere`(与 break-word 的本质差:anywhere 塌缩 min-content 尺寸→列宽恢复正常分配);②`table` 改 `display:block;max-width:100%;overflow-x:auto`(GitHub 同款:表永不戳出正文列,病态宽表就地横滚,不再推动整个阅读面)。正文行内代码、小表渲染零变化(表1/表3 列宽逐像素不变) |
+| 量化 | 大表列宽 400/408/**73**→90/381/**240**;最高行高 1188→**250px**;表右缘=正文列右缘(906/906);整页 scrollWidth=clientWidth 无横滚。真 app(临时项目装 owner 原文件)实测与复现页逐项一致;§1/§2 两表截图亲验过(列均衡可读/纸感样式无损/无裁切) |
+| 全档 | check 0/0+vitest 159/159+phase3 **PASS×2**(+5 守卫:md_table_box_scroll_capped[display block+max-width 100%+overflow-x auto 三值契约]/md_table_cell_code_breaks[anywhere]/md_table_within_measure[表右缘≤列右缘+1]/md_table_no_pane_hscroll/md_table_text_col_not_sliver[长中文列≥150px,旧态 73 即红];夹具现场建/断完即删);cargo 免跑(Rust 零改动)+freeze-guard 免跑(未触树/watcher 域) |
+| 版本 | 0.8.27 三处 bump;updates=exp 0.8.27(publish,staged 0.8.26→publishing 干净;exe UTF-16 核 0.8.27 FOUND/0.8.26 absent;json 无 BOM);owner 验收路径=按钮亮→Update→自动重启→重开报障的 testing.md:三张表列宽正常、中文不再挤成竖条、表格不超出正文列 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

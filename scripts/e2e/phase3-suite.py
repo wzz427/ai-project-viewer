@@ -363,6 +363,69 @@ with sync_playwright() as p:
           f"inline={af['inlineBg']} paper={af['paper']} Δ={af['inlineDelta']}")
     open_file("README.md")
 
+    # --- 0.8.27 wide-table guards (owner 2026-11-10 报障 "表格的渲染完全
+    # 有问题", WordsStudy docs/testing.md): a table's min-content is the sum
+    # of its longest UNBREAKABLE cell content — long `code` path chips pinned
+    # the table at 882px on every window width, crushing the text columns
+    # into a 73px sliver (rows 1188px tall) and sticking 170px past the 88ch
+    # measure. Fixture replicates his doc's shape (path chips + long CJK
+    # cells); created here, deleted right after (watcher surfaces it).
+    table_fixture = "aiv-widetable.md"
+    table_path = os.path.join(PROJECT, table_fixture)
+    chip = "`.artifacts/tmp/20261110-speak-layout-01/check.cjs`"
+    cjk = ("顺序至虚拟采集取消以及页面刷新历史试听互斥和结果下载字节"
+           "真实重复绑定不能建立第二监听启动身份协议项目匹配拒绝重定向") * 2
+    with open(table_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(
+            "# widetable\n\n"
+            "| 入口 | 怎么运行／覆盖 | 不能据此宣称什么 |\n"
+            "|---|---|---|\n"
+            f"| {chip} | `node {chip.strip('`')} <全新run-id>`；{cjk} | {cjk} |\n"
+            f"| `sample/experience.js` | 在项目根分别运行 node 检查 | 只查语法，"
+            "不查教学、布局或真实行为，桌面模拟不是真实软键盘 |\n"
+        )
+    time.sleep(1.5)  # watcher surfaces the file in the tree
+    open_file(table_fixture)
+    wt = page.evaluate("""() => {
+        const r = document.querySelector('.rendered.md');
+        const prose = r.querySelector('.prose');
+        const table = r.querySelector('table');
+        const cs = getComputedStyle(table);
+        const code = table.querySelector('td code');
+        const cells = [...table.rows[0].cells].map(
+            c => Math.round(c.getBoundingClientRect().width));
+        const tRect = table.getBoundingClientRect();
+        const pRect = prose.getBoundingClientRect();
+        return {
+            display: cs.display, maxWidth: cs.maxWidth, overflowX: cs.overflowX,
+            codeWrap: code ? getComputedStyle(code).overflowWrap : null,
+            tableRight: Math.round(tRect.right),
+            proseRight: Math.round(pRect.right),
+            paneScrollW: r.scrollWidth, paneClientW: r.clientWidth,
+            colWidths: cells,
+        };
+    }""")
+    check("md_table_box_scroll_capped",
+          wt["display"] == "block" and wt["maxWidth"] == "100%"
+          and wt["overflowX"] == "auto",
+          str(wt))
+    check("md_table_cell_code_breaks",
+          wt["codeWrap"] == "anywhere", str(wt["codeWrap"]))
+    # the table box must stay INSIDE the reading measure (old behavior:
+    # 882px auto table stuck out 170px past the 712px prose column)
+    check("md_table_within_measure",
+          wt["tableRight"] <= wt["proseRight"] + 1,
+          f"table={wt['tableRight']} prose={wt['proseRight']}")
+    check("md_table_no_pane_hscroll",
+          wt["paneScrollW"] <= wt["paneClientW"] + 1,
+          f"scroll={wt['paneScrollW']} client={wt['paneClientW']}")
+    # no text column may be a sliver (old behavior: long-CJK column at 73px,
+    # ~4 chars per line); with breakable chips the measure is shared
+    check("md_table_text_col_not_sliver", wt["colWidths"][2] >= 150,
+          str(wt["colWidths"]))
+    os.remove(table_path)
+    open_file("README.md")
+
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
     # pinned tabs protected, anchor survives and takes over activation ---
     while tab_count() > 0:  # deterministic scene: clear, then five known tabs

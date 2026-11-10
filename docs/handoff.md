@@ -28,6 +28,11 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-10 · 0.8.27 Markdown 表格渲染修复已发,等 owner Update 验收
+
+- owner 报障(截图,WordsStudy docs/testing.md)「表格的渲染完全是有问题的」。解析层先证清白(markdown-it 同配置:3 表结构完整),病在布局:单元格里的**长路径行内代码段不可断行**,把表格 min-content 钉死在 882px(800~1700px 任意窗宽实测恒定),长中文列被压成 73px 竖条(一行 4 字、行高 1188px),表还戳出 88ch 正文列 170px。修=CSS 两条:单元格内代码段 `overflow-wrap:anywhere`(塌缩 min-content→列宽恢复分配;与 break-word 的本质差就在尺寸参与)+表 `display:block/max-width:100%/overflow-x:auto`(GitHub 同款,永不超正文列、病态宽表就地横滚);小表与正文行内代码零变化。
+- 证据:大表列宽 400/408/73→90/381/240、行高 1188→250px、表右缘=正文列右缘;真 app(临时项目装 owner 原文件)与复现页逐项一致,§1/§2 截图亲验过。全档:check 0/0+vitest 159/159+phase3 PASS×2(+5 守卫 md_table_*)+cargo/freeze 免跑。**0.8.27 已发**(exe UTF-16 核过,json 无 BOM)。账:testing 0.8.27 行/V1.5 §197/handoff(本条)。**下一动作=owner Update→自动重启→重开 testing.md:三张表列宽正常、中文不挤竖条、表不超正文列**(顺带验收 0.8.22~0.8.26)。
+
 ### 2026-11-10 · 0.8.26 TXT 中文发灰修复已发,等 owner Update 验收
 
 - owner 报障(截图)「TXT 文档里面的中文文字的字体颜色显示特别浅」。根因不在颜色(token 本身深色):**--font-mono 栈没有任何中文字形**,查看器里中文逐字掉进系统等宽回退(Windows 宋体 13px 发丝笔画+灰度抗锯齿),英文走 Consolas+ClearType 乌黑——同段落黑灰反差由此;0.8.14 给 --font-ui 补雅黑时漏了 mono 这半边。修=app.css 一行,mono 栈 Consolas 后补 Microsoft YaHei(拉丁等宽不动,只有 CJK 字形换字体),一个 token 收口 CodeViewer/diff/Git 面板/MD 代码块。
