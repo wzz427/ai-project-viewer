@@ -17,9 +17,14 @@
 :root {
   /* YaHei entries (spec-016): explicit CJK glyphs for the Chinese UI so
      mixed text renders consistently instead of relying on silent system
-     font fallback. */
+     font fallback. Same cure for --font-mono (0.8.26, owner report
+     "TXT 中文特别浅"): Cascadia/Consolas carry no CJK glyphs, so Chinese
+     fell through to the system monospace fallback (SimSun hairline
+     strokes at 13px = faint gray) right next to ClearType-black Latin.
+     YaHei sits after the Latin monos so code keeps its fonts and only
+     the CJK glyphs switch. */
   --font-ui: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
-  --font-mono: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+  --font-mono: "Cascadia Code", "Cascadia Mono", Consolas, "Microsoft YaHei", monospace;
   /* Type scale (spec-014 D2): exactly three sizes; hierarchy comes from
      weight (600) and color, never from extra sizes. */
   --text-xs: 11px;

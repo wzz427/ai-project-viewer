@@ -232,6 +232,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 踩坑 | 守卫首跑照出:paths_exist 对**文件**返回 false(它是 Open Recent 的目录新鲜度检查)——首版探测文件本身,存在的 marker.txt 被判「路径不存在」;修=探测父目录(消息本来就说的是文件夹,语义反而更对) |
 | 版本 | 0.8.25 三处 bump;updates=exp 0.8.25(publish,staged 0.8.24→0.8.25);owner 验收路径=定位框粘贴一个**未打开文件夹里的真实文件**路径(样例即此场景)→报错含「先打开它所在的文件夹」;粘贴不存在路径→「路径不存在」 |
 
+#### 0.8.26 TXT 中文发灰修复(2026-11-10,owner 报障「TXT 文档里面的中文文字的字体颜色显示特别浅」+截图;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | `--font-mono` 栈 `"Cascadia Code","Cascadia Mono",Consolas,monospace` **全无中文字形**——TXT/代码查看器里的中文逐字掉进系统等宽回退(Windows=宋体,13px 发丝笔画+灰度抗锯齿),英文走 Consolas+ClearType 乌黑;同段落英文黑/中文灰的反差即此(颜色 token 本身是深色 #302f2b,与颜色无关)。0.8.14 给 `--font-ui` 补雅黑时漏了 mono 这半边——UI 界面中文一直正常,唯独等宽场景中招 |
+| 实现 | app.css 一行:`--font-mono` 在 Consolas 后补 `"Microsoft YaHei"`(照 spec-016 --font-ui 先例);雅黑排在拉丁等宽之后→代码字母仍 Cascadia/Consolas,只有 CJK 字形换字体;一个 token 收口全部等宽场景(CodeViewer/diff/Git 面板/MD 代码块/ErrorDialog)。零内存代价(纯 CSS 声明) |
+| 量化 | 像素级 before/after(L45 先量测后修):中文行墨水平均亮度 93–113→**86–90**(英文行=82.4,差距 ~20 分收敛到 ~5 分);深墨占比 27–52%→**59–63%**(英文=64.6%);英文行逐字节不变。视觉模型终审 AFTER 截图:中英文深浅一致、笔画饱满、无乱码错位(铁律 §2.3-6) |
+| 全档 | check 0/0+vitest 159/159+cargo 免跑(Rust 零改动)+phase3 **PASS**(+1 守卫 mono_stack_carries_cjk_font=.cm-scroller 计算字体栈必含雅黑且序在 Consolas 后,token 被删即红);freeze-guard 免跑(未触树/watcher 域) |
+| 版本 | 0.8.26 三处 bump;updates=exp 0.8.26(publish,VersionInfo 核过);owner 验收路径=按钮亮→Update→自动重启→重开报障那个 TXT(或任意中文 txt/log/md 源码态):中文与英文深浅一致、清晰饱满 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

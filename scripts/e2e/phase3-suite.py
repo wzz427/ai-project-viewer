@@ -834,6 +834,21 @@ with sync_playwright() as p:
           md_tb and code_tb and abs(md_tb["y"] - code_tb["y"]) <= 1
           and abs(md_tb["h"] - code_tb["h"]) <= 1,
           f"md={md_tb} code={code_tb}")
+    # --- 0.8.26 CJK mono font guard (owner 2026-11-10 报障 "TXT 中文特别
+    # 浅"): the mono stack used to end at bare `monospace` — no CJK glyphs,
+    # so Chinese fell to the system fallback (SimSun hairlines at 13px =
+    # faint gray next to ClearType-black Latin). The cure rides --font-mono
+    # (one token feeds CodeViewer/diff/Git panel/MD code blocks), so
+    # guarding the computed stack on the open code viewer guards it
+    # everywhere. YaHei must sit AFTER Consolas: Latin keeps its monospace,
+    # only the CJK glyphs switch fonts.
+    mono_stack = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.cm-scroller')).fontFamily")
+    check("mono_stack_carries_cjk_font",
+          "Microsoft YaHei" in mono_stack
+          and "Consolas" in mono_stack
+          and mono_stack.index("Consolas") < mono_stack.index("Microsoft YaHei"),
+          mono_stack)
     code_find = page.evaluate(r"""async () => {
       const inp = document.querySelector('.code-viewer .vtb .search');
       const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
