@@ -1,10 +1,12 @@
 /**
- * Locate dialog slot + orchestration (spec-017): paste a path,
- * jump to the project that owns it and reveal it in the tree.
+ * Locate dialog slot + orchestration (spec-017): paste a path — or type
+ * a file name — jump to the project that owns it and reveal it in the
+ * tree.
  *
- * ZERO-RESIDENT (V1.5 §6): the slot is one boolean; the walk reads one
- * cached level at a time through the tree store's own cache and drops
- * everything — nothing persists, nothing outlives the dialog.
+ * ZERO-RESIDENT (V1.5 §6): the slot is one boolean plus the transient
+ * hit list of a name search; the walk reads one cached level at a time
+ * through the tree store's own cache and drops everything — nothing
+ * persists, nothing outlives the dialog.
  */
 
 import { toast } from "$lib/stores/toastStore.svelte";
@@ -24,26 +26,56 @@ import {
 } from "$lib/stores/fileTreeStore.svelte";
 import { openFile } from "$lib/stores/tabsStore.svelte";
 import { settings } from "$lib/stores/settingsStore.svelte";
-import { pathsExist } from "$lib/services/tauri";
+import {
+  pathsExist,
+  searchProjectFiles,
+  type SearchMatch,
+} from "$lib/services/tauri";
 import {
   matchProject,
   normalizeInput,
   resolveRel,
+  searchFallbackQuery,
+  type ProjectLike,
 } from "$lib/services/locatePath";
 
-export const locateState = $state({ open: false });
+/**
+ * A name search that found SEVERAL candidates: the dialog stays open and
+ * lists them, one click (or Enter) finishes the jump. Lives only while
+ * the dialog is open — closing drops it.
+ */
+export interface LocateResults {
+  /** The input that produced this list, trimmed — Enter on an unchanged
+   *  input picks from the list instead of searching again. */
+  query: string;
+  matches: SearchMatch[];
+  total: number;
+  truncated: boolean;
+}
+
+export const locateState = $state<{
+  open: boolean;
+  results: LocateResults | null;
+}>({ open: false, results: null });
+
+/** Rows shown per search. More than a screenful means "type more", and
+ *  the dialog says so instead of growing an endless list. */
+const SEARCH_LIMIT = 50;
 
 export function openLocate() {
+  locateState.results = null;
   locateState.open = true;
 }
 
 export function closeLocate() {
   locateState.open = false;
+  locateState.results = null;
 }
 
 /** Ctrl+L toggles (spec-017 D9) — same muscle memory as a browser bar. */
 export function toggleLocate() {
-  locateState.open = !locateState.open;
+  if (locateState.open) closeLocate();
+  else openLocate();
 }
 
 // A deep walk is a handful of fast one-level IPCs; still, Enter mashed
@@ -55,10 +87,59 @@ async function listLevel(rootPath: string, relDir: string) {
   return treeFor(rootPath).children[relDir] ?? null;
 }
 
+/**
+ * Final step shared by a resolved path and a picked search hit: switch
+ * to the owning project and reveal (+ open) the target.
+ */
+async function land(
+  project: ProjectLike,
+  target: { rel: string; isDir: boolean; hiddenSystem: boolean },
+) {
+  activateProject(project.id);
+  setSidebarMode(project.rootPath, "files");
+  if (target.rel === "") {
+    diagEvent(`locate root ${project.rootPath}`);
+    return; // the path WAS the project root: the switch is the whole job
+  }
+  if (target.hiddenSystem && !settings.fileTree.showSystemGeneratedFolders) {
+    // Revealing would scroll to a row the tree refuses to render —
+    // say why and where the switch lives instead of failing silently
+    // (spec-017 D8: never flip the user's persisted setting as a side
+    // effect).
+    toast(tf("toast.locateHidden", { name: target.rel }), {
+      kind: "error",
+    });
+    return;
+  }
+  if (target.isDir) {
+    await revealInTree(project.rootPath, target.rel);
+    const st = treeFor(project.rootPath);
+    if (!st.expandedFolders.includes(target.rel)) {
+      await toggleExpand(project.rootPath, target.rel);
+    }
+    // A folder can never become the ACTIVE TAB (highlight truth for
+    // files), so the located row borrows the right-click "last acted
+    // on" highlight — same one-source rule, cleared by the next file
+    // activation exactly like a menu action.
+    contextMenuTarget.rootPath = project.rootPath;
+    contextMenuTarget.rel = target.rel;
+    diagEvent(`locate dir ${target.rel} ${project.rootPath}`);
+  } else {
+    // Reveal FIRST so the tree moves even if openFile stops at the
+    // 5–20 MB confirm dialog and the user cancels (spec-017 D2).
+    await revealInTree(project.rootPath, target.rel);
+    void openFile(project.rootPath, target.rel);
+    diagEvent(`locate file ${target.rel} ${project.rootPath}`);
+  }
+}
+
 export async function submitLocate(raw: string) {
   const input = normalizeInput(raw);
   if (!input || inFlight) return;
   inFlight = true;
+  // Only a multi-hit name search keeps the dialog up (its list needs a
+  // click); every other outcome — jump or error toast — closes it.
+  let keepOpen = false;
   try {
     const rawPath = raw.trim();
     const match = matchProject(
@@ -107,50 +188,70 @@ export async function submitLocate(raw: string) {
         : await resolveRel(relSegments, (dir) =>
             listLevel(project.rootPath, dir),
           );
-    if (!target) {
+    if (target) {
+      await land(project, target);
+      return;
+    }
+    // Not a path that walks from the root. A relative input is then a
+    // NAME (or path fragment) to search for in this project — the owner's
+    // 2026-11-10 report: typing `client-runtime-delivery-closeout.md`
+    // found nothing until the whole docs/specs/designs/… path was typed,
+    // because a bare name was only ever looked up in the project root.
+    const query = searchFallbackQuery(input);
+    if (query === null) {
       toast(tf("toast.locateNotFound", { path: rawPath }), {
         kind: "error",
       });
       return;
     }
-    activateProject(project.id);
-    setSidebarMode(project.rootPath, "files");
-    if (relSegments.length === 0) {
-      diagEvent(`locate root ${project.rootPath}`);
-      return; // the path WAS the project root: the switch is the whole job
+    let found;
+    try {
+      found = await searchProjectFiles(
+        project.rootPath,
+        query,
+        // Same visibility as the tree: a hit inside a hidden system
+        // folder would reveal nowhere.
+        settings.fileTree.showSystemGeneratedFolders,
+        SEARCH_LIMIT,
+      );
+    } catch (e) {
+      toast(String(e), { kind: "error" });
+      return;
     }
-    if (target.hiddenSystem && !settings.fileTree.showSystemGeneratedFolders) {
-      // Revealing would scroll to a row the tree refuses to render —
-      // say why and where the switch lives instead of failing silently
-      // (spec-017 D8: never flip the user's persisted setting as a side
-      // effect).
-      toast(tf("toast.locateHidden", { name: target.rel }), {
+    diagEvent(
+      `locate search "${query}" hits=${found.total}${found.truncated ? "+" : ""} ${project.rootPath}`,
+    );
+    if (found.matches.length === 0) {
+      toast(tf("toast.locateNoMatch", { query: rawPath }), {
         kind: "error",
       });
       return;
     }
-    if (target.isDir) {
-      await revealInTree(project.rootPath, target.rel);
-      const st = treeFor(project.rootPath);
-      if (!st.expandedFolders.includes(target.rel)) {
-        await toggleExpand(project.rootPath, target.rel);
-      }
-      // A folder can never become the ACTIVE TAB (highlight truth for
-      // files), so the located row borrows the right-click "last acted
-      // on" highlight — same one-source rule, cleared by the next file
-      // activation exactly like a menu action.
-      contextMenuTarget.rootPath = project.rootPath;
-      contextMenuTarget.rel = target.rel;
-      diagEvent(`locate dir ${target.rel} ${project.rootPath}`);
-    } else {
-      // Reveal FIRST so the tree moves even if openFile stops at the
-      // 5–20 MB confirm dialog and the user cancels (spec-017 D2).
-      await revealInTree(project.rootPath, target.rel);
-      void openFile(project.rootPath, target.rel);
-      diagEvent(`locate file ${target.rel} ${project.rootPath}`);
+    if (found.matches.length === 1) {
+      // Unambiguous — finish the jump without making the user click a
+      // one-row list.
+      const only = found.matches[0]!;
+      await land(project, { ...only, hiddenSystem: false });
+      return;
     }
+    locateState.results = {
+      query: rawPath,
+      matches: found.matches,
+      total: found.total,
+      truncated: found.truncated,
+    };
+    keepOpen = true;
   } finally {
     inFlight = false;
-    closeLocate();
+    if (!keepOpen) closeLocate();
   }
+}
+
+/**
+ * Finish a multi-hit search with the chosen row. The row carries the
+ * true-case project-relative path, so it rides the same pipeline as a
+ * pasted path (resolve → land) — one source of truth for "jump there".
+ */
+export async function pickLocateResult(rel: string) {
+  await submitLocate(rel);
 }

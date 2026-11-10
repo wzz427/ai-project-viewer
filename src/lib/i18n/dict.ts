@@ -35,14 +35,16 @@ export const en = {
   "header.git": "Git",
   "header.refresh": "Refresh",
   "header.settings": "Settings",
-  "header.locate": "Locate by Path",
+  "header.locate": "Locate File",
 
-  // --- locate dialog (spec-017) ---
-  "locate.title": "Locate by Path",
-  "locate.placeholder": "C:\\path\\to\\file-or-folder (or a relative path)",
+  // --- locate dialog (spec-017; name search added 2026-11-10) ---
+  "locate.title": "Locate File",
+  "locate.placeholder": "C:\\path\\to\\file, src/main.py — or just a file name",
   "locate.hint":
-    "Opens the project containing this path and reveals it in the tree. A relative path resolves against the active project.",
+    "A path jumps straight to it. A file name (or a path fragment) searches the active project and lists the matches.",
   "locate.go": "Locate",
+  "locate.results": "{n} matches — click one to go there",
+  "locate.resultsCapped": "Showing the first {n} matches — type more to narrow down",
 
   // --- handoff / context menus (handoffMenu.ts + menu components) ---
   "menu.open": "Open",
@@ -249,6 +251,7 @@ export const en = {
   "toast.locateNotInProject":
     'This folder is not open in the app yet — open it first with the "Add project" button (＋, top-left), then locate again: {path}',
   "toast.locateNotFound": "Path not found: {path}",
+  "toast.locateNoMatch": "No matching file or folder in this project: {query}",
   "toast.locateHidden":
     '"{name}" is inside a hidden system folder — turn on "Show system folders" in Settings first',
   "toast.cannotOpenFile": "Cannot open file: {err}",
@@ -291,14 +294,16 @@ export const zh: Record<I18nKey, string> = {
   "header.git": "Git",
   "header.refresh": "刷新",
   "header.settings": "设置",
-  "header.locate": "按路径定位",
+  "header.locate": "定位文件",
 
-  // --- locate dialog (spec-017) ---
-  "locate.title": "按路径定位",
-  "locate.placeholder": "C:\\路径\\到\\文件或文件夹(或相对路径)",
+  // --- locate dialog (spec-017; name search added 2026-11-10) ---
+  "locate.title": "定位文件",
+  "locate.placeholder": "C:\\路径\\到\\文件、src/main.py,或只输文件名",
   "locate.hint":
-    "打开包含该路径的项目,并在文件树中定位到它;相对路径按当前项目解析。",
+    "路径直接定位;文件名(或路径片段)会在当前项目内搜索,列出匹配项。",
   "locate.go": "定位",
+  "locate.results": "{n} 个匹配——点击其中一个即可定位",
+  "locate.resultsCapped": "仅显示前 {n} 个匹配——多输入几个字缩小范围",
 
   // --- handoff / context menus ---
   "menu.open": "打开",
@@ -501,6 +506,7 @@ export const zh: Record<I18nKey, string> = {
   "toast.locateNotInProject":
     "这个文件夹还没有在软件里打开——请先用左上角「＋(添加项目)」按钮打开它所在的文件夹,再重新定位:{path}",
   "toast.locateNotFound": "路径不存在:{path}",
+  "toast.locateNoMatch": "当前项目内没有匹配的文件或文件夹:{query}",
   "toast.locateHidden": "「{name}」在隐藏的系统文件夹内——请先在设置中打开「显示系统文件夹」",
   "toast.cannotOpenFile": "无法打开文件:{err}",
   "toast.cannotOpenPdf": "无法打开 PDF:{err}",

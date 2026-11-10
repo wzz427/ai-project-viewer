@@ -141,3 +141,20 @@ export async function resolveRel(
   }
   return null; // unreachable: normalizeInput guarantees >= 1 segment
 }
+
+/**
+ * Name-search fallback (V1.5 §148 Quick Open; owner 2026-11-10 报障 —
+ * typing a bare file name found nothing because every input was walked
+ * as a path from the project root). A RELATIVE input that fails to
+ * resolve as a path becomes a search query over the active project:
+ * no separator = match on names, with separators = match on the path
+ * (the Rust side reads the distinction off the `/`).
+ *
+ * Absolute inputs never search: a drive-rooted string is a path by
+ * intent, and its misses keep their step-naming toasts (0.8.25).
+ * null = this input must not fall back to search.
+ */
+export function searchFallbackQuery(parsed: ParsedPath): string | null {
+  if (parsed.kind !== "rel") return null;
+  return parsed.segments.join("/");
+}

@@ -5,6 +5,7 @@ import {
   matchProject,
   normalizeInput,
   resolveRel,
+  searchFallbackQuery,
 } from "$lib/services/locatePath";
 
 function dir(name: string, systemGenerated = false): TreeEntry {
@@ -136,5 +137,30 @@ describe("resolveRel (true-case walk)", () => {
 
   it("null when a level is unreadable", async () => {
     expect(await resolveRel(["Src", "Deep"], () => Promise.resolve(null))).toBeNull();
+  });
+});
+
+describe("searchFallbackQuery (name search, V1.5 §148; owner 2026-11-10)", () => {
+  it("a bare name becomes itself as the query", () => {
+    const parsed = normalizeInput("client-runtime-delivery-closeout.md");
+    expect(searchFallbackQuery(parsed!)).toBe(
+      "client-runtime-delivery-closeout.md",
+    );
+  });
+
+  it("a path fragment keeps its separators — the Rust side matches those against the path", () => {
+    const parsed = normalizeInput("specs\\designs\\closeout.md");
+    expect(searchFallbackQuery(parsed!)).toBe("specs/designs/closeout.md");
+  });
+
+  it("absolute inputs never search — they are paths by intent", () => {
+    expect(searchFallbackQuery(normalizeInput("C:\\Work\\nope.md")!)).toBeNull();
+    expect(searchFallbackQuery(normalizeInput('"D:/x/y.md"')!)).toBeNull();
+  });
+
+  it("the quote tolerance of Copy Absolute Path applies to names too", () => {
+    const parsed = normalizeInput('"closeout.md"');
+    expect(parsed!.kind).toBe("rel");
+    expect(searchFallbackQuery(parsed!)).toBe("closeout.md");
   });
 });

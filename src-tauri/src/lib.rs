@@ -302,6 +302,7 @@ pub fn run() {
             project::resolve_project,
             project::paths_exist,
             file_tree::list_directory,
+            file_tree::search_project_files,
             file_inspect::inspect_file,
             file_inspect::read_text_file,
             file_inspect::read_media_file,

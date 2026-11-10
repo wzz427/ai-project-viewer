@@ -60,6 +60,40 @@ export function listDirectory(
   return invoke<DirectoryListing>("list_directory", { rootPath, relDir });
 }
 
+export interface SearchMatch {
+  /** True-case project-relative path, `/`-separated. */
+  rel: string;
+  isDir: boolean;
+}
+
+export interface SearchFilesResult {
+  /** Best-ranked first, at most `limit`. */
+  matches: SearchMatch[];
+  /** Matches collected before the walk's cap. */
+  total: number;
+  /** The walk hit its collection cap — more exist than were ranked. */
+  truncated: boolean;
+}
+
+/**
+ * Quick Open by name (V1.5 §148–§149): one on-demand recursive walk with
+ * the tree's visibility rules. Nothing is indexed or cached on either
+ * side — the result list is all that crosses the bridge.
+ */
+export function searchProjectFiles(
+  rootPath: string,
+  query: string,
+  includeSystem: boolean,
+  limit: number,
+): Promise<SearchFilesResult> {
+  return invoke<SearchFilesResult>("search_project_files", {
+    rootPath,
+    query,
+    includeSystem,
+    limit,
+  });
+}
+
 /** Classification metadata only — content never crosses the bridge (§101). */
 export function inspectFile(
   rootPath: string,

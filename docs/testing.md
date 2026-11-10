@@ -252,6 +252,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 159/159+phase3 **PASS×2**(+5 守卫:md_table_box_scroll_capped[display block+max-width 100%+overflow-x auto 三值契约]/md_table_cell_code_breaks[anywhere]/md_table_within_measure[表右缘≤列右缘+1]/md_table_no_pane_hscroll/md_table_text_col_not_sliver[长中文列≥150px,旧态 73 即红];夹具现场建/断完即删);cargo 免跑(Rust 零改动)+freeze-guard 免跑(未触树/watcher 域) |
 | 版本 | 0.8.27 三处 bump;updates=exp 0.8.27(publish,staged 0.8.26→publishing 干净;exe UTF-16 核 0.8.27 FOUND/0.8.26 absent;json 无 BOM);owner 验收路径=按钮亮→Update→自动重启→重开报障的 testing.md:三张表列宽正常、中文不再挤成竖条、表格不超出正文列 |
 
+#### 0.8.28 定位框按名搜索补齐(2026-11-10,owner 报障「搜 client-runtime-delivery-closeout.md 搜不到,必须给完整路径 docs/specs/designs/…」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | 不是 bug 是**缺件**:放大镜对话框(spec-017)把一切输入当**路径**从项目根逐段走查,裸文件名只在根目录找 → 根下无此名=「路径不存在」。V1.5 §148(P1)「Quick Open/按文件名搜索项目文件」从未实现;§149 定的管线(不建常驻索引/按需枚举/应用忽略规则/禁启动期全扫)即方案边界 |
+| 实现 | 相对输入**路径走查失败→回退当前项目内搜索**(§149 管线):无分隔符=按名匹配(全等>前缀>包含>路径包含),带分隔符=按路径匹配(段边界尾缀>包含,「specs/designs/xxx.md」可搜);排序=匹配级→浅先→字母;**唯一命中直跳**,多命中对话框内嵌列表(名醒目+目录置灰,↑↓/悬停/Enter/点击,前 50 条+「多输几字」提示,收集上限 2000);零命中=「当前项目内没有匹配…」。绝对路径**永不搜索**(保留 0.8.25 分流报错);排除表照抄树隐藏目录并随「显示系统文件夹」放行。新代码:`file_tree.rs` `search_project_files`(spawn_blocking 先例+symlink 不下钻防环)、`locatePath.ts` 纯函数 `searchFallbackQuery`、`locateStore` 抽 `land()` 共享落点+瞬态 results、LocateDialog 结果列表、dict 改「定位文件」等 8 键 en/zh。内存账:零新增驻留(搜索结果随对话框关闭即弃,≤50 行;Rust 端只回命中行不回全列表,D15) |
+| 全档 | check 0/0+vitest **163/163**(+4 fallback 纯函数:裸名/尾缀分隔符统一/abs→null/引号容错)+cargo **142/142**(+10:精确嵌套/ci+部分名/段边界尾缀/隐藏目录跳过+放行+dist-target 可搜/目录命中带旗/三级排序+深度字母平手/路径包含兜底/空态/limit+cap 截断/空查询)+phase3 **PASS×2**(+8 守卫:locate_name_search_unique_jumps[owner 原样复现,且首次走**放大镜按钮入口**]/partial_jumps/suffix_path_jumps/ambiguous_lists[2 行+首行=浅者]/enter_picks_highlighted/click_second_row/results_style[maxH+overflow-y+高亮底色+不出框+无横滚]/no_match_toasts;夹具现场建/断完即删);freeze-guard 免跑(未触 watcher/树渲染域) |
+| 视觉 | 铁律 §2.3-6 视觉模型两轮:paper 一次过;glacier 首判「高亮对比度处于下限」→ 高亮行加**左缘 2px 强调色竖条**(inset,零布局代价,主题无关)→ 复跑+复验 PASS,无新缺陷 |
+| 版本 | 0.8.28 三处 bump;updates=exp 0.8.28(exe VersionInfo 核 0.8.28;update.json 294B 无 BOM,Note 带说明);owner 验收路径=点侧栏放大镜→只输 `client-runtime-delivery-closeout.md`(不带任何路径)→Enter 直接跳到该文件;输 `closeout` 也跳;同名多份时出现列表点选;原完整路径粘贴行为不变 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

@@ -836,6 +836,195 @@ with sync_playwright() as p:
     page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
     time.sleep(0.5)
 
+    # --- 0.8.28 name-search guards (owner 2026-11-10 报障: typing bare
+    # `client-runtime-delivery-closeout.md` found NOTHING until a whole
+    # docs/specs/designs/... path was typed — the dialog only ever walked
+    # inputs as PATHS from the project root; V1.5 §148 "Quick Open /
+    # 按文件名搜索项目文件" was never implemented). Now a relative input
+    # that fails to resolve as a path becomes a name search over the
+    # ACTIVE project: one hit jumps, many hits list in the dialog.
+    closeout_rel = "docs/specs/designs/client-runtime-delivery-closeout.md"
+    os.makedirs(os.path.join(PROJECT, "docs", "specs", "designs"), exist_ok=True)
+    with open(os.path.join(PROJECT, closeout_rel), "w", encoding="utf-8") as f:
+        f.write("# Client Runtime Delivery Closeout\n\nname-search fixture (0.8.28)\n")
+    for d in ("search-a", "search-b"):
+        os.makedirs(os.path.join(PROJECT, d), exist_ok=True)
+        with open(os.path.join(PROJECT, d, "dup-target.md"), "w", encoding="utf-8") as f:
+            f.write(f"# dup target in {d}\n")
+    # let the watcher refresh any already-loaded parent level (the search
+    # walks the live disk, but the reveal rides the tree's shared cache)
+    time.sleep(1.5)
+
+    def active_tab_is(name, timeout_s=6):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if page.locator(".file-tab.active .name").count() and \
+               page.locator(".file-tab.active .name").inner_text() == name:
+                time.sleep(0.35)
+                return True
+            time.sleep(0.15)
+        return False
+
+    def wait_results(n, timeout_s=6):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if page.locator("[data-locate-results] .result-row").count() == n:
+                time.sleep(0.25)
+                return True
+            time.sleep(0.15)
+        return False
+
+    def row_selected(rel):
+        r = page.locator(f'.row[title="{rel}"]')
+        return r.count() == 1 and "selected" in (r.first.get_attribute("class") or "")
+
+    # ① the owner's exact repro: bare unique filename, file nested deep.
+    # Enter through the HEADER MAGNIFIER BUTTON (owner's real entry — the
+    # rest of this block uses Ctrl+L only as shorthand).
+    page.locator("[data-locate-button]").click()
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("client-runtime-delivery-closeout.md")
+    page.keyboard.press("Enter")
+    jump_ok = active_tab_is("client-runtime-delivery-closeout.md")
+    check("locate_name_search_unique_jumps",
+          jump_ok and row_selected(closeout_rel)
+          and page.locator(".locate-dialog").count() == 0,
+          f"tab={jump_ok} sel={row_selected(closeout_rel)}")
+
+    # ② a partial name (substring, no extension) is enough
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("delivery-closeout")
+    page.keyboard.press("Enter")
+    check("locate_name_search_partial_jumps",
+          active_tab_is("client-runtime-delivery-closeout.md"),
+          "partial name did not jump")
+
+    # ③ a path FRAGMENT (suffix at a segment boundary) finds the file
+    # even though it does not resolve as a path from the project root
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("specs/designs/client-runtime-delivery-closeout.md")
+    page.keyboard.press("Enter")
+    check("locate_name_search_suffix_path_jumps",
+          active_tab_is("client-runtime-delivery-closeout.md"),
+          "suffix path did not jump")
+
+    # ④ an ambiguous name keeps the dialog OPEN with a ranked list
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("dup-target.md")
+    page.keyboard.press("Enter")
+    listed = wait_results(2)
+    first_rel = page.locator("[data-locate-results] .result-row").first.get_attribute("data-locate-result")
+    check("locate_name_search_ambiguous_lists",
+          listed and page.locator("[data-locate-results]").count() == 1
+          and first_rel == "search-a/dup-target.md"
+          and page.locator(".locate-dialog").count() == 1,
+          f"listed={listed} first={first_rel!r}")
+
+    # ⑤ Enter on the UNCHANGED input picks the highlighted (first) row
+    page.keyboard.press("Enter")
+    check("locate_name_search_enter_picks_highlighted",
+          active_tab_is("dup-target.md") and row_selected("search-a/dup-target.md")
+          and page.locator(".locate-dialog").count() == 0,
+          f"sel={row_selected('search-a/dup-target.md')}")
+
+    # ⑥ clicking the SECOND row goes to the other duplicate
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("dup-target.md")
+    page.keyboard.press("Enter")
+    if wait_results(2):
+        page.locator('[data-locate-result="search-b/dup-target.md"]').click()
+    check("locate_name_search_click_second_row",
+          active_tab_is("dup-target.md") and row_selected("search-b/dup-target.md")
+          and page.locator(".locate-dialog").count() == 0,
+          f"sel={row_selected('search-b/dup-target.md')}")
+
+    # ⑦ computed style (铁律 §2.3-6): the list is a capped scrollable
+    # picker inside the dialog, no horizontal spill, and the highlighted
+    # row actually paints the accent chip.
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("dup-target.md")
+    page.keyboard.press("Enter")
+    wait_results(2)
+    res_style = page.evaluate("""() => {
+        const list = document.querySelector('.results-list');
+        const row = document.querySelector('.result-row.active');
+        if (!list || !row) return { present: false };
+        const r = row.getBoundingClientRect();
+        const d = document.querySelector('.locate-dialog').getBoundingClientRect();
+        return { present: true,
+                 maxH: getComputedStyle(list).maxHeight,
+                 oy: getComputedStyle(list).overflowY,
+                 rowBg: getComputedStyle(row).backgroundColor,
+                 inside: r.right <= d.right + 1 && r.left >= d.left - 1,
+                 noHscroll: list.scrollWidth <= list.clientWidth + 1 };
+    }""")
+    check("locate_results_style",
+          res_style.get("present") and res_style["maxH"] not in ("", "none")
+          and res_style["oy"] == "auto"
+          and res_style["rowBg"] not in ("", "rgba(0, 0, 0, 0)", "transparent")
+          and res_style["inside"] and res_style["noHscroll"],
+          str(res_style))
+
+    # vision-model pass artifacts (铁律): the picker under both skins
+    shots = os.path.join(os.environ["TEMP"], "aiv-0.8.28-shots")
+    os.makedirs(shots, exist_ok=True)
+    page.screenshot(path=os.path.join(shots, "paper.png"))
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    page.click('button[title="Settings"]')
+    time.sleep(0.3)
+    page.locator('input[name="theme"][value="glacier"]').check()
+    time.sleep(0.3)
+    page.click('button[title="Settings"]')
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("dup-target.md")
+    page.keyboard.press("Enter")
+    wait_results(2)
+    page.screenshot(path=os.path.join(shots, "glacier.png"))
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    # steady state back to the product default skin
+    page.click('button[title="Settings"]')
+    time.sleep(0.3)
+    page.locator('input[name="theme"][value="paper"]').check()
+    time.sleep(0.3)
+    page.click('button[title="Settings"]')
+
+    # ⑧ zero hits → the search-scoped toast names what was searched and
+    # the dialog closes (tab line untouched)
+    dismiss_toast()
+    tabs_before_search = tab_count()
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("zzz-no-such-aiv-name.md")
+    page.keyboard.press("Enter")
+    no_match_toast = ""
+    for _ in range(30):
+        time.sleep(0.15)
+        if page.locator(".toast").count():
+            no_match_toast = page.locator(".toast").inner_text()
+            break
+    check("locate_name_search_no_match_toasts",
+          "No matching file" in no_match_toast
+          and page.locator(".locate-dialog").count() == 0
+          and tab_count() == tabs_before_search,
+          f"toast={no_match_toast!r} tabs={tab_count()}>{tabs_before_search}")
+    dismiss_toast()
+
+    # fixture out — the tree and search surface go back to the checked-in
+    # state for every later section
+    os.remove(os.path.join(PROJECT, closeout_rel))
+    shutil.rmtree(os.path.join(PROJECT, "search-a"), ignore_errors=True)
+    shutil.rmtree(os.path.join(PROJECT, "search-b"), ignore_errors=True)
+    time.sleep(0.5)
+    open_file("README.md")
+
     # --- #2: active tab has accent styling ---
     open_file("README.md")
     styled = page.evaluate("""() => {
