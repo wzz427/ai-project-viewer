@@ -533,6 +533,85 @@ with sync_playwright() as p:
         missing_inert = page.locator(".lightbox").count() == 0
     check("md_lightbox_edges", linked_no_popup and missing_inert,
           f"linked={linked_no_popup} missing={missing_inert}")
+
+    # 0.8.30 返修轮 (owner 2026-11-16 两报): zoom past the panel used to
+    # FREEZE the render (flex-shrink clamped the image back to the stage
+    # width while the readout kept counting); the popup itself could not
+    # be moved. Guards pin both fixes.
+    page.locator(".rendered.md img").first.click()
+    lb.wait_for(state="visible", timeout=4000)
+    for _ in range(7):
+        page.locator(".lightbox .bar button[aria-label='Zoom in']").click()
+        time.sleep(0.12)
+    zoom_info = page.evaluate("""() => {
+        const dlg = document.querySelector('.lightbox');
+        const img = dlg.querySelector('img');
+        const stage = img.parentElement;
+        return {
+            styleW: parseFloat(img.style.width),
+            rectW: Math.round(img.getBoundingClientRect().width),
+            stageW: Math.round(stage.getBoundingClientRect().width),
+        };
+    }""")
+    # the RENDERED width must track the asked width and exceed the stage
+    # (0.8.29 shipped rectW clamped at stageW == the owner's frozen zoom)
+    check("md_lightbox_zoom_grows_past_stage",
+          zoom_info["rectW"] > zoom_info["stageW"]
+          and abs(zoom_info["rectW"] - zoom_info["styleW"]) <= 2,
+          str(zoom_info))
+
+    # zoomed image pans by stage drag (owner's "move" reading #2)
+    pan_before = page.evaluate(
+        "() => { const r = document.querySelector('.lightbox img')"
+        ".getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)]; }")
+    sc = page.locator(".lightbox .stage").bounding_box()
+    page.mouse.move(sc["x"] + sc["width"] / 2, sc["y"] + sc["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(sc["x"] + sc["width"] / 2 + 100,
+                    sc["y"] + sc["height"] / 2 + 60, steps=8)
+    page.mouse.up()
+    time.sleep(0.2)
+    pan_after = page.evaluate(
+        "() => { const r = document.querySelector('.lightbox img')"
+        ".getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)]; }")
+    check("md_lightbox_drag_pans",
+          pan_after[0] == pan_before[0] + 100 and pan_after[1] == pan_before[1] + 60,
+          f"{pan_before} -> {pan_after}")
+
+    # the WINDOW moves by dragging the top bar (owner's reading #1), and
+    # a fresh open re-centers it
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    page.locator(".rendered.md img").first.click()
+    lb.wait_for(state="visible", timeout=4000)
+    home = page.evaluate(
+        "() => { const d = document.querySelector('.lightbox')"
+        ".getBoundingClientRect(); return [Math.round(d.x), Math.round(d.y)]; }")
+    bar_box = page.locator(".lightbox .bar").bounding_box()
+    page.mouse.move(bar_box["x"] + bar_box["width"] / 2,
+                    bar_box["y"] + bar_box["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(bar_box["x"] + bar_box["width"] / 2 + 120,
+                    bar_box["y"] + bar_box["height"] / 2 + 60, steps=8)
+    page.mouse.up()
+    time.sleep(0.2)
+    moved = page.evaluate(
+        "() => { const d = document.querySelector('.lightbox')"
+        ".getBoundingClientRect(); return [Math.round(d.x), Math.round(d.y)]; }")
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    page.locator(".rendered.md img").first.click()
+    lb.wait_for(state="visible", timeout=4000)
+    time.sleep(0.2)
+    recentered = page.evaluate(
+        "() => { const d = document.querySelector('.lightbox')"
+        ".getBoundingClientRect(); return [Math.round(d.x), Math.round(d.y)]; }")
+    page.keyboard.press("Escape")
+    time.sleep(0.2)
+    check("md_lightbox_window_drag_by_bar",
+          moved[0] == home[0] + 120 and moved[1] == home[1] + 60
+          and recentered == home,
+          f"home={home} moved={moved} recentered={recentered}")
     os.remove(lightbox_path)
     open_file("README.md")
 

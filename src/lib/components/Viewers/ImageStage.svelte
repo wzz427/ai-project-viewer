@@ -134,6 +134,15 @@
     user-select: none;
   }
 
+  /* A zoomed image must be laid out at its ASKED width even when it
+     exceeds the stage (owner 2026-11-16: past ~150% only the readout
+     changed — flex-shrink's default 1 clamped the flex item back to the
+     container width, freezing the render at exactly the panel size).
+     Fit mode never needs shrink (max-width/max-height already cap it). */
+  .stage img {
+    flex-shrink: 0;
+  }
+
   img.fit {
     max-width: 100%;
     max-height: 100%;

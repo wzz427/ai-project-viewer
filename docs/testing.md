@@ -271,6 +271,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 视觉 | 铁律 §2.3-6 截图×5 视觉模型逐张判:paper-fit/paper-actual/glacier-fit/zh-fit 四张一次过;glacier-zoomed 首判两条 ❌ 均证伪——「背景不蓝」=72% 暗遮罩压透后模型误读(theme attr=glacier+项目带 rgb(228,240,253)=glacier 色板原值,补探针实证),「未裁切」=我方提示词预期错(480×320@156%≈749×499 本就小于面板,不该裁;156% 读数模型已认 ✓),判 PASS |
 | 版本 | 0.8.29 三处 bump;updates=exp 0.8.29(exe UTF-16 核 0.8.29 FOUND/0.8.28 absent;update.json 93B 无 BOM,Note 带说明);owner 验收路径=Update→自动重启→开任意带图 MD→点图片:弹暗色大图窗;滚轮/＋−/100% 放大;放大后按住拖动;点窗外暗环或 Esc 关闭 |
 
+#### 0.8.29 图片弹窗返修(2026-11-16,owner 两报「看图窗口无法通过鼠标去移动」+「放大超 150% 多只剩数字变,画面一点不变」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | ①冻结=**flex-shrink 默认 1**:放大后的 img 是弹性容器子项,宽度一旦超过面板就被压缩回面板宽——诊断探针实证 477% 时 styleW=2289.6px 但 rectW=1230=面板宽;「从 ~150% 开始不变」=图片原始宽×1.5≈面板宽的那一点(与 owner 截图红框 300%+ 吻合)。此病自 spec-003 图片查看器起就潜伏,此前无人放大越过面板;0.8.29 守卫没拦住=V3 只断言了 100%(在面板内)与缩小方向,从未断言「长大越过面板」——守卫盲区即出门路径。②窗口移动=**缺件**:图片拖动平移本来可用(探针 translate 精确),owner 要的是拖动窗口本体 |
+| 实现 | ①ImageStage `.stage img{flex-shrink:0}` 一条 CSS(共享组件,图片文件查看器同愈;fit 模式靠 max-width/max-height 本就不需要 shrink);②Lightbox 顶栏作拖动把手:pointer 捕获+视口钳制(横≥160px/竖≥顶栏高留在屏内,拖不丢)+每次打开回居中(重开复位 effect);顶栏 cursor grab/grabbing,按钮区域不触发拖动 |
+| 对照 | 诊断探针 before/after:修复前 477% rectW=1230(钉死)→修复后 rectW=2290=styleW±0.4;窗口拖动 [24,24]→[-126,0](上边钳制正确生效);平移 +120/+60 精确(从舞台中心起拖——首版探针从旧图坐标起拖落在窗外,探针坑不是回归) |
+| 全档 | check 0/0+vitest 166/166+phase3 **PASS×2**(+3 守卫:md_lightbox_zoom_grows_past_stage[rectW≈styleW±2 且>面板宽,0.8.29 出门根因的封口]/md_lightbox_drag_pans[拖 +100/+60 图随动]/md_lightbox_window_drag_by_bar[拖栏 +120/+60 窗随动+重开回 home±0]);cargo/freeze 免跑(前端两文件) |
+| 视觉 | 铁律 §2.3-6 截图×2 视觉模型判全 PASS:477% 真实放大(中间局部+四边被裁,读数 477%)/窗口拖离中心(左上露遮罩环,面板完整) |
+| 版本 | 0.8.30 三处 bump;updates=exp 0.8.30(staged 0.8.29→publishing;exe UTF-16 核 0.8.30 FOUND/0.8.29 absent;json 107B 无 BOM);owner 验收路径=Update→重开图片弹窗:①放大到 300% 甚至 800% 画面持续变大不再冻住;②按住顶部工具栏把窗口拖到别处;③关掉再开回到居中;④放大后按住图片拖动看细节照旧 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

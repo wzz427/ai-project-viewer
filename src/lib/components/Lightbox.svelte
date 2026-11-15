@@ -20,6 +20,66 @@
     natural: { w: number; h: number } | null;
   }>({ mode: "fit", zoom: 1, natural: null });
 
+  // Movable window (owner 2026-11-16: "看图窗口无法通过鼠标去移动"): grab
+  // the top bar and drag the whole panel anywhere. The offset rides a
+  // transform on top of the backdrop's centered layout; every open starts
+  // fresh at center. Panning the IMAGE stays the stage's own drag.
+  let moveX = $state(0);
+  let moveY = $state(0);
+  let barDrag = $state<{
+    baseX: number;
+    baseY: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
+
+  $effect(() => {
+    if (lightboxState.open) {
+      moveX = 0;
+      moveY = 0;
+    }
+  });
+
+  function onBarPointerDown(e: PointerEvent) {
+    // Buttons in the bar click; only bare-bar drags move the window.
+    if ((e.target as HTMLElement).closest("button")) return;
+    const bar = e.currentTarget as HTMLElement;
+    const r = bar.closest(".lightbox")!.getBoundingClientRect();
+    barDrag = {
+      baseX: r.left - moveX,
+      baseY: r.top - moveY,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+    bar.setPointerCapture(e.pointerId);
+  }
+
+  function onBarPointerMove(e: PointerEvent) {
+    if (!barDrag) return;
+    // Keep a grip of the panel on screen (160px wide / the bar tall) so
+    // the window can always be dragged back or closed: panel.left/top
+    // stay inside [minX, maxX] / [minY, maxY] of the viewport.
+    const clamp = (v: number, lo: number, hi: number) =>
+      Math.min(hi, Math.max(lo, v));
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = vw - 48; // panel spans the backdrop ring (inset 24px)
+    moveX = clamp(
+      e.clientX - barDrag.startX,
+      -(w - 160) - barDrag.baseX,
+      vw - 160 - barDrag.baseX,
+    );
+    moveY = clamp(
+      e.clientY - barDrag.startY,
+      0 - barDrag.baseY,
+      vh - 56 - barDrag.baseY,
+    );
+  }
+
+  function onBarPointerUp() {
+    barDrag = null;
+  }
+
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") closeLightbox();
   }
@@ -49,8 +109,19 @@
       role="dialog"
       aria-modal="true"
       aria-label={t("viewer.imageControls")}
+      style="transform: translate({moveX}px, {moveY}px);"
     >
-      <div class="bar" role="toolbar" aria-label={t("viewer.imageControls")}>
+      <div
+        class="bar"
+        role="toolbar"
+        tabindex="-1"
+        aria-label={t("viewer.imageControls")}
+        class:dragging={barDrag !== null}
+        onpointerdown={onBarPointerDown}
+        onpointermove={onBarPointerMove}
+        onpointerup={onBarPointerUp}
+        onpointercancel={onBarPointerUp}
+      >
         <div class="zoom-group">
           <button class:active={view.mode === "fit"} onclick={() => stage?.setFit()}>{t("viewer.fit")}</button>
           <button class:active={view.mode === "actual"} onclick={() => stage?.setActual()}>100%</button>
@@ -103,6 +174,16 @@
     flex-shrink: 0;
     user-select: none;
     border-bottom: 1px solid color-mix(in srgb, var(--lightbox-ink) 20%, transparent);
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .bar.dragging {
+    cursor: grabbing;
+  }
+
+  .bar button {
+    cursor: pointer;
   }
 
   .zoom-group {
