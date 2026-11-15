@@ -426,6 +426,131 @@ with sync_playwright() as p:
     os.remove(table_path)
     open_file("README.md")
 
+    # --- spec-021 image lightbox guards (owner 2026-11-15: click an
+    # inline md image → zoom popup). Fixture MD created here (watcher
+    # surfaces it), deleted right after; reuses assets/picture.png. The
+    # linked-image and missing-image rows pin the two non-popup edges.
+    lightbox_fixture = "aiv-lightbox.md"
+    lightbox_path = os.path.join(PROJECT, lightbox_fixture)
+    with open(lightbox_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(
+            "# lightbox\n\n"
+            "![plain](assets/picture.png)\n\n"
+            "[![linked](assets/picture.png)](#anchor)\n\n"
+            "![missing](assets/no-such-image.png)\n"
+        )
+    time.sleep(1.5)  # watcher surfaces the file (+ inline img data-URL swap)
+    open_file(lightbox_fixture)
+
+    # cursor affordance BEFORE any popup: plain image zoom-in, linked
+    # image keeps the link's pointer (D4: the link wins there)
+    cursors = page.evaluate("""() => {
+        const imgs = [...document.querySelectorAll('.rendered.md img')];
+        return imgs.map(i => getComputedStyle(i).cursor);
+    }""")
+    check("md_lightbox_cursor_affordance",
+          len(cursors) == 3 and cursors[0] == "zoom-in"
+          and cursors[1] == "pointer",
+          str(cursors))
+
+    # the data-URL swap must have landed before a click means anything
+    page.wait_for_function(
+        "() => { const i = document.querySelector('.rendered.md img');"
+        " return i && i.src.startsWith('data:') && i.naturalWidth > 0; }",
+        timeout=8000)
+    doc_img_src = page.locator(".rendered.md img").first.get_attribute("src")
+    page.locator(".rendered.md img").first.click()
+    lb = page.locator(".lightbox")
+    lb.wait_for(state="visible", timeout=4000)
+    lb_info = page.evaluate("""() => {
+        const dlg = document.querySelector('.lightbox');
+        const img = dlg.querySelector('img');
+        return {
+            role: dlg.getAttribute('role'),
+            src: img.getAttribute('src'),
+            inlineWidth: img.style.width,
+            buttons: [...dlg.querySelectorAll('.bar button')].length,
+        };
+    }""")
+    check("md_lightbox_opens_fit",
+          lb_info["role"] == "dialog" and lb_info["src"] == doc_img_src
+          and lb_info["inlineWidth"] == "" and lb_info["buttons"] == 5,
+          str(lb_info))
+
+    # zoom model (shared ImageStage): 100% renders at natural pixel size,
+    # + / − move it; toolbar readout shows dimensions
+    page.locator(".lightbox .bar button", has_text="100%").click()
+    actual_w = page.evaluate(
+        "() => Math.round(document.querySelector('.lightbox img')"
+        ".getBoundingClientRect().width)")
+    natural_w = page.evaluate(
+        "() => document.querySelector('.lightbox img').naturalWidth")
+    page.locator(".lightbox .bar button", has_text="−").click()
+    zoomed_out_w = page.evaluate(
+        "() => Math.round(document.querySelector('.lightbox img')"
+        ".getBoundingClientRect().width)")
+    readout = page.locator(".lightbox .readout").inner_text()
+    check("md_lightbox_actual_and_zoom",
+          abs(actual_w - natural_w) <= 1 and zoomed_out_w < actual_w
+          and "×" in readout,
+          f"actual={actual_w} natural={natural_w} out={zoomed_out_w}"
+          f" readout={readout!r}")
+
+    # close paths: veil-ring click (LocateDialog contract) + Escape; a
+    # reopen after close starts over in fit mode (D8)
+    page.mouse.click(10, 10)  # the 24px veil ring around the panel
+    time.sleep(0.3)
+    closed_by_veil = page.locator(".lightbox").count() == 0
+    page.locator(".rendered.md img").first.click()
+    lb.wait_for(state="visible", timeout=4000)
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    closed_by_esc = page.locator(".lightbox").count() == 0
+    reopen_fit = ""
+    if closed_by_esc:
+        page.locator(".rendered.md img").first.click()
+        lb.wait_for(state="visible", timeout=4000)
+        reopen_fit = page.evaluate(
+            "() => document.querySelector('.lightbox img').style.width")
+        page.keyboard.press("Escape")
+    check("md_lightbox_close_and_refit",
+          closed_by_veil and closed_by_esc and reopen_fit == "",
+          f"veil={closed_by_veil} esc={closed_by_esc} reopen={reopen_fit!r}")
+
+    # edges (D4/D5): a linked image follows the link — no popup; a
+    # missing image (decode failed, naturalWidth 0) is inert
+    page.locator(".rendered.md a img").click()
+    time.sleep(0.4)
+    linked_no_popup = page.locator(".lightbox").count() == 0
+    missing_inert = False
+    if linked_no_popup:
+        page.wait_for_function(
+            "() => [...document.querySelectorAll('.rendered.md img')]"
+            ".some(i => (i.alt || '').includes('missing image'))",
+            timeout=8000)
+        page.locator(".rendered.md img[alt*='missing image']").click()
+        time.sleep(0.4)
+        missing_inert = page.locator(".lightbox").count() == 0
+    check("md_lightbox_edges", linked_no_popup and missing_inert,
+          f"linked={linked_no_popup} missing={missing_inert}")
+    os.remove(lightbox_path)
+    open_file("README.md")
+
+    # D1 refactor identity guard: the image FILE viewer rides the same
+    # extracted stage now — 100% must render at natural size there too
+    # (logo.svg is 120×40 by fixture construction).
+    expand("assets")
+    open_file("logo.svg")
+    page.locator(".image-viewer .toolbar button", has_text="100%").click()
+    file_vw = page.evaluate(
+        "() => { const i = document.querySelector('.image-viewer img');"
+        " return { w: Math.round(i.getBoundingClientRect().width),"
+        " n: i.naturalWidth }; }")
+    check("image_file_viewer_actual_size",
+          abs(file_vw["w"] - file_vw["n"]) <= 1 and file_vw["n"] == 120,
+          str(file_vw))
+    open_file("README.md")
+
     # --- batch closes via tab menu (owner 2026-10-13): left/right/others,
     # pinned tabs protected, anchor survives and takes over activation ---
     while tab_count() > 0:  # deterministic scene: clear, then five known tabs

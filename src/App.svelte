@@ -26,6 +26,7 @@
   import ErrorDialog from "$lib/components/ErrorDialog.svelte";
   import PropertiesDialog from "$lib/components/PropertiesDialog.svelte";
   import LocateDialog from "$lib/components/LocateDialog.svelte";
+  import Lightbox from "$lib/components/Lightbox.svelte";
   import { toggleLocate } from "$lib/stores/locateStore.svelte";
   import ActiveViewer from "$lib/components/Viewers/ActiveViewer.svelte";
   import {
@@ -399,6 +400,7 @@
   <ErrorDialog />
   <PropertiesDialog />
   <LocateDialog />
+  <Lightbox />
 </div>
 
 <svelte:window onmousedown={closeCopyMenu} />

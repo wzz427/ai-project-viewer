@@ -262,6 +262,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 视觉 | 铁律 §2.3-6 视觉模型两轮:paper 一次过;glacier 首判「高亮对比度处于下限」→ 高亮行加**左缘 2px 强调色竖条**(inset,零布局代价,主题无关)→ 复跑+复验 PASS,无新缺陷 |
 | 版本 | 0.8.28 三处 bump;updates=exp 0.8.28(exe VersionInfo 核 0.8.28;update.json 294B 无 BOM,Note 带说明);owner 验收路径=点侧栏放大镜→只输 `client-runtime-delivery-closeout.md`(不带任何路径)→Enter 直接跳到该文件;输 `closeout` 也跳;同名多份时出现列表点选;原完整路径粘贴行为不变 |
 
+#### 0.8.29 MD 图片点击放大(2026-11-15,owner 增量需求「点击图片后弹出一个图片窗口,在这个窗口里把图片放大来看」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | 渲染视图点普通图片→暗面弹窗(居中,遮罩环/×/Esc 三路关闭)放大查看:工具栏 适应/100%/+/−/尺寸读数,滚轮缩放+放大后拖动。**缩放模型从 ImageViewer 抽成共享 `ImageStage.svelte`**(spec-021 D1,图片文件查看器同款手感,一处改两处同步;ImageViewer 重构为其使用者,行为由 phase3 既有守卫+新 actual-size 守卫钉死);弹窗数据=正文 img 已加载的 data URL(D2,零重读盘);`lightboxStore` 两字段瞬态槽(D6,关即清零,vitest 断言);MarkdownViewer `onLinkClick` 前置 img 分支(链接图走链接 D4/缺失图 naturalWidth=0 不弹 D5);光标 affordance img=zoom-in,a img=pointer;文案全复用 viewer.* 词典(D7,零新键,中文=适应/放大/缩小);app.css 新增 `--lightbox-veil/surface/ink` 三 token(D3,两主题共用同一暗面,照片查看惯例) |
+| 全档 | check 0/0+vitest **166/166**(+3 lightboxStore 零驻留)+phase3 **PASS×2**(+6 守卫:md_lightbox_cursor_affordance/md_lightbox_opens_fit[src=被点图 data URL+无内联宽+五钮]/md_lightbox_actual_and_zoom[100%=natural±1px+−缩小+读数×]/md_lightbox_close_and_refit[遮罩环+Esc+重开回适应 D8]/md_lightbox_edges[链接图不弹+缺失图 inert]/image_file_viewer_actual_size[D1 重构同一性,logo.svg 120px];夹具现场建/断完即删);cargo 免跑(Rust 零改动)+freeze-guard 免跑(未触树/watcher 域) |
+| 视觉 | 铁律 §2.3-6 截图×5 视觉模型逐张判:paper-fit/paper-actual/glacier-fit/zh-fit 四张一次过;glacier-zoomed 首判两条 ❌ 均证伪——「背景不蓝」=72% 暗遮罩压透后模型误读(theme attr=glacier+项目带 rgb(228,240,253)=glacier 色板原值,补探针实证),「未裁切」=我方提示词预期错(480×320@156%≈749×499 本就小于面板,不该裁;156% 读数模型已认 ✓),判 PASS |
+| 版本 | 0.8.29 三处 bump;updates=exp 0.8.29(exe UTF-16 核 0.8.29 FOUND/0.8.28 absent;update.json 93B 无 BOM,Note 带说明);owner 验收路径=Update→自动重启→开任意带图 MD→点图片:弹暗色大图窗;滚轮/＋−/100% 放大;放大后按住拖动;点窗外暗环或 Esc 关闭 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

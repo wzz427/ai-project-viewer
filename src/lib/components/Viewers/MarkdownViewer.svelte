@@ -24,6 +24,7 @@
   import { readMediaFile } from "$lib/services/tauri";
   import { resolveDocLink } from "$lib/services/mdLinks";
   import { toast } from "$lib/stores/toastStore.svelte";
+  import { openLightbox } from "$lib/stores/lightboxStore.svelte";
   import { t } from "$lib/i18n/t.svelte";
   import { extOf } from "$lib/services/viewerType";
   import { createMarkdownRenderer, ensureMath, mayContainMath } from "$lib/services/markdownRender";
@@ -133,6 +134,16 @@
   }
 
   function onLinkClick(e: MouseEvent) {
+    // Image zoom (spec-021): a plain (non-linked) image that actually
+    // decoded opens the lightbox with the already-loaded data URL (D2 —
+    // no re-read). An image wrapped in a link keeps the link (D4); a
+    // broken/missing one (naturalWidth 0, D5) does nothing.
+    const img = (e.target as HTMLElement).closest("img");
+    if (img && !img.closest("a") && img.naturalWidth > 0) {
+      e.preventDefault();
+      openLightbox(img.src);
+      return;
+    }
     const a = (e.target as HTMLElement).closest("a");
     if (!a) return;
     const href = a.getAttribute("href") ?? "";
@@ -427,7 +438,17 @@
     margin: 0.9em 0;
   }
 
-  .rendered :global(img) { max-width: 100%; }
+  /* Clickable zoom (spec-021): plain images advertise it with the
+     magnifier cursor; an image inside a link stays a pointer — the link
+     wins there (D4). */
+  .rendered :global(img) {
+    max-width: 100%;
+    cursor: zoom-in;
+  }
+
+  .rendered :global(a img) {
+    cursor: pointer;
+  }
 
   /* ---- Math + diagrams (spec-020, owner 2026-11-08 "都加") ---- */
   /* KaTeX display blocks: katex.min.css centers them; this adds the
