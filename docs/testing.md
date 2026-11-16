@@ -282,6 +282,16 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 视觉 | 铁律 §2.3-6 截图×2 视觉模型判全 PASS:477% 真实放大(中间局部+四边被裁,读数 477%)/窗口拖离中心(左上露遮罩环,面板完整) |
 | 版本 | 0.8.30 三处 bump;updates=exp 0.8.30(staged 0.8.29→publishing;exe UTF-16 核 0.8.30 FOUND/0.8.29 absent;json 107B 无 BOM);owner 验收路径=Update→重开图片弹窗:①放大到 300% 甚至 800% 画面持续变大不再冻住;②按住顶部工具栏把窗口拖到别处;③关掉再开回到居中;④放大后按住图片拖动看细节照旧 |
 
+#### 0.8.31 定位搜索扩到所有已打开的项目+搜索反馈行(2026-11-16,owner 报障「这个文档明明是存在的,为什么在 locate 里还是找不到呢」+开工令追加「搜索过程要有一个明显的反馈」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | **非匹配 bug,是范围缺口**:owner 在 QuantTrading 页签搜 `docs/skills/wrap.md`,该文件全 VibeCoding 仅存于 CodeAudit(磁盘扫描+失败截图树与 QuantTrading\docs 逐项吻合双证);0.8.28 按 D12 只搜当前激活项目,零命中提示「当前项目内没有匹配」未点名项目——owner 看不出"搜错了地方";owner 拍板「扩范围」。反馈缺口=搜索全程静默,终态才出底部 toast |
+| 实现 | 当前项目零命中→`Promise.allSettled` 自动搜其余已打开页签(同一可见性规则与上限,坏根跳过+diagEvent):跨项目唯一命中直接切页签落地(复用绝对路径跨项目管线),多命中列表行带「项目名 · 目录」,全零命中 toast 改「所有已打开的项目里都没有匹配」;对话框内新增「正在搜索…」反馈行(旋转指示,提交即显终态即隐,Go 同期置灰,prefers-reduced-motion 停转);Rust 零改动(search_project_files 本就按任意 root 单调)。当前项目有命中时行为与 0.8.28 完全一致(零回归),仍零驻留(结果瞬态关即弃) |
+| 全档 | check 0/0+vitest **171/171**(+5 mergeProjectSearches:页签序打标/合并后重截断/截断上抛/跨项目同名两行/空合并)+cargo 免跑(Rust 零改动)+phase3 **PASS×2 连跑**(**165** 守卫,+4:locate_cross_project_unique_switches[owner 场景原样:唯一命中跨项目切页签+开文件+树行选中+反馈行亲见]/locate_cross_project_list_names_project[跨项目多名列表行带项目名+点行落他项目]/locate_searching_feedback_deep_jump[20 层深链落点期反馈行在+跳转完成]/locate_no_match_names_all_open_projects[toast 点名 any open project]);freeze 免跑(未触 watcher 链) |
+| 视觉 | 铁律 §2.3-6 截图×3 视觉模型判全 PASS:跨项目列表 paper/glacier(行带项目名+高亮行清晰)/搜索反馈行 glacier(转环+文字可读无遮挡)。**两轮首判 FAIL 均证伪=探针取景错**(同 0.8.29 先例):①glacier 列表截到的是"项目内列表"(⑩落地后忘切回主项目,项目内列表按设计不带项目名);②反馈行截图晚于飞行结束(10 层深链窗口短于截图时延,加深到 20 层后捕获)——修探针复跑复验 PASS |
+| 版本 | 0.8.31 三处 bump;updates=exp 0.8.31(staged 0.8.30→publishing;exe UTF-16 核 0.8.31 FOUND/0.8.30 absent;json 113B 无 BOM,Note 带说明);owner 验收路径=Update→自动重启→①在 QuantTrading 页签点放大镜输 `wrap.md` 或 `docs/skills/wrap.md`→Enter:自动切到 CodeAudit 页签并打开该文件,输入到出结果期间框内有「正在搜索…」转环反馈;②搜每个项目都有的名字(如 testing.md)→行为与以前一致(当前项目直跳);③搜哪都没有的名字→提示「所有已打开的项目里都没有匹配…」 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

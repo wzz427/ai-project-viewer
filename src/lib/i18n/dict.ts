@@ -41,8 +41,9 @@ export const en = {
   "locate.title": "Locate File",
   "locate.placeholder": "C:\\path\\to\\file, src/main.py — or just a file name",
   "locate.hint":
-    "A path jumps straight to it. A file name (or a path fragment) searches the active project and lists the matches.",
+    "A path jumps straight to it. A file name (or a path fragment) searches your open projects and lists the matches.",
   "locate.go": "Locate",
+  "locate.searching": "Searching…",
   "locate.results": "{n} matches — click one to go there",
   "locate.resultsCapped": "Showing the first {n} matches — type more to narrow down",
 
@@ -251,7 +252,8 @@ export const en = {
   "toast.locateNotInProject":
     'This folder is not open in the app yet — open it first with the "Add project" button (＋, top-left), then locate again: {path}',
   "toast.locateNotFound": "Path not found: {path}",
-  "toast.locateNoMatch": "No matching file or folder in this project: {query}",
+  "toast.locateNoMatch":
+    "No matching file or folder in any open project: {query}",
   "toast.locateHidden":
     '"{name}" is inside a hidden system folder — turn on "Show system folders" in Settings first',
   "toast.cannotOpenFile": "Cannot open file: {err}",
@@ -300,8 +302,9 @@ export const zh: Record<I18nKey, string> = {
   "locate.title": "定位文件",
   "locate.placeholder": "C:\\路径\\到\\文件、src/main.py,或只输文件名",
   "locate.hint":
-    "路径直接定位;文件名(或路径片段)会在当前项目内搜索,列出匹配项。",
+    "路径直接定位;文件名(或路径片段)会在已打开的项目里搜索,列出匹配项。",
   "locate.go": "定位",
+  "locate.searching": "正在搜索…",
   "locate.results": "{n} 个匹配——点击其中一个即可定位",
   "locate.resultsCapped": "仅显示前 {n} 个匹配——多输入几个字缩小范围",
 
@@ -506,7 +509,7 @@ export const zh: Record<I18nKey, string> = {
   "toast.locateNotInProject":
     "这个文件夹还没有在软件里打开——请先用左上角「＋(添加项目)」按钮打开它所在的文件夹,再重新定位:{path}",
   "toast.locateNotFound": "路径不存在:{path}",
-  "toast.locateNoMatch": "当前项目内没有匹配的文件或文件夹:{query}",
+  "toast.locateNoMatch": "所有已打开的项目里都没有匹配的文件或文件夹:{query}",
   "toast.locateHidden": "「{name}」在隐藏的系统文件夹内——请先在设置中打开「显示系统文件夹」",
   "toast.cannotOpenFile": "无法打开文件:{err}",
   "toast.cannotOpenPdf": "无法打开 PDF:{err}",

@@ -131,7 +131,7 @@ ProjectViewer/(仓库根)
 │       ├── components/EmptyState/(首启空态,V1.5 §151 文案;0.7.3 §198-b:最近列表非空时 Open Folder 下方渲染只读 Recent 列表,点击即开,失效置灰)
 │       ├── components/Toast/(单槽 toast)
 │       ├── stores/projectStore.svelte.ts(项目列表+去重+增删+每项目 sidebarMode/Width;会话字段,持久化走 appState;addProjectFromPath 成功两分支(新加/切换)记 Open Recent,spec-010 D1:会话恢复不记)
-│       ├── stores/locateStore.svelte.ts(**spec-017 按路径定位**:单布尔开合槽+submitLocate 编排——归一/项目匹配/逐层走查(ensureDirLoaded 共享树缓存)→切项目+侧栏 Files→revealInTree+openFile/展开高亮;错误走 toast;零驻留)
+│       ├── stores/locateStore.svelte.ts(**spec-017 按路径定位**:开合槽+searching 瞬态位+submitLocate 编排——归一/项目匹配/逐层走查(ensureDirLoaded 共享树缓存)→切项目+侧栏 Files→revealInTree+openFile/展开高亮;走查失败→按名搜索当前项目(§149 按需 walk),零命中再扩搜其余页签(0.8.31 §六:allSettled 坏根跳过,页签序合并,唯一直跳/列表行带项目名);pickLocateResult 收行对象直落 land 不重走相对解析;错误走 toast;零驻留)
 │       ├── i18n/(**spec-016 语言切换**:dict.ts=en/zh 双字典~210 键+translate/relativeTimeDict 纯函数;t.svelte.ts=t/tf/rt/relTime 响应层(读 settings.locale);rustErrors.ts=后端报错 30 条前缀映射+源锚点防漂移)
 │       ├── stores/settingsStore.svelte.ts(AppSettings:theme/fontSize/全局 showSystemFolders;Phase 4 起持久化)
 │       ├── stores/diagnosticsStore.svelte.ts(启动耗时/拦截计数,给验收当证据;0.6.12 增 600 条运行日志环——全局 error/rejection+boot/tab/viewer/project/git-view 事件,Settings Export Diagnostics 经 Rust write_diagnostics 落盘 app_config_dir/diagnostics;0.6.13 §164 增量:面板只留导出按钮,读数进报告)
@@ -148,7 +148,7 @@ ProjectViewer/(仓库根)
 │       ├── components/Icon.svelte(0.7.14:全应用唯一图标表——16 枚内联 SVG/2px 描边/currentColor,替换全部 Unicode/emoji 字形;FILE_ICONS 类型族映射消费 viewerType 路由,spec-014 D1/D4)+ services/viewerType.ts iconFamilyOf(类型图标族=查看器路由同源)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs;**spec-018 B 增派生临时显示**:openChainDirs/keepNamesUnder 由打开页签现算隐藏祖先链,visibleEntries 加 keepNames 豁免——零驻留,关页签即隐)
 │       └── services/shortcuts.ts(P0 快捷键中央 dispatcher,0.8.18 增 ctrl+l 定位)/ tauri.ts(invoke 封装)/
-│           locatePath.ts(**spec-017 纯函数**:normalizeInput 引号/斜杠/大小写/盘符归一+matchProject 最长根前缀+resolveRel 逐段 ci 走查回真名,vitest 直测)/
+│           locatePath.ts(**spec-017 纯函数**:normalizeInput 引号/斜杠/大小写/盘符归一+matchProject 最长根前缀+resolveRel 逐段 ci 走查回真名+searchFallbackQuery+mergeProjectSearches 跨项目合并[页签序/合并后重截断,0.8.31],vitest 直测)/
 │           mdLinks.ts(**spec-018 纯函数**:resolveDocLink 把 markdown 内链/图片 href 归一为树同构规范 rel——剥锚点查询/percent 解码/`\` 分隔/`.` `..` 消解/`/` 根相对/逃逸根 null,MarkdownViewer 唯一消费点,vitest 直测)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家;**Phase 9 起为 Rust watcher.rs 同款清单的 TS 侧镜像(注释互指,D8)**)/
 │           watcherApply.ts(Phase 9 纯函数:needsReload 精确路径/isGone 含目录前缀/renamedRel 改名映射+vitest)/

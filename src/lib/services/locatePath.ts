@@ -9,7 +9,7 @@
  * casing, trailing separator, optional \\?\ verbatim prefix.
  */
 
-import type { TreeEntry } from "$lib/services/tauri";
+import type { SearchFilesResult, SearchMatch, TreeEntry } from "$lib/services/tauri";
 
 export interface ParsedPath {
   kind: "abs" | "rel";
@@ -157,4 +157,56 @@ export async function resolveRel(
 export function searchFallbackQuery(parsed: ParsedPath): string | null {
   if (parsed.kind !== "rel") return null;
   return parsed.segments.join("/");
+}
+
+/** Which open tab a search hit came from — rows must be able to say
+ *  "this file lives over THERE" and jump there (§六 D18). Same shape as
+ *  a project tab (and thus a ProjectLike), so a hit's origin can ride
+ *  land()/activateProject without mapping. */
+export interface SearchOrigin {
+  id: string;
+  name: string;
+  rootPath: string;
+}
+
+/** A search hit tagged with its owning tab. */
+export interface LocatedMatch extends SearchMatch {
+  project: SearchOrigin;
+}
+
+export interface MergedSearch {
+  matches: LocatedMatch[];
+  total: number;
+  truncated: boolean;
+}
+
+/**
+ * Merge per-project search answers into one capped hit list, every row
+ * tagged with the project it came from (§六 D16–D18: the zero-hit-in-
+ * current-project fallback sweeps the OTHER open tabs). Inputs arrive in
+ * tab order and each block is already ranked inside its project; blocks
+ * KEEP that order — the tabs are the user's own priority, and re-ranking
+ * here would clone Rust's match_rank into a second truth that drifts.
+ * The cap is re-applied after merging: five tabs × 50 rows must still
+ * list at most `limit` rows, so "type more to narrow" stays truthful.
+ */
+export function mergeProjectSearches(
+  lists: { origin: SearchOrigin; result: SearchFilesResult }[],
+  limit: number,
+): MergedSearch {
+  const matches: LocatedMatch[] = [];
+  let total = 0;
+  let truncated = false;
+  for (const { origin, result } of lists) {
+    total += result.total;
+    truncated ||= result.truncated;
+    for (const m of result.matches) {
+      matches.push({ ...m, project: origin });
+    }
+  }
+  if (matches.length > limit) {
+    matches.length = limit;
+    truncated = true;
+  }
+  return { matches, total, truncated };
 }

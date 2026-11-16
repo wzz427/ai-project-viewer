@@ -44,11 +44,11 @@
   // (new) lookup.
   function go() {
     const text = input.trim();
-    if (!text) return;
+    if (!text || locateState.searching) return;
     const res = locateState.results;
     if (res && res.query === text) {
       const row = res.matches[activeIndex];
-      if (row) void pickLocateResult(row.rel);
+      if (row) void pickLocateResult(row);
       return;
     }
     void submitLocate(input);
@@ -124,6 +124,16 @@
         data-locate-input
         onkeydown={onInputKeydown}
       />
+      {#if locateState.searching}
+        <!-- §六 D20: a submit is real IO (a disk walk, ×N tabs on the
+             cross-project sweep) — the owner saw total silence until the
+             end-of-search toast. Feedback lives HERE, next to the field,
+             not in the toast. -->
+        <p class="searching" data-locate-searching>
+          <span class="spinner" aria-hidden="true"></span>
+          {t("locate.searching")}
+        </p>
+      {/if}
       {#if locateState.results}
         {@const res = locateState.results}
         <div class="results" data-locate-results>
@@ -140,20 +150,30 @@
             aria-label={t("locate.title")}
             bind:this={listEl}
           >
-            {#each res.matches as row, i (row.rel)}
+            {#each res.matches as row, i (`${row.project.id}:${row.rel}`)}
               {@const parts = splitRel(row.rel)}
+              <!-- Cross-project rows must SAY which tab they live in —
+                   a rel alone no longer identifies the target, and a
+                   silent jump to another project would read as a glitch. -->
+              {@const where = res.crossProject
+                ? parts.dir
+                  ? `${row.project.name} · ${parts.dir}`
+                  : row.project.name
+                : parts.dir}
               <button
                 class="result-row"
                 class:active={i === activeIndex}
                 role="option"
                 aria-selected={i === activeIndex}
-                title={row.rel}
+                title={res.crossProject
+                  ? `${row.project.name} · ${row.rel}`
+                  : row.rel}
                 data-locate-result={row.rel}
-                onclick={() => void pickLocateResult(row.rel)}
+                onclick={() => void pickLocateResult(row)}
                 onmousemove={() => (activeIndex = i)}
               >
                 <span class="base">{parts.base}{row.isDir ? "/" : ""}</span>
-                {#if parts.dir}<span class="dir">{parts.dir}</span>{/if}
+                {#if where}<span class="dir">{where}</span>{/if}
               </button>
             {/each}
           </div>
@@ -162,7 +182,11 @@
       <p class="hint">{t("locate.hint")}</p>
       <div class="card-actions">
         <button onclick={closeLocate}>{t("common.cancel")}</button>
-        <button class="primary" onclick={go} disabled={!input.trim()}>
+        <button
+          class="primary"
+          onclick={go}
+          disabled={!input.trim() || locateState.searching}
+        >
           {t("locate.go")}
         </button>
       </div>
@@ -219,6 +243,40 @@
     margin: 0;
     font-size: var(--text-xs);
     color: var(--text-muted);
+  }
+
+  /* §六 D20: the search is real IO — say so while it runs. A quiet ring
+     spinner matches the dialog's scale; reduced-motion users get the
+     static ring + text (the text alone still says "busy"). */
+  .searching {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .spinner {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+    animation: locate-spin 0.8s linear infinite;
+  }
+
+  @keyframes locate-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner {
+      animation: none;
+    }
   }
 
   /* Multi-hit name search: a compact picker, capped so a broad query

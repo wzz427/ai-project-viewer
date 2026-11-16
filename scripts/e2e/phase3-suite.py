@@ -1221,11 +1221,167 @@ with sync_playwright() as p:
           f"toast={no_match_toast!r} tabs={tab_count()}>{tabs_before_search}")
     dismiss_toast()
 
+    # --- 0.8.31 cross-project search guards (owner 2026-11-16 报障:
+    # `docs/skills/wrap.md` existed — but only in CodeAudit while
+    # QuantTrading was the active tab; the search never left the active
+    # project and the zero-hit toast never said WHICH project had been
+    # searched). Zero hits in the ACTIVE tab now sweeps the OTHER open
+    # tabs (tab order, same visibility rules), and the sweep shows
+    # itself: a "Searching…" line runs in the dialog from submit to
+    # outcome (§六 D20). ---
+    with open(os.path.join(AWAY_B, "sub", "aiv-cross-unique.md"), "w",
+              encoding="utf-8") as f:
+        f.write("# cross-project unique target (0.8.31)\n")
+    for d in ("cross-x", "cross-y"):
+        os.makedirs(os.path.join(AWAY_B, d), exist_ok=True)
+        with open(os.path.join(AWAY_B, d, "aiv-cross-dup.md"), "w",
+                  encoding="utf-8") as f:
+            f.write(f"# cross dup in {d} (0.8.31)\n")
+    # a DEEP chain: landing on it walks many levels one IPC at a time,
+    # which keeps the "Searching…" line up long enough to screenshot it
+    # (§2.3-6 visual pass for the D20 feedback row). 20 levels — 10 proved
+    # too short: the flight ended before the screenshot fired.
+    deep_dir = os.path.join(AWAY_B, *[f"deep{i}" for i in range(20)])
+    os.makedirs(deep_dir, exist_ok=True)
+    with open(os.path.join(deep_dir, "aiv-deep-needle-0831.md"), "w",
+              encoding="utf-8") as f:
+        f.write("# deep target for the searching-line shot (0.8.31)\n")
+    time.sleep(1.5)  # let the watcher settle the new files
+
+    def away_project_active(timeout_s=6):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if page.locator(".project-tabs .tab.active .tab-name").count() and \
+               page.locator(".project-tabs .tab.active .tab-name").inner_text() == "aiv-p3-away":
+                return True
+            time.sleep(0.15)
+        return False
+
+    # ⑨ the owner's scenario shape: a name that lives ONLY in the other
+    # open project → Enter switches the project tab and opens the file
+    # there; the "Searching…" feedback line is visible while it runs.
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("aiv-cross-unique.md")
+    page.keyboard.press("Enter")
+    saw_searching = True
+    try:
+        page.locator("[data-locate-searching]").wait_for(
+            state="visible", timeout=3000)
+    except Exception:
+        saw_searching = False
+    jump_cross = active_tab_is("aiv-cross-unique.md")
+    time.sleep(0.4)
+    row_cross = page.locator('.row[title="sub/aiv-cross-unique.md"]')
+    away_now = away_project_active(1)
+    check("locate_cross_project_unique_switches",
+          jump_cross and saw_searching and away_now
+          and page.locator(".locate-dialog").count() == 0
+          and row_cross.count() == 1
+          and "selected" in (row_cross.first.get_attribute("class") or ""),
+          f"jump={jump_cross} searching={saw_searching} "
+          f"away={away_now} row={row_cross.count()}")
+
+    # ⑩ several hits in the other project → the list stays up, every row
+    # NAMES the project it lives in, and picking a row lands there.
+    # (⑨ just landed IN away, so first make AIV-TestProject active again —
+    # the cross list only appears for hits outside the ACTIVE tab.)
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.5)
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("aiv-cross-dup.md")
+    page.keyboard.press("Enter")
+    listed_cross = wait_results(2)
+    page.screenshot(path=os.path.join(shots, "locate-cross-paper.png"))
+    row_y = page.locator('[data-locate-result="cross-y/aiv-cross-dup.md"]')
+    names_project = row_y.count() == 1 and "aiv-p3-away" in row_y.first.inner_text()
+    row_y.first.click()
+    picked_cross = active_tab_is("aiv-cross-dup.md")
+    check("locate_cross_project_list_names_project",
+          listed_cross and names_project and picked_cross
+          and away_project_active(1)
+          and page.locator(".locate-dialog").count() == 0,
+          f"listed={listed_cross} named={names_project} "
+          f"picked={picked_cross}")
+
+    # ⑩b the same cross list on glacier + the D20 "Searching…" line
+    # captured mid-flight (theme round-trip mirrors the 0.8.28 pattern).
+    # ⑩ landed IN away — switch back first so the list is the CROSS one
+    # (in-project lists carry no project label by design, and the first
+    # glacier pass shot exactly that wrong state).
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.5)
+    page.click('button[title="Settings"]')
+    time.sleep(0.3)
+    page.locator('input[name="theme"][value="glacier"]').check()
+    time.sleep(0.3)
+    page.click('button[title="Settings"]')
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("aiv-cross-dup.md")
+    page.keyboard.press("Enter")
+    wait_results(2)
+    page.screenshot(path=os.path.join(shots, "locate-cross-glacier.png"))
+    page.keyboard.press("Escape")
+    time.sleep(0.3)
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("aiv-deep-needle-0831.md")
+    page.keyboard.press("Enter")
+    saw_searching_deep = True
+    try:
+        page.locator("[data-locate-searching]").wait_for(
+            state="visible", timeout=3000)
+    except Exception:
+        saw_searching_deep = False
+    page.screenshot(path=os.path.join(shots, "locate-searching-glacier.png"))
+    deep_jump = active_tab_is("aiv-deep-needle-0831.md")
+    check("locate_searching_feedback_deep_jump",
+          saw_searching_deep and deep_jump
+          and page.locator(".locate-dialog").count() == 0,
+          f"searching={saw_searching_deep} jump={deep_jump}")
+    # steady state back to the product default skin
+    page.click('button[title="Settings"]')
+    time.sleep(0.3)
+    page.locator('input[name="theme"][value="paper"]').check()
+    time.sleep(0.3)
+    page.click('button[title="Settings"]')
+
+    # ⑪ nothing anywhere → the toast names the true scope: EVERY open
+    # project was searched (the old text said "this project" without
+    # saying which — the owner couldn't tell he'd searched the wrong
+    # tab).
+    dismiss_toast()
+    press("l")
+    time.sleep(0.3)
+    page.locator("[data-locate-input]").fill("zzz-no-such-in-any-tab.md")
+    page.keyboard.press("Enter")
+    any_open_toast = ""
+    for _ in range(30):
+        time.sleep(0.15)
+        if page.locator(".toast").count():
+            any_open_toast = page.locator(".toast").inner_text()
+            break
+    check("locate_no_match_names_all_open_projects",
+          "any open project" in any_open_toast
+          and page.locator(".locate-dialog").count() == 0,
+          f"toast={any_open_toast!r}")
+    dismiss_toast()
+
+    # back to the main project for the fixture-out + later sections
+    page.locator(".project-tabs .tab", has_text="AIV-TestProject").first.click()
+    time.sleep(0.5)
+
     # fixture out — the tree and search surface go back to the checked-in
     # state for every later section
     os.remove(os.path.join(PROJECT, closeout_rel))
     shutil.rmtree(os.path.join(PROJECT, "search-a"), ignore_errors=True)
     shutil.rmtree(os.path.join(PROJECT, "search-b"), ignore_errors=True)
+    os.remove(os.path.join(AWAY_B, "sub", "aiv-cross-unique.md"))
+    shutil.rmtree(os.path.join(AWAY_B, "cross-x"), ignore_errors=True)
+    shutil.rmtree(os.path.join(AWAY_B, "cross-y"), ignore_errors=True)
+    shutil.rmtree(os.path.join(AWAY_B, "deep0"), ignore_errors=True)
     time.sleep(0.5)
     open_file("README.md")
 

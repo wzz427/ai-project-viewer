@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TreeEntry } from "$lib/services/tauri";
 import {
   matchProject,
+  mergeProjectSearches,
   normalizeInput,
   resolveRel,
   searchFallbackQuery,
@@ -162,5 +163,79 @@ describe("searchFallbackQuery (name search, V1.5 §148; owner 2026-11-10)", () =
     const parsed = normalizeInput('"closeout.md"');
     expect(parsed!.kind).toBe("rel");
     expect(searchFallbackQuery(parsed!)).toBe("closeout.md");
+  });
+});
+
+describe("mergeProjectSearches (cross-tab fallback, spec-017 §六; owner 2026-11-16)", () => {
+  const originA = { id: "a", name: "Alpha", rootPath: "C:\A" };
+  const originB = { id: "b", name: "Beta", rootPath: "C:\B" };
+
+  const res = (rels: string[], total = rels.length, truncated = false) => ({
+    matches: rels.map((rel) => ({ rel, isDir: false })),
+    total,
+    truncated,
+  });
+
+  it("merges in tab order and tags every row with its origin", () => {
+    const merged = mergeProjectSearches(
+      [
+        { origin: originA, result: res(["docs/x.md", "x.md"]) },
+        { origin: originB, result: res(["deep/x.md"]) },
+      ],
+      50,
+    );
+    expect(merged.matches.map((m) => `${m.project.name}:${m.rel}`)).toEqual([
+      "Alpha:docs/x.md",
+      "Alpha:x.md",
+      "Beta:deep/x.md",
+    ]);
+    expect(merged.total).toBe(3);
+    expect(merged.truncated).toBe(false);
+  });
+
+  it("re-applies the cap after merging — five tabs x 50 rows must not list 250", () => {
+    const merged = mergeProjectSearches(
+      [
+        { origin: originA, result: res(["1.md", "2.md", "3.md"]) },
+        { origin: originB, result: res(["4.md", "5.md"]) },
+      ],
+      4,
+    );
+    expect(merged.matches).toHaveLength(4);
+    expect(merged.matches[3]!.rel).toBe("4.md"); // tab order beats later tabs
+    expect(merged.total).toBe(5);
+    expect(merged.truncated).toBe(true);
+  });
+
+  it("carries truncation up from any single project", () => {
+    const merged = mergeProjectSearches(
+      [
+        { origin: originA, result: res(["x.md"]) },
+        { origin: originB, result: res(["y.md"], 51, true) },
+      ],
+      50,
+    );
+    expect(merged.truncated).toBe(true);
+    expect(merged.total).toBe(52);
+  });
+
+  it("the same rel in two projects stays two rows — origins disambiguate", () => {
+    const merged = mergeProjectSearches(
+      [
+        { origin: originA, result: res(["docs/handoff.md"]) },
+        { origin: originB, result: res(["docs/handoff.md"]) },
+      ],
+      50,
+    );
+    expect(merged.matches).toHaveLength(2);
+    expect(new Set(merged.matches.map((m) => m.project.id)).size).toBe(2);
+  });
+
+  it("empty input lists merge to an empty, untruncated answer", () => {
+    expect(mergeProjectSearches([], 50)).toEqual({
+      matches: [],
+      total: 0,
+      truncated: false,
+    });
   });
 });
