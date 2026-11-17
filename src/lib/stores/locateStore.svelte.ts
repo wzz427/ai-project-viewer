@@ -64,23 +64,33 @@ export const locateState = $state<{
    *  as long (§六 D20: the owner saw silence until the end-of-search
    *  toast). Transient with the dialog, not with the app. */
   searching: boolean;
+  /** Sweep progress (§七 D23): how many tabs' searches have finished /
+   *  how many are in this submit's plan. 1/1 = current project only. */
+  searchedTabs: number;
+  totalTabs: number;
   results: LocateResults | null;
-}>({ open: false, searching: false, results: null });
+}>({ open: false, searching: false, searchedTabs: 1, totalTabs: 1, results: null });
 
 /** Rows shown per search. More than a screenful means "type more", and
  *  the dialog says so instead of growing an endless list. */
 const SEARCH_LIMIT = 50;
 
 export function openLocate() {
+  searchGen++; // any straggler submit from a previous open dies unheard
   locateState.results = null;
   locateState.searching = false;
+  locateState.searchedTabs = 1;
+  locateState.totalTabs = 1;
   locateState.open = true;
 }
 
 export function closeLocate() {
+  searchGen++; // closing must cancel the flight, not just hide it
   locateState.open = false;
   locateState.results = null;
   locateState.searching = false;
+  locateState.searchedTabs = 1;
+  locateState.totalTabs = 1;
 }
 
 /** Ctrl+L toggles (spec-017 D9) — same muscle memory as a browser bar. */
@@ -89,9 +99,12 @@ export function toggleLocate() {
   else openLocate();
 }
 
-// A deep walk is a handful of fast one-level IPCs; still, Enter mashed
-// twice must not fire two walks that race each other's reveals.
-let inFlight = false;
+// Supersede, don't block (§七 D22): a search over the owner's real open
+// set walks ~1.3M entries — an inFlight-style gate made Enter during a
+// flight do NOTHING silently (the 2026-11-17 report's "按了没反应"
+// compound). Every submit/close takes the next generation; stale results
+// are discarded unheard.
+let searchGen = 0;
 
 async function listLevel(rootPath: string, relDir: string) {
   await ensureDirLoaded(rootPath, relDir);
@@ -146,9 +159,11 @@ async function land(
 
 export async function submitLocate(raw: string) {
   const input = normalizeInput(raw);
-  if (!input || inFlight) return;
-  inFlight = true;
+  if (!input) return;
+  const gen = ++searchGen;
   locateState.searching = true;
+  locateState.searchedTabs = 1;
+  locateState.totalTabs = 1;
   // Only a multi-hit name search keeps the dialog up (its list needs a
   // click); every other outcome — jump or error toast — closes it.
   let keepOpen = false;
@@ -182,6 +197,7 @@ export async function submitLocate(raw: string) {
         } catch {
           onDisk = true; // check itself failed: keep the actionable wording
         }
+        if (gen !== searchGen) return;
       }
       toast(
         tf(onDisk ? "toast.locateNotInProject" : "toast.locateNotFound", {
@@ -200,6 +216,7 @@ export async function submitLocate(raw: string) {
         : await resolveRel(relSegments, (dir) =>
             listLevel(project.rootPath, dir),
           );
+    if (gen !== searchGen) return;
     if (target) {
       await land(project, target);
       return;
@@ -227,9 +244,11 @@ export async function submitLocate(raw: string) {
         SEARCH_LIMIT,
       );
     } catch (e) {
+      if (gen !== searchGen) return;
       toast(String(e), { kind: "error" });
       return;
     }
+    if (gen !== searchGen) return;
     diagEvent(
       `locate search "${query}" hits=${found.total}${found.truncated ? "+" : ""} ${project.rootPath}`,
     );
@@ -242,6 +261,11 @@ export async function submitLocate(raw: string) {
       // and caps, keeping tab order (D17); a root that fails to read
       // (folder deleted under a still-open tab) is skipped, not fatal.
       const others = projectState.tabs.filter((t) => t.id !== project.id);
+      // The sweep announces its plan (§七 D23): "Searching… 1/7" climbs
+      // as each tab's walk finishes — with a ~1.3M-entry open set the
+      // walk is real work and must read as progress, not a hang.
+      locateState.totalTabs = 1 + others.length;
+      locateState.searchedTabs = 1;
       const settled = await Promise.allSettled(
         others.map((t) =>
           searchProjectFiles(
@@ -249,9 +273,12 @@ export async function submitLocate(raw: string) {
             query,
             settings.fileTree.showSystemGeneratedFolders,
             SEARCH_LIMIT,
-          ),
+          ).finally(() => {
+            if (gen === searchGen) locateState.searchedTabs += 1;
+          }),
         ),
       );
+      if (gen !== searchGen) return;
       const lists = settled.flatMap((s, i) => {
         if (s.status === "rejected") {
           diagEvent(
@@ -330,9 +357,12 @@ export async function submitLocate(raw: string) {
     };
     keepOpen = true;
   } finally {
-    inFlight = false;
-    locateState.searching = false;
-    if (!keepOpen) closeLocate();
+    // A superseded or cancelled submit owns nothing: the newer submit
+    // (or the close) holds the flags and the dialog now.
+    if (gen === searchGen) {
+      locateState.searching = false;
+      if (!keepOpen) closeLocate();
+    }
   }
 }
 
@@ -344,8 +374,6 @@ export async function submitLocate(raw: string) {
  * the wrong one (§六 D18).
  */
 export async function pickLocateResult(row: LocatedMatch) {
-  if (inFlight) return;
-  inFlight = true;
   locateState.searching = true;
   try {
     await land(row.project, {
@@ -354,7 +382,6 @@ export async function pickLocateResult(row: LocatedMatch) {
       hiddenSystem: false,
     });
   } finally {
-    inFlight = false;
     locateState.searching = false;
     closeLocate();
   }

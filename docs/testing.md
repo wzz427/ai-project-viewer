@@ -292,6 +292,17 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 视觉 | 铁律 §2.3-6 截图×3 视觉模型判全 PASS:跨项目列表 paper/glacier(行带项目名+高亮行清晰)/搜索反馈行 glacier(转环+文字可读无遮挡)。**两轮首判 FAIL 均证伪=探针取景错**(同 0.8.29 先例):①glacier 列表截到的是"项目内列表"(⑩落地后忘切回主项目,项目内列表按设计不带项目名);②反馈行截图晚于飞行结束(10 层深链窗口短于截图时延,加深到 20 层后捕获)——修探针复跑复验 PASS |
 | 版本 | 0.8.31 三处 bump;updates=exp 0.8.31(staged 0.8.30→publishing;exe UTF-16 核 0.8.31 FOUND/0.8.30 absent;json 113B 无 BOM,Note 带说明);owner 验收路径=Update→自动重启→①在 QuantTrading 页签点放大镜输 `wrap.md` 或 `docs/skills/wrap.md`→Enter:自动切到 CodeAudit 页签并打开该文件,输入到出结果期间框内有「正在搜索…」转环反馈;②搜每个项目都有的名字(如 testing.md)→行为与以前一致(当前项目直跳);③搜哪都没有的名字→提示「所有已打开的项目里都没有匹配…」 |
 
+#### 0.8.32 定位搜索提速:并行枚举+重试即取代+进度计数(2026-11-17,owner 报障「这个文件搜索特别慢,大概得半分钟,搜个文件不至于吧」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | **量,不是病**:owner 真实打开集 7 页签全量枚举 **1,276,578 条**(python 单线程 27s,与"半分钟"吻合)——MyProxy 83.8万(state/+data/ 运行时数据)、QuantTrading 35.5万(test_outputs/ 等)、WordsStudy 5.2万(.artifacts/)。这些机器生成目录不在隐藏表(表只收 .git/node_modules 等 9 个通用名),树里懒加载从不显形,0.8.31 跨项目 sweep 是第一个全量枚举者。**gitignore 路不通**(三大重仓仅 .artifacts/market_data/settings 被 ignore,省不到 2%)→正解=纯提速,结果语义零变化 |
+| 实现 | ①Rust search_level 走查段改 **std 作用域线程工作队列**(线程=available_parallelism 夹 1–8,零新依赖;先举目录后合并,Condvar 终止=队列空且 active==0;输出确定性靠既有 rank/depth/rel 全序排序;cap/truncated 合并时套用=串行契约原样)。②前端 inFlight 门→**gen 取代**(飞行中新 Enter 不再被静默吞——owner 感知的"按了没反应"一半是它;close 即取消,旧代结果 unheard)。③反馈行 sweep 阶段显示 **k/n** 进度 |
+| 实测 | release 预热口径(ignored 计时测试逐项目):MyProxy 13.6s→**2.59s**,QuantTrading 11.2s→**1.93s**,WordsStudy 1.4s→**0.63s**;sweep 各页签并行,墙钟≈最慢页签。冷盘首搜仍更高(Defender 首触扫描,IO 本性),有 k/n+可取代兜底 |
+| 全档 | check 0/0+vitest **174/174**(+3 supersede:二次 Enter 取代/close 取消/进度计数)+cargo **146/146**(+4 并行守卫:宽树命中集不丢不造+排序契约/并发 cap 与 limit/恰好 cap 不标截断/平目录与空根终止;首跑照出守卫自身坑=拿 limit50 辅助比 108 命中集,改直调大 limit)+phase3 **165 PASS×3 连跑**(0.8.31 守卫原样照跑=零回归)+freeze/update-watch 免跑(未触 watcher/updater);计时测试入库 #[ignore] 手跑口径 |
+| 视觉 | 反馈行 k/n 计数 glacier 截图视觉模型 PASS(实拍 2/2,转环+文字+计数无重叠无裁切) |
+| 版本 | 0.8.32 三处 bump;updates=exp 0.8.32(exe UTF-16 核 0.8.32 FOUND/0.8.31 absent;json 123B 无 BOM);owner 验收路径=Update→自动重启→①重放报障场景:开着多项目搜一个哪都没有的名字→反馈行显示 k/n 且几秒内出「所有已打开的项目里都没有匹配」;②搜索中途直接改词再回车→立刻按新词搜,不再"按了没反应";③原有定位/搜索行为照旧 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

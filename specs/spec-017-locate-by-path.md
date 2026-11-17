@@ -200,3 +200,47 @@ dict 改 locate.hint/toast.locateNoMatch+新增 locate.searching 三键(en/zh)�
 **验收路径(0.8.31)**:开着多个项目、激活其中**没有**目标文件的页签 → 点放大镜输
 `docs/skills/wrap.md`(或裸 `wrap.md`)→ Enter → 自动切到 CodeAudit 页签并打开该文件;
 输当前项目也有的名字(如 testing.md)时行为与现在一致(当前项目直跳)。
+
+## §七 增量(2026-11-17,0.8.32):搜索提速——并行枚举+重试即取代+进度计数
+
+> owner 报障(截图):「这个文件搜索特别慢,我觉得大概得半分钟了,搜个文件不至于吧?
+> 现在这个搜索效率太低了,肯定是可以优化的」。
+> 取证(实盘计量,owner 真实打开集=state.json 7 页签):按搜索同规则全量枚举
+> **1,276,578 条**——MyProxy **838,048**(state/+data/ 运行时数据)、QuantTrading
+> **354,934**(test_outputs/ 等)、WordsStudy 51,855(.artifacts/)、CodeAudit 15,357、
+> CodingCoach 9,731、ListeningMaster 4,160、AgentZero 2,493。单线程 python 走完 27s,
+> 与"半分钟"吻合。**这些重仓是机器生成的数据目录,不在隐藏表**(表只收 9 个通用名),
+> 树里懒加载一层层看从不显形——0.8.31 跨项目 sweep 是第一个全量枚举者,撞上了。
+> 「遵循 .gitignore 跳过」路不通:三大重仓里只有 .artifacts/market_data/settings 被
+> ignore,MyProxy state/+data/ 与 QT test_outputs/ 都没有——省不到 2%。正解=纯提速,
+> 结果语义一个字不变。
+
+**新增决策**:
+
+| # | 决策 | 理由/否决项 |
+|---|---|---|
+| D21 | 枚举并行化:**std 作用域线程工作队列**(线程=available_parallelism 夹 1–8,零新依赖),先举目录入共享队列、命中局部攒批后短临界区合并;输出确定性靠**既有全序排序**(rank/depth/rel)兜底,与线程交错无关;cap/truncated 在合并时套用=串行契约原样(≤cap 保留、truncated=确有命中被丢弃;整树恰好 cap 个命中不标截断) | rayon 不在依赖表,为一个 walk 引入不值(内存第一原则的反面是依赖最小化);**否决「扩展隐藏表」**:state/data/test_outputs 是各项目私有名,硬编码进全局表=补丁式(换项目不成立),且会把树里可见的东西变成搜不出 |
+| D22 | **重试即取代**:inFlight 门(飞行中新 Enter 被静默吞——owner 感知的"按了没反应"有一半是它)换成代数 gen,submit/close 各取新代,旧代结果** unheard 丢弃**;Enter 在飞行中永远有效(发起取代) | 门式互斥在 30s 级 IO 上=交互事故;取代语义与浏览器地址栏一致 |
+| D23 | sweep 进度计数:反馈行在跨项目阶段显示 `k/n`(n=1+其余页签数,每页签完成 k+1,失败也计) | 千兆级条目下"正在搜索…"裸文字读作挂死;k/n 读作进度 |
+
+**实现**:file_tree.rs search_level 走查段重写为工作队列池(终止条件=队列空且 active==0,
+Condvar 唤醒;不可读目录跳过不杀搜索;截断即全池停);locateStore inFlight→searchGen+
+gen 守卫(每个 await 后旧代即返)+searchedTabs/totalTabs 瞬态位;LocateDialog 反馈行加
+k/n(tabular-nums);Go/Enter 不再被 busy 门挡。Rust 命令签名零变化,tauri.ts 零改动。
+
+**实测**(release 构建,预热盘,口径=cargo ignored 测试逐项目跑):MyProxy 13.6s→**2.59s**,
+QuantTrading 11.2s→**1.93s**,WordsStudy 1.4s→**0.63s**;sweep 各页签并行,墙钟≈最慢者。
+冷盘首搜仍会更高(Defender 首触扫描),属 IO 本性,有 k/n 进度+可取代兜底。
+
+**守卫**:cargo **146/146**(+4:parallel_finds_every_hit[宽树 24×12 命中集不丢不造+
+排序契约]/parallel_cap_and_limit[并发下 cap/limit 仍成立]/parallel_exact_cap_not_
+truncated[恰好 cap 个不标截断]/parallel_terminates_on_degenerate[平目录/空根终止];
+首跑照出守卫自身坑:拿 limit=50 的测试辅助比 108 命中集,改直调 search_level 大 limit);
+vitest **174/174**(+3 supersede:二次 Enter 取代[旧代单命中直跳被 unheard]/close 取消/
+sweep 进度 1→2 计数+落点后复位);phase3 **165 PASS×3 连跑**(0.8.31 守卫原样照跑=零回归);
+freeze/update-watch 免跑(未触 watcher/updater);视觉模型 1/1(反馈行 k/n,glacier,截到 2/2)。
+`search_whale_timing` 计时测试入库为 #[ignore](对真鲸鱼目录手动跑,发版汇报口径)。
+
+**验收路径(0.8.32)**:Update→自动重启→重放报障场景(开着多项目,搜一个各项目都没有
+的名字)→反馈行显示 k/n 计数且几秒内出「所有已打开的项目里都没有匹配」;中途改主意
+直接再输新词回车,应立刻按新词搜,不再"按了没反应"。

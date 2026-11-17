@@ -192,51 +192,124 @@ pub fn search_level(
         rel: String,
         is_dir: bool,
     }
-    let mut hits: Vec<Hit> = Vec::new();
-    let mut truncated = false;
-    // Iterative walk, symlinks/junctions never descended (file_type on
-    // Windows reports reparse points as non-dirs) — no cycles, same
-    // entry taxonomy as list_level so search and tree agree.
-    let mut stack: Vec<(PathBuf, String)> = vec![(root_canon, String::new())];
-    while let Some((dir, prefix)) = stack.pop() {
-        if truncated {
-            break;
-        }
-        let reader = match std::fs::read_dir(&dir) {
-            Ok(r) => r,
-            Err(_) => continue, // unreadable folder: skip, don't kill the search
-        };
-        for entry in reader.flatten() {
-            let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
-            let name = entry.file_name().to_string_lossy().into_owned();
-            // Same visibility list as the tree (§29): hidden dirs are
-            // skipped entirely — a result the tree refuses to render
-            // would reveal nowhere.
-            if is_dir && DEFAULT_HIDDEN_DIRS.contains(&name.as_str()) && !include_system {
-                continue;
-            }
-            let rel = if prefix.is_empty() { name.clone() } else { format!("{prefix}/{name}") };
-            if is_dir {
-                stack.push((entry.path(), rel.clone()));
-            }
-            let rel_lower = rel.to_lowercase();
-            let Some(rank) = match_rank(&query, by_name, &name.to_lowercase(), &rel_lower)
-            else {
-                continue;
-            };
-            if hits.len() >= cap {
-                truncated = true;
-                break;
-            }
-            hits.push(Hit {
-                rank,
-                depth: rel.matches('/').count() as u16,
-                rel_lower,
-                rel,
-                is_dir,
+
+    // Parallel walk (0.8.32, owner 2026-11-17 报障 "搜个文件半分钟"):
+    // the cross-tab sweep was the first component to enumerate whole
+    // projects, and the owner's open set holds ~1.28M entries — a single
+    // scandir thread needs ~30s cold. N scoped threads pull directories
+    // off a shared worklist instead (std only; rayon isn't in the graph
+    // and doesn't earn its way in for one walk). Symlinks/junctions are
+    // never descended (file_type on Windows reports reparse points as
+    // non-dirs) — no cycles, same entry taxonomy as list_level.
+    // Termination: a thread that finds the list empty sleeps while
+    // `active > 0` (others may still push); empty AND active == 0 ends.
+    // Output determinism: hits are fully re-sorted below (rank, depth,
+    // rel) regardless of thread interleaving; cap/truncated semantics
+    // are exactly the sequential contract (≤ cap kept, truncated = a
+    // hit was discarded), just applied at merge time.
+    struct Shared {
+        work: Vec<(PathBuf, String)>,
+        active: usize,
+        hits: Vec<Hit>,
+        truncated: bool,
+    }
+    let shared = std::sync::Mutex::new(Shared {
+        work: vec![(root_canon, String::new())],
+        active: 0,
+        hits: Vec::new(),
+        truncated: false,
+    });
+    let cv = std::sync::Condvar::new();
+    let threads = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4)
+        .clamp(1, 8);
+
+    std::thread::scope(|scope| {
+        for _ in 0..threads {
+            scope.spawn(|| loop {
+                let mut st = shared.lock().unwrap();
+                let (dir, prefix) = loop {
+                    if st.truncated {
+                        return; // cap reached — stop everywhere
+                    }
+                    if let Some(item) = st.work.pop() {
+                        break item;
+                    }
+                    if st.active == 0 {
+                        return; // drained: nothing running, nothing queued
+                    }
+                    st = cv.wait(st).unwrap();
+                };
+                st.active += 1;
+                drop(st);
+
+                // Enumerate OUTSIDE the lock: child dirs and local hits
+                // buffer up, then merge in one short critical section.
+                let mut children: Vec<(PathBuf, String)> = Vec::new();
+                let mut found: Vec<Hit> = Vec::new();
+                if let Ok(reader) = std::fs::read_dir(&dir) {
+                    for entry in reader.flatten() {
+                        let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+                        let name = entry.file_name().to_string_lossy().into_owned();
+                        // Same visibility list as the tree (§29): hidden
+                        // dirs are skipped entirely — a result the tree
+                        // refuses to render would reveal nowhere.
+                        if is_dir && DEFAULT_HIDDEN_DIRS.contains(&name.as_str()) && !include_system {
+                            continue;
+                        }
+                        let rel = if prefix.is_empty() {
+                            name.clone()
+                        } else {
+                            format!("{prefix}/{name}")
+                        };
+                        if is_dir {
+                            children.push((entry.path(), rel.clone()));
+                        }
+                        let rel_lower = rel.to_lowercase();
+                        let Some(rank) =
+                            match_rank(&query, by_name, &name.to_lowercase(), &rel_lower)
+                        else {
+                            continue;
+                        };
+                        found.push(Hit {
+                            rank,
+                            depth: rel.matches('/').count() as u16,
+                            rel_lower,
+                            rel,
+                            is_dir,
+                        });
+                    }
+                } // unreadable folder: children stay empty — skip, don't kill
+
+                let mut st = shared.lock().unwrap();
+                st.active -= 1;
+                if st.truncated {
+                    // Another thread hit the cap mid-walk; drop these.
+                } else if st.hits.len() >= cap {
+                    if !found.is_empty() {
+                        st.truncated = true;
+                    }
+                } else {
+                    let room = cap - st.hits.len();
+                    if found.len() > room {
+                        st.truncated = true;
+                    }
+                    st.hits.extend(found.into_iter().take(room));
+                }
+                st.work.extend(children);
+                drop(st);
+                cv.notify_all();
             });
         }
-    }
+    });
+
+    // The truncated flag is authoritative from merge time (set only when
+    // a hit was actually discarded — exactly the sequential contract; a
+    // tree with exactly `cap` matches completes untruncated).
+    let shared = shared.into_inner().unwrap();
+    let mut hits = shared.hits;
+    let truncated = shared.truncated;
 
     let total = hits.len() as u32;
     hits.sort_by(|a, b| {
@@ -592,6 +665,132 @@ mod tests {
         for q in ["", "   ", "\\"] {
             let res = search_level(&root, q, false, 50, COLLECT_CAP).unwrap();
             assert!(res.matches.is_empty(), "query {q:?} should match nothing");
+        }
+    }
+
+    // --- 0.8.32 parallel-walk guards (owner 2026-11-17: a name search
+    // over the real open set took ~30s single-threaded — ~1.28M entries).
+    // The pool must be observably identical to the sequential contract. ---
+
+    /// A wide tree (many dirs at several depths, matches sprinkled
+    /// everywhere) must return EXACTLY the known match set, fully sorted,
+    /// no matter how the threads interleave. (The `search` helper caps at
+    /// limit 50 — use search_level with a big limit so the SET is the
+    /// subject, not the row cap; the first guard draft compared against
+    /// the capped helper and "failed" on 108 expected hits.)
+    #[test]
+    fn search_parallel_finds_every_hit_in_sorted_order() {
+        let root = tmp_project("SearchParallelWide");
+        let mut expected = Vec::new();
+        for i in 0..24 {
+            mkdir(&root, &format!("pkg{i:02}"));
+            mkdir(&root, &format!("pkg{i:02}/sub"));
+            for j in 0..12 {
+                if j % 3 == 0 {
+                    touch(&root, &format!("pkg{i:02}/sub/needle{j:02}.rs"));
+                    expected.push(format!("pkg{i:02}/sub/needle{j:02}.rs"));
+                } else {
+                    touch(&root, &format!("pkg{i:02}/sub/other{j:02}.rs"));
+                }
+            }
+            if i % 2 == 0 {
+                touch(&root, &format!("pkg{i:02}/needle-root.md"));
+                expected.push(format!("pkg{i:02}/needle-root.md"));
+            }
+        }
+        let res = search_level(&root, "needle", false, 500, COLLECT_CAP).unwrap();
+        expected.sort();
+        assert_eq!(res.total as usize, expected.len());
+        let mut got_sorted: Vec<String> = res.matches.iter().map(|m| m.rel.clone()).collect();
+        got_sorted.sort();
+        assert_eq!(got_sorted, expected, "parallel walk must not lose or invent hits");
+        // And the delivered order is the deterministic rank/depth/alpha
+        // contract (name-prefix beats path-contains; shallower first).
+        let root_first = res
+            .matches
+            .iter()
+            .position(|m| m.rel == "pkg00/needle-root.md")
+            .expect("shallow hit present");
+        let deep_idx = res
+            .matches
+            .iter()
+            .position(|m| m.rel == "pkg00/sub/needle00.rs")
+            .unwrap();
+        assert!(root_first < deep_idx, "shallower hit must rank first");
+    }
+
+    /// cap semantics under concurrency: at most `cap` kept, truncated
+    /// set, limit still applied on top.
+    #[test]
+    fn search_parallel_cap_and_limit_hold() {
+        let root = tmp_project("SearchParallelCap");
+        for i in 0..10 {
+            mkdir(&root, &format!("d{i}"));
+            for j in 0..10 {
+                touch(&root, &format!("d{i}/needle{j}.md"));
+            }
+        }
+        let res = search_level(&root, "needle", false, 7, 33).unwrap();
+        assert_eq!(res.matches.len(), 7, "limit caps the rows");
+        assert_eq!(res.total, 33, "cap caps the collected hits");
+        assert!(res.truncated, "100 hits existed, most were discarded");
+    }
+
+    /// Exactly `cap` matches in the whole tree → NOT truncated (the
+    /// sequential contract: truncated means a hit was discarded).
+    #[test]
+    fn search_parallel_exact_cap_is_not_truncated() {
+        let root = tmp_project("SearchParallelExact");
+        for i in 0..5 {
+            mkdir(&root, &format!("d{i}"));
+            touch(&root, &format!("d{i}/needle.md"));
+        }
+        let res = search_level(&root, "needle", false, 50, 5).unwrap();
+        assert_eq!(res.total, 5);
+        assert!(!res.truncated, "nothing was discarded");
+    }
+
+    /// Degenerate shapes must terminate: a single dir with files only,
+    /// and an empty root.
+    #[test]
+    fn search_parallel_terminates_on_degenerate_trees() {
+        let root = tmp_project("SearchParallelFlat");
+        touch(&root, "needle-a.md");
+        touch(&root, "needle-b.md");
+        touch(&root, "other.md");
+        assert_eq!(search(&root, "needle").len(), 2);
+
+        let empty = tmp_project("SearchParallelEmpty");
+        assert!(search(&empty, "needle").is_empty());
+    }
+
+    /// Manual perf evidence against the owner's REAL whale directories
+    /// (the 2026-11-17 report: ~30s perceived). Not part of the suite —
+    /// run explicitly for the delivery report:
+    ///   cargo test search_whale_timing -- --ignored --nocapture
+    #[test]
+    #[ignore = "manual timing evidence against real-world dirs; see spec-017 §七"]
+    fn search_whale_timing() {
+        let roots = [
+            r"C:\Users\wzzpk\Desktop\VibeCoding\MyProxy",
+            r"C:\Users\wzzpk\Desktop\VibeCoding\QuantTrading",
+            r"C:\Users\wzzpk\Desktop\VibeCoding\BayesAPP\WordsStudy",
+        ];
+        for r in roots {
+            let root = std::path::Path::new(r);
+            if !root.is_dir() {
+                println!("SKIP (absent): {r}");
+                continue;
+            }
+            let t0 = std::time::Instant::now();
+            let res = search_level(root, "zzz-no-such-needle-0832", false, 50, COLLECT_CAP)
+                .expect("search runs");
+            println!(
+                "{r}: {:?} hits={} truncated={}",
+                t0.elapsed(),
+                res.matches.len(),
+                res.truncated
+            );
         }
     }
 }

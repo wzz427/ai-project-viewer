@@ -44,7 +44,9 @@
   // (new) lookup.
   function go() {
     const text = input.trim();
-    if (!text || locateState.searching) return;
+    // No busy-gate: a submit during a flight SUPERSEDES it (§七 D22) —
+    // Enter must always do something.
+    if (!text) return;
     const res = locateState.results;
     if (res && res.query === text) {
       const row = res.matches[activeIndex];
@@ -132,6 +134,14 @@
         <p class="searching" data-locate-searching>
           <span class="spinner" aria-hidden="true"></span>
           {t("locate.searching")}
+          {#if locateState.totalTabs > 1}
+            <!-- §七 D23: the sweep names its progress — over a ~1.3M-entry
+                 open set the walk is real work; "3/7" reads as progress,
+                 not a hang. -->
+            <span class="count" data-locate-search-progress>
+              {locateState.searchedTabs}/{locateState.totalTabs}
+            </span>
+          {/if}
         </p>
       {/if}
       {#if locateState.results}
@@ -255,6 +265,10 @@
     gap: 8px;
     font-size: var(--text-xs);
     color: var(--text-muted);
+  }
+
+  .searching .count {
+    font-variant-numeric: tabular-nums;
   }
 
   .spinner {
