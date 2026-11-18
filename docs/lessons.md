@@ -409,3 +409,11 @@
 - **症状二**(同一守卫):`page.evaluate("s => rs.filter(e => e.name.includes(s)).length")` 忘传第二参——不报错,s=undefined,`includes(undefined)` 恒 false,**计数恒 0**;更险的是「必须为 0」的守卫(纯文文档零加载)因此**空真**。**修法**:带参必传参;「必须为 0」类守卫要配一条「必须非 0」的姊妹断言(本轮=打开样例后必现两 chunk),单边 0 断言永远防不住自己坏。
 - **判据**:e2e 拿资源/网络计数当证据时:①长会话先扩缓冲区;②任何恒 0 结论先在已知非 0 的场景对拍一次。
 - **出处**:spec-020 phase3 守卫首跑 FAIL 两连,2026-11-08(0.8.24,testing 0.8.24 行踩坑档同步)。
+
+### L32:关机屏上的 `git.exe - Application Error (0xc0000142)` 框=有程序在"会话正在关"的窗口里拉子进程;后台自动 spawn 必须过会话闸,CREATE_NO_WINDOW 拦不住它
+
+- **症状**:owner 2026-11-18 17:11 重启,「正在关闭 14 个应用」屏上骑一个 `git.exe - Application Error (0xc0000142)` 框关不掉,重启被卡(手机照片 17:12,System 1074=17:11:40 实锚)。
+- **机理**:0xc0000142(DLL 初始化失败)在「会话正在结束」窗口里对**任何新拉起的进程**确定性发生——加载器弹的系统错误框骑在关机屏上;`CREATE_NO_WINDOW` 只防控制台闪窗,**拦不住加载器的错误框**。ProjectViewer 的 watcher 链(文件变化→refreshGitNow→git_snapshot→spawn git)是这个窗口里最典型的自动触发者:关机时别的应用退出刷文件,正好喂事件。
+- **判据**:①见 0xc0000142 弹窗先问「谁在关机途中拉进程」,**别去修 git 本身**;②凡是「无人在场也会自动拉子进程」的后台路径,spawn 出口必须过会话闸(`GetSystemMetrics(SM_SHUTTINGDOWN)` 非零即拒绝;直 extern 零依赖,犯不着引 windows crate);用户动作触发的 spawn(run 按钮/移交/updater)不用加——关机途中没人点;③跳过时的错误**不得落入 NotFound 分支**,否则界面误报"git 未安装";④跳过态不落盘(本项目 git 快照零持久化,下次启动全量重读,无脏状态)。
+- **归因教训**:Windows 关机弹窗日志/Application Error/WER/RestartManager 常常全空或无父进程,**事发当场取不到归因**;正路=把自己的自动链修成"结构上不可能",复发即反证他方(本案第二嫌疑=ZCode,也常驻拉 git)。
+- **出处**:owner 2026-11-18 报障(照片);修复随 0.8.33(spec-022,git.rs spawn_gated);cargo +3 守卫封"拒绝且未建进程/Err 非 missing/真机非关机态常开"。
