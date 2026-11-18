@@ -320,6 +320,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0(施工中照出重复 import 即改,工具链自证)+vitest **177/177**(+3 三态:正常拼/空串退裸/unknown 退裸)+phase3 **166 PASS×3 连跑**(+1 `spec023_title_carries_version`:document.title 与仓库 tauri.conf.json version 全等;守卫首版误插 playwright with-block 外致 page 已关,挪进块内即绿——**零产品改动**);cargo/git-suite/freeze/update-watch/pdf 免跑(Rust 零改动/未触 git、updater、ActiveViewer、PDF 域) |
 | 版本 | 0.8.34 三处 bump;updates=exp 0.8.34(staged 0.8.33→publishing;exe UTF-16 核 0.8.34 FOUND/0.8.33 absent;json 111B 无 BOM);owner 验收路径(V3 人工):Update→自动重启→左上角标题栏=「AI Project Viewer 0.8.34」,任务栏悬停同显;以后每次升级数字自动跟 |
 
+#### 0.8.35 标题栏版本号返修:权限拒绝被静默吞,守卫的 DOM 代理照绿(2026-11-18,owner 截图报障「没看到版本号啊??」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | **0.8.34 发出去就是坏的**:原生 `getCurrentWindow().setTitle()` 是改动类窗口命令,`core:default` **不含** `core:window:allow-set-title`→调用被 Tauri v2 权限系统拒绝→`.catch(() => {})` 静默吞→原生标题栏不动;而 phase3 守卫断的 document.title 是纯 JS 不走权限,**照绿放行**(「同串双写=可断言代理」在权限边界分叉,lessons L33)。活体对照:0.8.34 探针枚举 pid 窗口=真主窗口光名字/DOM 带版本;**干预实验实锤**:加权限重建→原生主窗口当场='AI Project Viewer 0.8.34' |
+| 修三件 | ①capabilities/default.json 授 `core:window:allow-set-title`;②setTitle 失败不再静默——diagEvent 留痕;③守卫升级**双断言**:win32 GetWindowTextW 枚举 pid 窗口按「AI Project Viewer」前缀过滤(排除 -siw 垫窗/IME)直读**原生**标题=主断言,DOM 全等=副检(spec023_native_title_carries_version / spec023_dom_title_carries_version) |
+| 全档 | check 0/0+vitest 177/177+phase3 **167 PASS×3 连跑**(+1 净增:双守卫取代原 DOM 单守卫);cargo/git-suite/freeze/update-watch/pdf 免跑(Rust 逻辑零改动/未触其域) |
+| 版本 | 0.8.35 三处 bump;updates=exp 0.8.35(staged 0.8.34→publishing;exe UTF-16 核 0.8.35 FOUND/0.8.34 absent;json 135B 无 BOM);owner 验收路径:Update→自动重启→**左上角=「AI Project Viewer 0.8.35」**(这次原生标题直读断言过,不是 DOM 代理)+任务栏悬停同显 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

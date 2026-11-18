@@ -28,6 +28,10 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-18 · 0.8.35 标题栏版本号返修已发(0.8.34 发出去就是坏的),等 owner 再验(spec-023)
+
+- owner 截图报障「没看到版本号啊??」:0.8.34 标题栏光名字。**根因(干预实验实锤)**:原生 `setTitle` 是改动类窗口命令,`core:default` 不含 `core:window:allow-set-title`→被 Tauri v2 权限系统拒绝→`.catch(()=>{})` 静默吞;phase3 守卫断的 document.title 不走权限系统,**照绿放行**——「同串双写=可断言代理」在权限边界分叉(lessons L33)。修:①capabilities 授 set-title(加权限重建后探针当场翻转='AI Project Viewer 0.8.34');②失败 diagEvent 留痕不再静默;③守卫改 **win32 直读原生标题为主断言**(枚举 pid 窗口按名前缀过滤,排除 -siw 垫窗)+DOM 副检。全档:check 0/0+vitest 177/177+phase3 **167 PASS×3**(+1 净增);cargo/git-suite/freeze/update-watch 免跑。**0.8.35 已发**(exe UTF-16 核 0.8.35 FOUND/0.8.34 absent,json 135B 无 BOM)。账:spec-023 §四 D5+§六返修轮/INDEX/testing 0.8.35 行/architecture appTitle 行/V1.5 §197/handoff(本条)/lessons L33(独立 commit)。**下一动作=owner 再验**:Update→自动重启→左上角=「AI Project Viewer 0.8.35」(这次是原生标题直读断言过的)。
+
 ### 2026-11-18 · 0.8.34 标题栏版本号已发,等 owner 验收(spec-023)
 
 - owner 需求:「你这个软件我看还有一个版本号 0.8.33,我从来没见过这个版本号。你在软件左上角的名字旁边加一个版本号吧,这样能看到」。**名字定位**:应用名只存在于原生窗口标题栏左上角(tauri.conf `windows.title`),界面内无第二处——加的就是它。

@@ -4,6 +4,7 @@ Was a replay script expecting an app on :9222; formalized 2026-10-10 with
 the standard launcher (AIV_HIDDEN + off-screen + CDP). All process/window
 handling goes through aivlaunch (owner-isolation: PID-scoped only)."""
 import atexit
+import ctypes
 import json
 import os
 import shutil
@@ -2610,19 +2611,46 @@ with sync_playwright() as p:
           f"err={err_flagged} good={good_svg}")
     open_file("README.md")
 
-    # --- spec-023: the title bar carries the running version. D2:
-    # document.title is written in lockstep with the native setTitle call,
-    # so the DOM value stands in for the title-bar text CDP cannot read;
-    # expected version comes from the repo's tauri.conf.json (the same
-    # truth the publish script stamps).
+    # --- spec-023: the title bar carries the running version. The NATIVE
+    # title is the user-visible truth (0.8.34 shipped a bare title bar
+    # while the DOM twin looked right — setTitle was permission-denied and
+    # silently swallowed; 返修: the guard now reads the real window text
+    # via win32 and only treats the DOM value as a secondary check).
     conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "..", "..", "src-tauri", "tauri.conf.json")
     with open(conf_path, encoding="utf-8") as f:
         conf_version = json.load(f)["version"]
     want_title = f"AI Project Viewer {conf_version}"
-    check("spec023_title_carries_version",
+
+    def main_window_titles():
+        """Titles of the pid's windows that carry the app name — the real
+        main window (hidden or not), excluding the -siw launch trampoline
+        and IME helpers. Empty list = the setTitle never landed."""
+        user32 = ctypes.windll.user32
+        WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p,
+                                     ctypes.c_void_p)
+        out = []
+
+        def cb(hwnd, _):
+            owner = ctypes.c_ulong()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+            if owner.value == proc.pid:
+                buf = ctypes.create_unicode_buffer(256)
+                user32.GetWindowTextW(hwnd, buf, 256)
+                if buf.value.startswith("AI Project Viewer"):
+                    out.append(buf.value)
+            return True
+
+        user32.EnumWindows(WNDPROC(cb), 0)
+        return out
+
+    native_titles = main_window_titles()
+    check("spec023_native_title_carries_version",
+          native_titles == [want_title],
+          f"native={native_titles!r} want={want_title!r}")
+    check("spec023_dom_title_carries_version",
           page.title() == want_title,
-          f"title={page.title()!r} want={want_title!r}")
+          f"dom={page.title()!r} want={want_title!r}")
 
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

@@ -147,7 +147,7 @@ ProjectViewer/(仓库根)
 │       ├── services/avatarColor.ts(0.7.14:rootPath FNV-1a hash→8 色板稳定徽标色+首字母,spec-014 D3)
 │       ├── components/Icon.svelte(0.7.14:全应用唯一图标表——16 枚内联 SVG/2px 描边/currentColor,替换全部 Unicode/emoji 字形;FILE_ICONS 类型族映射消费 viewerType 路由,spec-014 D1/D4)+ services/viewerType.ts iconFamilyOf(类型图标族=查看器路由同源)
 │       ├── constants/treeVisibility.ts(可见性过滤;8 名单唯一真值在 Rust file_tree.rs;**spec-018 B 增派生临时显示**:openChainDirs/keepNamesUnder 由打开页签现算隐藏祖先链,visibleEntries 加 keepNames 豁免——零驻留,关页签即隐)
-│       └── services/shortcuts.ts(P0 快捷键中央 dispatcher,0.8.18 增 ctrl+l 定位)/ tauri.ts(invoke 封装)/ appTitle.ts(0.8.34:标题栏版本号纯函数 spec-023——App 启动取 app_version 拼「AI Project Viewer <版本>」同串写 document.title+原生 setTitle,版本真值=tauri.conf.json 零第四处;blank/unknown 退裸名)/
+│       └── services/shortcuts.ts(P0 快捷键中央 dispatcher,0.8.18 增 ctrl+l 定位)/ tauri.ts(invoke 封装)/ appTitle.ts(0.8.34:标题栏版本号纯函数 spec-023——App 启动取 app_version 拼「AI Project Viewer <版本>」同串写 document.title+原生 setTitle,版本真值=tauri.conf.json 零第四处;blank/unknown 退裸名;**0.8.35 返修:原生 setTitle 需 capabilities 显式授 core:window:allow-set-title——core:default 不含改动类窗口命令,0.8.34 权限拒绝被静默吞=标题栏没变而 DOM 守卫照绿,lessons L33;现失败 diagEvent 留痕+phase3 守卫 win32 直读原生标题**)/
 │           locatePath.ts(**spec-017 纯函数**:normalizeInput 引号/斜杠/大小写/盘符归一+matchProject 最长根前缀+resolveRel 逐段 ci 走查回真名+searchFallbackQuery+mergeProjectSearches 跨项目合并[页签序/合并后重截断,0.8.31],vitest 直测)/
 │           mdLinks.ts(**spec-018 纯函数**:resolveDocLink 把 markdown 内链/图片 href 归一为树同构规范 rel——剥锚点查询/percent 解码/`\` 分隔/`.` `..` 消解/`/` 根相对/逃逸根 null,MarkdownViewer 唯一消费点,vitest 直测)/
 │           treeSort.ts(显示序纯函数,§33–36)/ treeSort.test.ts(vitest)/ watcherIgnore.ts(§32 清单,与可见性分家;**Phase 9 起为 Rust watcher.rs 同款清单的 TS 侧镜像(注释互指,D8)**)/

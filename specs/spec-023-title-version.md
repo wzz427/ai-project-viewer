@@ -46,6 +46,7 @@
 | D2 同时写 document.title 与原生 setTitle | 原生标题 e2e 够不着(CDP 只见 DOM),document.title 同串写入=可断言代理;若 wry 自同步则 setTitle 冗余无害 | 只写其一 | 只写原生→守卫断不了;只写 DOM→原生标题栏(owner 看的地方)不保证变 |
 | D3 版本缺失/`unknown` 退回裸名 | 「unknown」上标题栏比没有更差;app_version 失败=.catch 静默,标题保持 index.html 原文 | 显示 unknown | 同左 |
 | D4 不在界面内(侧栏/设置页头)另加版本字样 | owner 指的是左上角名字=原生标题栏;界面内已有设置面板诊断行 | 界面内加 | 违反指令位置;多一处要过主题/布局/双语言的成本 |
+| D5(0.8.35 返修)原生 setTitle 必须显式授权 | `core:default` **不含** `core:window:allow-set-title`:0.8.34 该调用被权限系统拒绝且被静默 catch 吞掉,DOM 守卫照绿,原生标题栏没变(owner 截图实锤);授权+失败 diagEvent+守卫改直读原生窗口三件套封口 | 依赖"document.title 会自动同步到原生标题" | wry 是否同步未验证,且守卫只认 DOM 时同步与否都测不出真窗口——D2 的代理假设在权限边界分叉(lessons L33) |
 
 **同一条依据已同步写进它管的代码头注释**(依据和它管的东西不许分家)。
 
@@ -64,3 +65,4 @@
 - 测试:check 0/0+vitest **177/177**(+3 三态)+phase3 **166 PASS×3 连跑**(+1 `spec023_title_carries_version`,守卫首版误插 playwright with-block 外致 page 已关,挪进块内即绿——零产品改动);cargo/git-suite/freeze/update-watch 免跑(Rust 零改动/未触 git、updater、ActiveViewer 域)。
 - 发布:0.8.34 三处 bump;staged 0.8.33→publishing;exe UTF-16 核 0.8.34 FOUND/0.8.33 absent;update.json 111B 无 BOM。
 - **下一动作=owner 验收(V3 人工)**:Update 到 0.8.34(自动重启)→抬头看左上角标题栏=「AI Project Viewer 0.8.34」,任务栏悬停同显;以后每次升级数字自动跟。
+- **返修轮 0.8.35(2026-11-18 当日,owner 截图「没看到版本号啊??」)**:0.8.34 的版本号**发出去就是坏的**——原生标题栏光名字。根因(干预实验实锤):`setTitle` 是改动类窗口命令,`core:default` 不含 `core:window:allow-set-title`,调用被权限系统拒绝,又被 `.catch(() => {})` 静默吞;phase3 守卫断的 document.title 不走权限系统,照绿放行(D2 的代理假设在权限边界分叉,lessons L33)。修三件:①capabilities/default.json 授 `core:window:allow-set-title`(加权限重建后探针当场翻转:原生主窗口='AI Project Viewer 0.8.34');②setTitle 失败不再静默,diagEvent 留痕;③守卫改**双断言**——win32 GetWindowTextW 枚举 pid 窗口直读**原生**标题为主断言(按「AI Project Viewer」前缀过滤,排除 -siw 垫窗/IME),DOM 降为副检。全档:check 0/0+vitest 177/177+phase3 **167 PASS×3 连跑**(+1 净增:native/dom 两守卫取代原单守卫);cargo/git-suite/freeze/update-watch 免跑。**0.8.35 已发**(exe UTF-16 核 0.8.35 FOUND/0.8.34 absent,json 135B 无 BOM)。**下一动作=owner 再验**:Update 到 0.8.35→左上角=「AI Project Viewer 0.8.35」。

@@ -7,7 +7,7 @@
   import SettingsPanel from "$lib/components/SidebarPanels/SettingsPanel.svelte";
   import EmptyState from "$lib/components/EmptyState/EmptyState.svelte";
   import ToastHost from "$lib/components/Toast/ToastHost.svelte";
-  import { recordStartup, recordBuildTime } from "$lib/stores/diagnosticsStore.svelte";
+  import { recordStartup, recordBuildTime, diagEvent } from "$lib/stores/diagnosticsStore.svelte";
   import { projectState, activeProject } from "$lib/stores/projectStore.svelte";
   import { toast } from "$lib/stores/toastStore.svelte";
   import { t, tf } from "$lib/i18n/t.svelte";
@@ -301,11 +301,19 @@
     // the taskbar hover shows it too). document.title is written in
     // lockstep with the native setTitle so e2e can assert the same string
     // (D2); a failed lookup leaves index.html's plain title in place (D3).
+    // 0.8.34 返修: setTitle is a MUTATING window command — core:default
+    // does NOT carry core:window:allow-set-title, so the call was denied
+    // and the silent catch below shipped a bare title bar while the DOM
+    // twin looked right (owner screenshot). The permission is now granted
+    // in capabilities/default.json AND the failure surfaces in the
+    // diagnostics ring instead of vanishing.
     invoke<string>("app_version")
       .then((v) => {
         const title = titleWithVersion("AI Project Viewer", v);
         document.title = title;
-        void getCurrentWindow().setTitle(title).catch(() => {});
+        void getCurrentWindow().setTitle(title).catch((e) => {
+          diagEvent(`title-set-failed ${String(e)}`);
+        });
       })
       .catch(() => {});
 
