@@ -2610,5 +2610,19 @@ with sync_playwright() as p:
           f"err={err_flagged} good={good_svg}")
     open_file("README.md")
 
+    # --- spec-023: the title bar carries the running version. D2:
+    # document.title is written in lockstep with the native setTitle call,
+    # so the DOM value stands in for the title-bar text CDP cannot read;
+    # expected version comes from the repo's tauri.conf.json (the same
+    # truth the publish script stamps).
+    conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "..", "..", "src-tauri", "tauri.conf.json")
+    with open(conf_path, encoding="utf-8") as f:
+        conf_version = json.load(f)["version"]
+    want_title = f"AI Project Viewer {conf_version}"
+    check("spec023_title_carries_version",
+          page.title() == want_title,
+          f"title={page.title()!r} want={want_title!r}")
+
 print(json.dumps(results, indent=1, ensure_ascii=False))
 print("VERDICT:", "PASS" if not FAIL else f"FAIL ({len(FAIL)}): {FAIL}")

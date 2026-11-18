@@ -28,6 +28,11 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-18 · 0.8.34 标题栏版本号已发,等 owner 验收(spec-023)
+
+- owner 需求:「你这个软件我看还有一个版本号 0.8.33,我从来没见过这个版本号。你在软件左上角的名字旁边加一个版本号吧,这样能看到」。**名字定位**:应用名只存在于原生窗口标题栏左上角(tauri.conf `windows.title`),界面内无第二处——加的就是它。
+- 实现(spec-023,D1–D4):`services/appTitle.ts` 纯函数+App 启动取 `app_version` 拼「AI Project Viewer <版本>」**同串**写 document.title+原生 setTitle(版本真值=tauri.conf.json,发版自动跟随零第四处;blank/unknown 退裸名;任务栏悬停同显)。全档:check 0/0+vitest **177/177**(+3)+phase3 **166 PASS×3**(+1 spec023_title_carries_version;守卫首版误插 playwright with-block 外,挪进块内即绿,零产品改动);cargo/git-suite/freeze/update-watch 免跑。**0.8.34 已发**(staged 0.8.33→publishing;exe UTF-16 核 0.8.34 FOUND/0.8.33 absent,json 111B 无 BOM)。账:spec-023 §六/INDEX(InTest)/testing 0.8.34 行/V1.5 §197/architecture 代码地图/handoff(本条)。**下一动作=owner 验收(V3 人工)**:Update→自动重启→左上角=「AI Project Viewer 0.8.34」+任务栏悬停同显;以后升级数字自动跟。
+
 ### 2026-11-18 · 0.8.33 关机弹窗防护(会话结束不拉 git)已发,等 owner 验收(spec-022)
 
 - owner 报障(手机照片):17:12 重启时 `git.exe - Application Error (0xc0000142)` 弹窗骑在"正在关闭 14 个应用"屏上关不掉。**诊断(spec-022 §一)**:0xc0000142=会话正在关的窗口里有人拉起 git.exe 的确定性症状(System 1074=17:11:40 发起重启,时间线吻合);本项目存在全机唯一的"文件变化→自动拉 git"后台链(watcher→refreshGitNow→git_snapshot→spawn)且零关机闸;归因未实锤(应用数据目录当日零写入,在跑与否无从证明;ZCode 亦在关机名单且常拉 git;MyProxy 应用排除——git 调用全在 tools/tests);另一 AI 的"17:11:38 保存"复核不到来源,不作依据。判:归因不闭环也修,修完复发即反证他方。

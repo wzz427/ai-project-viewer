@@ -16,6 +16,7 @@
     onShortcut,
   } from "$lib/services/shortcuts";
   import { startupElapsedMs } from "$lib/services/tauri";
+  import { titleWithVersion } from "$lib/services/appTitle";
   import { invoke } from "@tauri-apps/api/core";
   import {
     addProjectFromPath,
@@ -294,6 +295,19 @@
 
     startupElapsedMs().then(recordStartup).catch(() => {});
     invoke<number>("build_timestamp").then(recordBuildTime).catch(() => {});
+
+    // spec-023: the app name sits alone in the native title bar — put the
+    // running version next to it (owner 2026-11-18「从来没见过这个版本号」;
+    // the taskbar hover shows it too). document.title is written in
+    // lockstep with the native setTitle so e2e can assert the same string
+    // (D2); a failed lookup leaves index.html's plain title in place (D3).
+    invoke<string>("app_version")
+      .then((v) => {
+        const title = titleWithVersion("AI Project Viewer", v);
+        document.title = title;
+        void getCurrentWindow().setTitle(title).catch(() => {});
+      })
+      .catch(() => {});
 
     return () => unwire();
   });

@@ -312,6 +312,14 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 全档 | check 0/0+vitest 174/174+cargo **149/149**(+3:gate 拒绝且未建进程/Err 非 missing 分支/真机非关机态 gate 常开)+**git-suite 33/33×2 连跑**(凡动 git.rs 必跑)+**watcher-freeze-guard PASS**(0/83 无响应,git_snapshot 路径发版前必跑)+**phase3 165 PASS×2 连跑**零失败;freeze/update-watch/pdf 免跑(未触 ActiveViewer/updater/PDF) |
 | 版本 | 0.8.33 三处 bump;updates=exp 0.8.33(staged 0.8.32→publishing;exe UTF-16 核 0.8.33 FOUND/0.8.32 absent;json 144B 无 BOM);**owner 验收路径=V4(人工,无法程序化复现关机)**:软件开着+激活项目有文件活动时真实重启一次→不再出现 git.exe 错误框;平时 git 徽标/面板/刷新照旧;若重启仍弹 git.exe 错误框→归属 ZCode 等他方,回报即查 |
 
+#### 0.8.34 标题栏版本号:左上角名字旁边显示版本(2026-11-18,owner 需求「你在软件左上角的名字旁边加一个版本号吧,这样能看到」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 实现 | `services/appTitle.ts` 纯函数 `titleWithVersion`(spec-023 D3:blank/unknown 退裸名)+App.svelte onMount 取 `app_version` 拼「AI Project Viewer <版本>」**同串**写 `document.title`+原生 `getCurrentWindow().setTitle`(D2:DOM 可断言=原生标题代理;任务栏悬停同显);tauri.conf 静态标题不动(D1 零第四处版本号,发版自动跟随) |
+| 全档 | check 0/0(施工中照出重复 import 即改,工具链自证)+vitest **177/177**(+3 三态:正常拼/空串退裸/unknown 退裸)+phase3 **166 PASS×3 连跑**(+1 `spec023_title_carries_version`:document.title 与仓库 tauri.conf.json version 全等;守卫首版误插 playwright with-block 外致 page 已关,挪进块内即绿——**零产品改动**);cargo/git-suite/freeze/update-watch/pdf 免跑(Rust 零改动/未触 git、updater、ActiveViewer、PDF 域) |
+| 版本 | 0.8.34 三处 bump;updates=exp 0.8.34(staged 0.8.33→publishing;exe UTF-16 核 0.8.34 FOUND/0.8.33 absent;json 111B 无 BOM);owner 验收路径(V3 人工):Update→自动重启→左上角标题栏=「AI Project Viewer 0.8.34」,任务栏悬停同显;以后每次升级数字自动跟 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |
