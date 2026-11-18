@@ -28,6 +28,11 @@
 
 ## 一、现在在哪(最新在上)
 
+### 2026-11-18 · 关机弹窗诊断毕(spec-022 Draft):git.exe 0xc0000142 卡重启,方案落纸面等 owner 确认
+
+- owner 报障(手机照片):17:12 重启时 `git.exe - Application Error (0xc0000142)` 弹窗骑在"正在关闭 14 个应用"屏上关不掉。**诊断结论(spec-022 §一)**:0xc0000142=会话正在关的窗口里有人拉起 git.exe 的确定性症状(System 1074=17:11:40 发起重启,时间线吻合);本项目存在全机唯一的"文件变化→自动拉 git"后台链(watcher→refreshGitNow→git_snapshot→spawn),**且无任何关机闸**;归因 ProjectViewer 可能但未实锤(数据目录当日零写入,开机在跑与否无从证明;ZCode 亦在关机名单且常拉 git;MyProxy 应用退出不拉 git,基本排除);另一 AI 的"17:11:38 保存"复核不到来源,不作依据。**判:归因不闭环也修**——关机窗口自动拉子进程是确定性缺陷,修完若复发即反证他方。
+- 拟修(spec-022 §四,D1–D4):git 唯一出口 `spawn()` 一处闸,Windows 下 `GetSystemMetrics(SM_SHUTTINGDOWN)` 非零→跳过拉起返回普通 Err(非 missing),零新依赖;run.rs/handoff/updater 不加闸(全是用户动作触发)。**下一动作=owner 确认方案→开工**(改动 git.rs 一处+cargo 3 测试,半天内;发版走体验渠道常设授权)。
+
 ### 2026-11-17 · 0.8.32 定位搜索提速(并行枚举+重试即取代+进度计数)已发,等 owner Update 验收
 
 - owner 报障(截图)「这个文件搜索特别慢,大概得半分钟,搜个文件不至于吧?肯定是可以优化的」。**取证(实盘计量)**:真实打开集 7 页签按搜索同规则全量枚举 **128 万条**——MyProxy 83.8万(state/+data/ 运行时数据)、QuantTrading 35.5万(test_outputs/)、WordsStudy 5.2万(.artifacts/),全是**机器生成数据目录,不在隐藏表**(表只收 9 个通用名);单线程 27s 与"半分钟"吻合。0.8.31 跨项目 sweep 是第一个全量枚举者,撞上了。gitignore 路不通(三大重仓仅零头被 ignore,省不到 2%)→正解=**纯提速,结果语义零变化**(owner 已拍板"优化")。
