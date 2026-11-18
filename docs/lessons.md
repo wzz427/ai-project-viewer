@@ -417,3 +417,10 @@
 - **判据**:①见 0xc0000142 弹窗先问「谁在关机途中拉进程」,**别去修 git 本身**;②凡是「无人在场也会自动拉子进程」的后台路径,spawn 出口必须过会话闸(`GetSystemMetrics(SM_SHUTTINGDOWN)` 非零即拒绝;直 extern 零依赖,犯不着引 windows crate);用户动作触发的 spawn(run 按钮/移交/updater)不用加——关机途中没人点;③跳过时的错误**不得落入 NotFound 分支**,否则界面误报"git 未安装";④跳过态不落盘(本项目 git 快照零持久化,下次启动全量重读,无脏状态)。
 - **归因教训**:Windows 关机弹窗日志/Application Error/WER/RestartManager 常常全空或无父进程,**事发当场取不到归因**;正路=把自己的自动链修成"结构上不可能",复发即反证他方(本案第二嫌疑=ZCode,也常驻拉 git)。
 - **出处**:owner 2026-11-18 报障(照片);修复随 0.8.33(spec-022,git.rs spawn_gated);cargo +3 守卫封"拒绝且未建进程/Err 非 missing/真机非关机态常开"。
+
+### L33:「同串双写,拿 DOM 那条当断言代理」在权限边界处分叉——Tauri v2 原生 setTitle 要单独授权(core:default 不含 set-title),拒绝再被静默 catch 吞掉,守卫绿着把坏版发出去了
+
+- **症状**:0.8.34 发版当天 owner 截图「没看到版本号啊??」——原生标题栏光名字;phase3 守卫(document.title 全等)**PASS**,我据此报了"已发"。活体探针分窗口枚举:真主窗口标题=光名字,DOM 标题=带版本,两条通道各说各话。
+- **机理**:document.title 是纯 JS 改网页,零门槛;原生 `getCurrentWindow().setTitle()` 走 Tauri IPC **权限系统**,`core:default` **不含** `core:window:allow-set-title`(改动类窗口命令默认全不放行)→ 调用被拒→`.catch(() => {})` 静默吞→原生标题不动。「同串双写=可断言代理」这个设计假设只对无权限那条腿成立,代理与真值在权限边界处分叉,守卫恰好只盯着代理。
+- **判据**:①凡「双写/代理断言」,必问两条通道**机制是否相同**——差一个权限、一层 IPC 就会分叉;守卫必须直断**用户真看到的那个**(本案=win32 GetWindowTextW 枚举 pid 窗口直读原生标题,DOM 断言降为副检);②Tauri v2 每个 window API 方法**独立授权**,改动类(set-title/set-size/set-position…)不在 default 包里,新用必查 capabilities/default.json;③`.catch(() => {})` 是把守卫盲区焊死的帮凶——后台失败的 catch 至少 diagEvent 留痕,别让"绿守卫"替你作证;④探针识别窗口别拿"第一个可见窗"当主窗——隐藏启动下那是 `-siw` 垫窗,要按标题前缀过滤。
+- **出处**:owner 2026-11-18 截图报障(0.8.34 标题栏无版本);修复随 0.8.35(spec-023 返修轮:capabilities 授 set-title+失败 diagEvent+守卫改 native/dom 双断言);干预实验实锤=加权限重建后原生标题当场翻转带版本。
