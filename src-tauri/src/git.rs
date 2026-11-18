@@ -5,8 +5,12 @@
 //! `-c core.quotepath=false`, diff-only `--no-ext-diff --no-textconv`),
 //! the §65 unified basis `git -C <GitRoot>` (all output relative to the
 //! git root, then scope-filtered and converted to PROJECT-relative paths
-//! before crossing the bridge), and a hard timeout so a hung repo can
-//! never wedge the UI. `git_diff`'s incoming rel is validated component-
+//! before crossing the bridge), a hard timeout so a hung repo can
+//! never wedge the UI, and a session-end gate so no refresh can spawn
+//! git while Windows is shutting down (spec-022: a process started in
+//! that window fails DLL init with 0xc0000142 and its OS error dialog
+//! pins the shutdown screen, blocking restart). `git_diff`'s incoming
+//! rel is validated component-
 //! wise against `..` escapes (§144 spirit): staged deletions have no file
 //! on disk to canonicalize, so the check happens on the path itself.
 
@@ -54,14 +58,48 @@ fn no_console_flash(cmd: &mut Command) {
 #[cfg(not(target_os = "windows"))]
 fn no_console_flash(_cmd: &mut Command) {}
 
-struct CappedOutput {
-    text: String,
-    truncated: bool,
-    /// Number of '\n' in `text` (the guard's own counter, not a re-count).
-    lines: usize,
+/// spec-022 D2: SM_SHUTTINGDOWN (0x2000) is nonzero exactly while the
+/// session is ending — the same window in which any freshly started
+/// process fails DLL init with 0xc0000142, and the OS error dialog for
+/// that failure sits on top of the shutdown screen and blocks restart
+/// (owner 2026-11-18: a git.exe dialog pinned the "closing 14 apps"
+/// screen). The watcher keeps firing while other apps flush files during
+/// close, so the ONLY reliable gate is here, at the spawn itself. Zero
+/// deps: one extern beats pulling the `windows` crate for a single call.
+#[cfg(target_os = "windows")]
+fn session_ending() -> bool {
+    extern "system" {
+        fn GetSystemMetrics(nindex: i32) -> i32;
+    }
+    const SM_SHUTTINGDOWN: i32 = 0x2000;
+    unsafe { GetSystemMetrics(SM_SHUTTINGDOWN) != 0 }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn session_ending() -> bool {
+    false
+}
+
+/// spec-022 D3: a plain error — NOT `NotFound`, so the skip can never
+/// surface as §153's "git is not installed" wording. The snapshot lands
+/// in the error state and dies with the UI mid-shutdown; nothing is
+/// persisted (§20), so the next launch re-reads git truth from scratch.
+fn session_ending_error() -> std::io::Error {
+    std::io::Error::other("session ending; git spawn skipped")
 }
 
 fn spawn(args: &[String]) -> std::io::Result<Child> {
+    spawn_gated(session_ending, args)
+}
+
+/// spec-022 D1: every git child in this app starts here, so one gate
+/// closes them all (status/diff/log — none of them is worth a restart-
+/// blocking dialog). The gate is a parameter purely so tests can prove
+/// the blocked branch without shutting anything down (spec-022 V1).
+fn spawn_gated(gate: fn() -> bool, args: &[String]) -> std::io::Result<Child> {
+    if gate() {
+        return Err(session_ending_error());
+    }
     let mut cmd = Command::new("git");
     cmd.args(args)
         .stdin(Stdio::null())
@@ -69,6 +107,13 @@ fn spawn(args: &[String]) -> std::io::Result<Child> {
         .stderr(Stdio::piped());
     no_console_flash(&mut cmd);
     cmd.spawn()
+}
+
+struct CappedOutput {
+    text: String,
+    truncated: bool,
+    /// Number of '\n' in `text` (the guard's own counter, not a re-count).
+    lines: usize,
 }
 
 fn io_kind_missing(e: &std::io::Error) -> bool {
@@ -1050,6 +1095,33 @@ mod tests {
             &["status", "--porcelain=v2", "--branch"],
         ))
         .expect("git status")
+    }
+
+    // ---- spec-022: shutdown spawn gate ----
+
+    #[test]
+    fn spawn_gate_refuses_when_session_ending() {
+        // V1: gate=true → plain Err returned BEFORE any process exists
+        // (the gate is the first statement; this Err can only mean no
+        // spawn was attempted).
+        let err = spawn_gated(|| true, &["status".to_string()])
+            .expect_err("must refuse to spawn");
+        assert!(matches!(err.kind(), std::io::ErrorKind::Other));
+        assert!(err.to_string().contains("session ending"));
+    }
+
+    #[test]
+    fn spawn_gate_error_is_not_git_missing() {
+        // V2: the skip must never read as "git is not installed" (§153).
+        assert!(!io_kind_missing(&session_ending_error()));
+    }
+
+    #[test]
+    fn session_ending_is_false_on_a_running_machine() {
+        // V3: outside shutdown the gate stays open — the normal refresh
+        // path is bit-for-bit unchanged (real spawns are covered by every
+        // other test in this module going through run_git).
+        assert!(!session_ending());
     }
 
     // ---- pure parser (V1) ----

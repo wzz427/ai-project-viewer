@@ -28,10 +28,11 @@
 
 ## 一、现在在哪(最新在上)
 
-### 2026-11-18 · 关机弹窗诊断毕(spec-022 Draft):git.exe 0xc0000142 卡重启,方案落纸面等 owner 确认
+### 2026-11-18 · 0.8.33 关机弹窗防护(会话结束不拉 git)已发,等 owner 验收(spec-022)
 
-- owner 报障(手机照片):17:12 重启时 `git.exe - Application Error (0xc0000142)` 弹窗骑在"正在关闭 14 个应用"屏上关不掉。**诊断结论(spec-022 §一)**:0xc0000142=会话正在关的窗口里有人拉起 git.exe 的确定性症状(System 1074=17:11:40 发起重启,时间线吻合);本项目存在全机唯一的"文件变化→自动拉 git"后台链(watcher→refreshGitNow→git_snapshot→spawn),**且无任何关机闸**;归因 ProjectViewer 可能但未实锤(数据目录当日零写入,开机在跑与否无从证明;ZCode 亦在关机名单且常拉 git;MyProxy 应用退出不拉 git,基本排除);另一 AI 的"17:11:38 保存"复核不到来源,不作依据。**判:归因不闭环也修**——关机窗口自动拉子进程是确定性缺陷,修完若复发即反证他方。
-- 拟修(spec-022 §四,D1–D4):git 唯一出口 `spawn()` 一处闸,Windows 下 `GetSystemMetrics(SM_SHUTTINGDOWN)` 非零→跳过拉起返回普通 Err(非 missing),零新依赖;run.rs/handoff/updater 不加闸(全是用户动作触发)。**下一动作=owner 确认方案→开工**(改动 git.rs 一处+cargo 3 测试,半天内;发版走体验渠道常设授权)。
+- owner 报障(手机照片):17:12 重启时 `git.exe - Application Error (0xc0000142)` 弹窗骑在"正在关闭 14 个应用"屏上关不掉。**诊断(spec-022 §一)**:0xc0000142=会话正在关的窗口里有人拉起 git.exe 的确定性症状(System 1074=17:11:40 发起重启,时间线吻合);本项目存在全机唯一的"文件变化→自动拉 git"后台链(watcher→refreshGitNow→git_snapshot→spawn)且零关机闸;归因未实锤(应用数据目录当日零写入,在跑与否无从证明;ZCode 亦在关机名单且常拉 git;MyProxy 应用排除——git 调用全在 tools/tests);另一 AI 的"17:11:38 保存"复核不到来源,不作依据。判:归因不闭环也修,修完复发即反证他方。
+- 实现(spec-022 §四,D1–D4):git.rs `spawn_gated` 会话闸——Windows `GetSystemMetrics(SM_SHUTTINGDOWN)` 非零即拒绝拉起(全部 git 子进程唯一出口一处闸;零新依赖;Err 非 NotFound 不误报"git 未安装";§20 零持久化=下次启动全量重读无脏状态);run.rs/handoff/updater 不加闸(D4 全用户动作触发)。全档:check 0/0+vitest 174/174+cargo **149/149**(+3)+git-suite **33/33×2**+watcher-freeze-guard **PASS**+phase3 **165 PASS×2**。**0.8.33 已发**(staged 0.8.32→publishing;exe UTF-16 核 0.8.33 FOUND/0.8.32 absent,json 144B 无 BOM)。账:spec-022 §六/INDEX(InTest)/testing 0.8.33 行/V1.5 §197/architecture 代码地图/handoff(本条)/lessons L32(独立 commit)。
+- **下一动作=owner 验收(V4 人工,关机无法程序化复现)**:Update 到 0.8.33 后,**下次重启时软件开着、激活项目最好正有文件活动**(如 MyProxy 页签开着)→不再出现 git.exe 错误框;平时 git 徽标/面板/刷新照旧。**若重启仍弹 git.exe 错误框→归属 ZCode 等他方(排除法闭环),说一声即接着查。**
 
 ### 2026-11-17 · 0.8.32 定位搜索提速(并行枚举+重试即取代+进度计数)已发,等 owner Update 验收
 

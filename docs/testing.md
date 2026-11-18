@@ -303,6 +303,15 @@ AppliedDPI 120 / width=1536 模拟最大化)用于一切几何断言与宽屏场
 | 视觉 | 反馈行 k/n 计数 glacier 截图视觉模型 PASS(实拍 2/2,转环+文字+计数无重叠无裁切) |
 | 版本 | 0.8.32 三处 bump;updates=exp 0.8.32(exe UTF-16 核 0.8.32 FOUND/0.8.31 absent;json 123B 无 BOM);owner 验收路径=Update→自动重启→①重放报障场景:开着多项目搜一个哪都没有的名字→反馈行显示 k/n 且几秒内出「所有已打开的项目里都没有匹配」;②搜索中途直接改词再回车→立刻按新词搜,不再"按了没反应";③原有定位/搜索行为照旧 |
 
+#### 0.8.33 关机弹窗防护:会话结束不再拉 git(2026-11-18,owner 报障「重启时 Git 窗口关不掉」;已发体验渠道待验收)
+
+| 档 | 结果 |
+|---|---|
+| 根因 | **0xc0000142=关机窗口拉子进程的确定性症状**:System 1074=17:11:40 发起重启,17:12 关机屏上骑 `git.exe - Application Error (0xc0000142)` 框;本项目存在全机唯一「文件变化→自动拉 git」后台链(watcher→refreshGitNow→git_snapshot→spawn)且零关机闸——MyProxy 应用也在被关名单里,退出刷文件即触发。归因未实锤(应用数据目录当日零写入,在跑与否无从证明;ZCode 亦在关机名单且常拉 git;MyProxy 应用排除——git 调用全在 tools/tests);另一 AI「17:11:38 保存」复核不到来源,不作依据。判:归因不闭环也修,修完复发即反证他方 |
+| 实现 | git.rs 一处:spawn() 拆 spawn_gated(gate, args)(spec-022 D1 全部 git 子进程唯一出口);gate=session_ending()=Windows 直 extern GetSystemMetrics(SM_SHUTTINGDOWN=0x2000),非零→返回普通 Err(D3 非 NotFound,绝不误报"git 未安装";§20 零持久化→下次启动全量重读,无脏状态);零新依赖;判定→spawn 微秒级竞态残留记档 spec-022 §四 |
+| 全档 | check 0/0+vitest 174/174+cargo **149/149**(+3:gate 拒绝且未建进程/Err 非 missing 分支/真机非关机态 gate 常开)+**git-suite 33/33×2 连跑**(凡动 git.rs 必跑)+**watcher-freeze-guard PASS**(0/83 无响应,git_snapshot 路径发版前必跑)+**phase3 165 PASS×2 连跑**零失败;freeze/update-watch/pdf 免跑(未触 ActiveViewer/updater/PDF) |
+| 版本 | 0.8.33 三处 bump;updates=exp 0.8.33(staged 0.8.32→publishing;exe UTF-16 核 0.8.33 FOUND/0.8.32 absent;json 144B 无 BOM);**owner 验收路径=V4(人工,无法程序化复现关机)**:软件开着+激活项目有文件活动时真实重启一次→不再出现 git.exe 错误框;平时 git 徽标/面板/刷新照旧;若重启仍弹 git.exe 错误框→归属 ZCode 等他方,回报即查 |
+
 ### 4.10 Phase 7 Git Review(2026-10-10,spec-007;全部通过)
 
 | 档 | 结果 |

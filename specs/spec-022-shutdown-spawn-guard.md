@@ -1,7 +1,7 @@
 # SPEC-022-关机弹窗(重启时冒出的 git.exe 错误框关不掉)
 
-> 状态:Draft —— 真值在 specs/INDEX.md 那一行
-> 创建:2026-11-18;Pre-Draft 讨论 = owner 报障(带手机照片)+另一 AI 初判,本 SPEC §一为复核结论
+> 状态:见 specs/INDEX.md 那一行(唯一真值,本页不抄)
+> 创建:2026-11-18;Pre-Draft 讨论 = owner 报障(带手机照片)+另一 AI 初判,本 SPEC §一为复核结论;同日 owner 拍板「修(推荐)」后开工
 
 ## 〇、值不值得做(两栏三出口)
 
@@ -75,11 +75,15 @@
 
 | R# | V# | 测法 | 所需夹具 | 状态 |
 |---|---|---|---|---|
-| R1 | V1 | cargo 单测:判定注入 true → `spawn` 返回 Err(把"是否闸"从"怎么闸"里拆出的纯函数) | 无 | ⚠(方案) |
-| R1 | V2 | cargo 单测:该 Err 的 kind≠NotFound(`io_kind_missing` 返回 false) | 无 | ⚠(方案) |
-| R2 | V3 | cargo 既有 146 项全绿 + `session_ending()` 真机调用(非关机态)=false | 无 | ⚠(方案) |
-| R1 | V4 | 真实重启一次(owner 下次关机顺带观察) | 应用开着+项目有文件活动 | ⚠(方案) |
+| R1 | V1 | cargo 单测:判定注入 true → `spawn` 返回 Err(把"是否闸"从"怎么闸"里拆出的纯函数) | 无 | ✓ |
+| R1 | V2 | cargo 单测:该 Err 的 kind≠NotFound(`io_kind_missing` 返回 false) | 无 | ✓ |
+| R2 | V3 | cargo 既有 146 项全绿 + `session_ending()` 真机调用(非关机态)=false | 无 | ✓ |
+| R1 | V4 | 真实重启一次(owner 下次关机顺带观察) | 应用开着+项目有文件活动 | 待 owner(0.8.33 验收路径) |
 
 ## 六、变更与验收记录
 
-(空;开工后记)
+- **2026-11-18 owner 拍板「修(推荐)」→同日施工毕→0.8.33 已发体验渠道(InTest)**。
+- 实现:git.rs `spawn()` 拆 `spawn_gated(gate, args)`(D1 唯一出口一处闸);`session_ending()` Windows 直 extern `GetSystemMetrics(SM_SHUTTINGDOWN=0x2000)`,非 Windows 恒 false(D2 零依赖);拒绝时返回 `io::Error::other("session ending; git spawn skipped")`(D3 非 NotFound);模块头注释补会话闸一句。run.rs/handoff/updater 未动(D4 用户动作触发)。
+- 测试:cargo **149/149**(+3:spawn_gate_refuses_when_session_ending[V1]/spawn_gate_error_is_not_git_missing[V2]/session_ending_is_false_on_a_running_machine[V3])+check 0/0+vitest 174/174+git-suite **33/33×2**(凡动 git.rs 必跑)+watcher-freeze-guard **PASS**(0/83,git_snapshot 路径发版前必跑)+phase3 **165 PASS×2** 零失败;freeze/update-watch/pdf 免跑(未触其域)。
+- 发布:0.8.33 三处 bump;staged 0.8.32→publishing;exe UTF-16 核 0.8.33 FOUND/0.8.32 absent;update.json 144B 无 BOM。
+- **下一动作=owner 验收(V4 人工)**:软件开着+激活项目有文件活动时真实重启一次→不再出现 git.exe 错误框;平时 git 徽标/面板/刷新照旧。**若重启仍弹 git.exe 错误框→归属 ZCode 等他方(排除法闭环),回报即查。**
